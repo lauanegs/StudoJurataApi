@@ -11,7 +11,11 @@ import lombok.Setter;
 @EqualsAndHashCode(callSuper = true)
 public class Aluno extends BaseEntity {
 
-    @ManyToOne
+    /**
+     * 1 Pessoa = no máximo 1 Aluno.
+     */
+    @OneToOne
+    @JoinColumn(unique = true, nullable = false)
     private Pessoa pessoa;
 
     private String matricula;

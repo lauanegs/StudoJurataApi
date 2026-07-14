@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import studojurata_api.model.enums.Sexo;
+import studojurata_api.model.enums.StatusAtivoInativo;
 
 @Entity
 @Getter
@@ -14,10 +16,17 @@ import lombok.Setter;
 public class Pessoa extends BaseEntity {
 
     private String nome;
+
+    @Column(unique = true, nullable = false, length = 14)
     private String cpf;
+
     private LocalDate dataNascimento;
     private String telefone;
     private String email;
-    private String sexo;
-    private String status;
+
+    @Enumerated(EnumType.STRING)
+    private Sexo sexo;
+
+    @Enumerated(EnumType.STRING)
+    private StatusAtivoInativo status;
 }
