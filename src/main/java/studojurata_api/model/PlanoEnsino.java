@@ -17,8 +17,11 @@ public class PlanoEnsino extends BaseEntity {
     private TurmaDisciplina turmaDisciplina;
 
     private String titulo;
-    private String descricao;
-    private String objetivos;
+    private String curso;
+    private Integer cargaHoraria;
+    private String periodoLetivo;
+    private String ementa;
+    private String objetivoGeral;
     private String metodologia;
     private LocalDate dataInicio;
     private LocalDate dataFim;
