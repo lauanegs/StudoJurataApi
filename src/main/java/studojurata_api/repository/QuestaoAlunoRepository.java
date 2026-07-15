@@ -13,4 +13,7 @@ public interface QuestaoAlunoRepository extends JpaRepository<QuestaoAluno, Long
     Optional<QuestaoAluno> findFirstBySimuladoAlunoIdAndQuestaoId(Long simuladoAlunoId, Long questaoId);
 
     boolean existsBySimuladoAlunoIdAndQuestaoId(Long simuladoAlunoId, Long questaoId);
+
+    /** Usado pelo módulo de IA (RecomendacaoService, item 7.4) para apurar desempenho por conteúdo. */
+    List<QuestaoAluno> findBySimuladoAluno_AlunoId(Long alunoId);
 }
