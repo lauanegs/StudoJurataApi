@@ -5,7 +5,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import studojurata_api.ia.model.HistoricoGeracaoIA;
+import studojurata_api.ia.dto.HistoricoGeracaoIAResponseDTO;
+import studojurata_api.ia.mapper.HistoricoGeracaoIAMapper;
 import studojurata_api.ia.repository.HistoricoGeracaoIARepository;
 
 import java.util.List;
@@ -21,19 +22,20 @@ import java.util.List;
 public class HistoricoGeracaoIAController {
 
     private final HistoricoGeracaoIARepository repository;
+    private final HistoricoGeracaoIAMapper mapper;
 
     @GetMapping
-    public List<HistoricoGeracaoIA> listar() {
-        return repository.findAllByOrderByDataGeracaoDesc();
+    public List<HistoricoGeracaoIAResponseDTO> listar() {
+        return repository.findAllByOrderByDataGeracaoDesc().stream().map(mapper::toResponseDTO).toList();
     }
 
     @GetMapping("/conteudo/{conteudoPlanoId}")
-    public List<HistoricoGeracaoIA> listarPorConteudo(@PathVariable Long conteudoPlanoId) {
-        return repository.findByConteudoPlanoIdOrderByDataGeracaoDesc(conteudoPlanoId);
+    public List<HistoricoGeracaoIAResponseDTO> listarPorConteudo(@PathVariable Long conteudoPlanoId) {
+        return repository.findByConteudoPlanoIdOrderByDataGeracaoDesc(conteudoPlanoId).stream().map(mapper::toResponseDTO).toList();
     }
 
     @GetMapping("/simulado/{simuladoId}")
-    public List<HistoricoGeracaoIA> listarPorSimulado(@PathVariable Long simuladoId) {
-        return repository.findBySimuladoIdOrderByDataGeracaoDesc(simuladoId);
+    public List<HistoricoGeracaoIAResponseDTO> listarPorSimulado(@PathVariable Long simuladoId) {
+        return repository.findBySimuladoIdOrderByDataGeracaoDesc(simuladoId).stream().map(mapper::toResponseDTO).toList();
     }
 }

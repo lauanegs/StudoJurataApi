@@ -2,9 +2,10 @@ package studojurata_api.ia.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import studojurata_api.dto.SimuladoResponseDTO;
 import studojurata_api.ia.dto.GerarSimuladoIARequest;
 import studojurata_api.ia.service.GeracaoSimuladoIAService;
-import studojurata_api.model.Simulado;
+import studojurata_api.mapper.SimuladoMapper;
 
 /**
  * Aciona a geração automática de um simulado de reforço via IA (item 1.4).
@@ -19,13 +20,14 @@ import studojurata_api.model.Simulado;
 public class GeracaoIAController {
 
     private final GeracaoSimuladoIAService service;
+    private final SimuladoMapper simuladoMapper;
 
     @PostMapping("/simulado")
-    public Simulado gerarSimulado(@RequestBody GerarSimuladoIARequest request) {
-        return service.gerarParaAluno(
+    public SimuladoResponseDTO gerarSimulado(@RequestBody GerarSimuladoIARequest request) {
+        return simuladoMapper.toResponseDTO(service.gerarParaAluno(
                 request.getAlunoId(),
                 request.getConteudoPlanoId(),
                 request.getQuantidadeQuestoes(),
-                request.getNivelDificuldade());
+                request.getNivelDificuldade()));
     }
 }

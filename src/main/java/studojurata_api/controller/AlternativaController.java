@@ -2,7 +2,9 @@ package studojurata_api.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import studojurata_api.model.Alternativa;
+import studojurata_api.dto.AlternativaRequestDTO;
+import studojurata_api.dto.AlternativaResponseDTO;
+import studojurata_api.mapper.AlternativaMapper;
 import studojurata_api.service.AlternativaService;
 
 import java.util.List;
@@ -13,19 +15,26 @@ import java.util.List;
 public class AlternativaController {
 
     private final AlternativaService service;
+    private final AlternativaMapper mapper;
 
     @GetMapping
-    public List<Alternativa> listar() { return service.listar(); }
+    public List<AlternativaResponseDTO> listar() {
+        return service.listar().stream().map(mapper::toResponseDTO).toList();
+    }
 
     @GetMapping("/{id}")
-    public Alternativa buscar(@PathVariable Long id) { return service.buscar(id); }
+    public AlternativaResponseDTO buscar(@PathVariable Long id) {
+        return mapper.toResponseDTO(service.buscar(id));
+    }
 
     @PostMapping
-    public Alternativa salvar(@RequestBody Alternativa obj) { return service.salvar(obj); }
+    public AlternativaResponseDTO salvar(@RequestBody AlternativaRequestDTO dto) {
+        return mapper.toResponseDTO(service.salvar(mapper.toEntity(dto)));
+    }
 
     @PutMapping("/{id}")
-    public Alternativa atualizar(@PathVariable Long id, @RequestBody Alternativa obj) {
-        return service.atualizar(id, obj);
+    public AlternativaResponseDTO atualizar(@PathVariable Long id, @RequestBody AlternativaRequestDTO dto) {
+        return mapper.toResponseDTO(service.atualizar(id, mapper.toEntity(dto)));
     }
 
     @DeleteMapping("/{id}")

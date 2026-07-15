@@ -3,7 +3,9 @@ package studojurata_api.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import studojurata_api.dto.FinalizarSimuladoRequest;
-import studojurata_api.model.SimuladoAluno;
+import studojurata_api.dto.SimuladoAlunoRequestDTO;
+import studojurata_api.dto.SimuladoAlunoResponseDTO;
+import studojurata_api.mapper.SimuladoAlunoMapper;
 import studojurata_api.service.SimuladoAlunoService;
 
 import java.util.List;
@@ -14,17 +16,39 @@ import java.util.List;
 public class SimuladoAlunoController {
 
     private final SimuladoAlunoService service;
+    private final SimuladoAlunoMapper mapper;
 
-    @GetMapping public List<SimuladoAluno> listar(){ return service.listar();}
-    @GetMapping("/{id}") public SimuladoAluno buscar(@PathVariable Long id){ return service.buscar(id);}
-    @GetMapping("/aluno/{alunoId}") public List<SimuladoAluno> listarPorAluno(@PathVariable Long alunoId){ return service.listarPorAluno(alunoId);}
-    @GetMapping("/simulado/{simuladoId}") public List<SimuladoAluno> listarPorSimulado(@PathVariable Long simuladoId){ return service.listarPorSimulado(simuladoId);}
-    @PostMapping public SimuladoAluno salvar(@RequestBody SimuladoAluno o){ return service.salvar(o);}
-    @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id);}
+    @GetMapping
+    public List<SimuladoAlunoResponseDTO> listar() {
+        return service.listar().stream().map(mapper::toResponseDTO).toList();
+    }
+
+    @GetMapping("/{id}")
+    public SimuladoAlunoResponseDTO buscar(@PathVariable Long id) {
+        return mapper.toResponseDTO(service.buscar(id));
+    }
+
+    @GetMapping("/aluno/{alunoId}")
+    public List<SimuladoAlunoResponseDTO> listarPorAluno(@PathVariable Long alunoId) {
+        return service.listarPorAluno(alunoId).stream().map(mapper::toResponseDTO).toList();
+    }
+
+    @GetMapping("/simulado/{simuladoId}")
+    public List<SimuladoAlunoResponseDTO> listarPorSimulado(@PathVariable Long simuladoId) {
+        return service.listarPorSimulado(simuladoId).stream().map(mapper::toResponseDTO).toList();
+    }
+
+    @PostMapping
+    public SimuladoAlunoResponseDTO salvar(@RequestBody SimuladoAlunoRequestDTO dto) {
+        return mapper.toResponseDTO(service.salvar(mapper.toEntity(dto)));
+    }
+
+    @DeleteMapping("/{id}")
+    public void deletar(@PathVariable Long id) { service.deletar(id); }
 
     /** Finaliza a tentativa do aluno, calculando nota/acertos/tempoGasto (itens 1.3, 2.4, 4.2). */
     @PostMapping("/{id}/finalizar")
-    public SimuladoAluno finalizar(@PathVariable Long id, @RequestBody FinalizarSimuladoRequest request) {
-        return service.finalizar(id, request);
+    public SimuladoAlunoResponseDTO finalizar(@PathVariable Long id, @RequestBody FinalizarSimuladoRequest request) {
+        return mapper.toResponseDTO(service.finalizar(id, request));
     }
 }
