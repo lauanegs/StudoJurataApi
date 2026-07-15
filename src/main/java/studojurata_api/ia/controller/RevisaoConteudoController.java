@@ -1,5 +1,6 @@
 package studojurata_api.ia.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import studojurata_api.ia.dto.RegistrarReforcoRequest;
@@ -33,7 +34,7 @@ public class RevisaoConteudoController {
     }
 
     @PostMapping("/registrar")
-    public RevisaoConteudoResponseDTO registrar(@RequestBody RegistrarReforcoRequest request) {
+    public RevisaoConteudoResponseDTO registrar(@Valid @RequestBody RegistrarReforcoRequest request) {
         return mapper.toResponseDTO(
                 service.registrarReforco(request.getAlunoId(), request.getConteudoPlanoId(), request.getNivelDominio()));
     }

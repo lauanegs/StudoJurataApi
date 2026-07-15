@@ -1,10 +1,9 @@
 package studojurata_api.ia.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.ia.model.RevisaoConteudo;
 import studojurata_api.ia.model.enums.NivelDominio;
 import studojurata_api.ia.repository.RevisaoConteudoRepository;
@@ -72,9 +71,9 @@ public class RevisaoConteudoService {
     private RevisaoConteudo criar(Long alunoId, Long conteudoPlanoId) {
         RevisaoConteudo revisao = new RevisaoConteudo();
         revisao.setAluno(alunoRepository.findById(alunoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Aluno não encontrado.")));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Aluno não encontrado.")));
         revisao.setConteudoPlano(conteudoPlanoRepository.findById(conteudoPlanoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conteúdo não encontrado.")));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Conteúdo não encontrado.")));
         revisao.setQuantidadeReforcos(0);
         revisao.setNivelDominio(NivelDominio.BAIXO);
         return revisao;

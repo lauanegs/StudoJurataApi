@@ -1,10 +1,10 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.model.Questao;
 import studojurata_api.model.enums.OrigemQuestao;
 import studojurata_api.model.enums.StatusQuestao;
@@ -20,7 +20,10 @@ public class QuestaoService {
 
     public List<Questao> listar() { return repository.findAll(); }
 
-    public Questao buscar(Long id) { return repository.findById(id).orElseThrow(); }
+    public Questao buscar(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Questão " + id + " não encontrada."));
+    }
 
     /**
      * Ver item 7.3 da Análise Crítica: questões de origem IA nascem PENDENTE
@@ -39,7 +42,11 @@ public class QuestaoService {
     }
 
     public Questao atualizar(Long id, Questao obj) {
+        Questao existente = buscar(id);
         obj.setId(id);
+        // preserva o status — o DTO de entrada não expõe este campo, que é
+        // controlado exclusivamente pelo fluxo de aprovar()/rejeitar().
+        obj.setStatus(existente.getStatus());
         return repository.save(obj);
     }
 
@@ -54,7 +61,7 @@ public class QuestaoService {
     public Questao aprovar(Long id) {
         Questao questao = buscar(id);
         if (questao.getStatus() != StatusQuestao.PENDENTE) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Apenas questões PENDENTES podem ser aprovadas.");
+            throw new RegraNegocioException("Apenas questões PENDENTES podem ser aprovadas.");
         }
         questao.setStatus(StatusQuestao.APROVADA);
         return repository.save(questao);
@@ -64,7 +71,7 @@ public class QuestaoService {
     public Questao rejeitar(Long id) {
         Questao questao = buscar(id);
         if (questao.getStatus() != StatusQuestao.PENDENTE) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Apenas questões PENDENTES podem ser rejeitadas.");
+            throw new RegraNegocioException("Apenas questões PENDENTES podem ser rejeitadas.");
         }
         questao.setStatus(StatusQuestao.REJEITADA);
         return repository.save(questao);

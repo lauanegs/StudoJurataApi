@@ -1,5 +1,6 @@
 package studojurata_api.ia.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import studojurata_api.dto.SimuladoResponseDTO;
@@ -23,7 +24,7 @@ public class GeracaoIAController {
     private final SimuladoMapper simuladoMapper;
 
     @PostMapping("/simulado")
-    public SimuladoResponseDTO gerarSimulado(@RequestBody GerarSimuladoIARequest request) {
+    public SimuladoResponseDTO gerarSimulado(@Valid @RequestBody GerarSimuladoIARequest request) {
         return simuladoMapper.toResponseDTO(service.gerarParaAluno(
                 request.getAlunoId(),
                 request.getConteudoPlanoId(),

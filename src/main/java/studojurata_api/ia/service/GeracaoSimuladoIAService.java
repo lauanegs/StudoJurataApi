@@ -1,10 +1,9 @@
 package studojurata_api.ia.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.Aluno;
 import studojurata_api.model.ConteudoPlano;
 import studojurata_api.model.PlanoEnsino;
@@ -58,9 +57,9 @@ public class GeracaoSimuladoIAService {
     @Transactional
     public Simulado gerarParaAluno(Long alunoId, Long conteudoPlanoId, Integer quantidadeQuestoes, NivelDificuldade nivel) {
         Aluno aluno = alunoRepository.findById(alunoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Aluno não encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Aluno não encontrado."));
         ConteudoPlano conteudo = conteudoPlanoRepository.findById(conteudoPlanoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conteúdo não encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Conteúdo não encontrado."));
 
         int quantidade = quantidadeQuestoes != null && quantidadeQuestoes > 0 ? quantidadeQuestoes : QUANTIDADE_QUESTOES_PADRAO;
         NivelDificuldade nivelEfetivo = nivel != null ? nivel : NIVEL_PADRAO;

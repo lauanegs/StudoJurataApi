@@ -1,10 +1,11 @@
 package studojurata_api.ia.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
+import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.ia.client.GeminiIndisponivelException;
 import studojurata_api.ia.client.GeminiQuestaoClient;
 import studojurata_api.ia.dto.AlternativaGeradaDTO;
@@ -69,11 +70,11 @@ public class GeracaoQuestaoIAService {
     @Transactional
     public List<Questao> gerar(Long conteudoPlanoId, NivelDificuldade nivel, TipoQuestao tipo, int quantidade, Simulado simuladoVinculado) {
         if (quantidade <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "quantidade deve ser maior que zero.");
+            throw new RequisicaoInvalidaException("quantidade deve ser maior que zero.");
         }
 
         ConteudoPlano conteudo = conteudoPlanoRepository.findById(conteudoPlanoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conteúdo do plano de ensino não encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Conteúdo do plano de ensino não encontrado."));
         Disciplina disciplina = resolverDisciplina(conteudo);
 
         List<QuestaoConteudo> vinculosExistentes = questaoConteudoRepository.findByConteudoPlano_Id(conteudoPlanoId);
@@ -137,7 +138,7 @@ public class GeracaoQuestaoIAService {
                 reaproveitadasCache, geradasGemini, fallbackBanco, origemResultado, erroGemini, tempoRespostaMs);
 
         if (selecionadas.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new RegraNegocioException(
                     "Não foi possível obter questões para este conteúdo: IA indisponível" +
                             (erroGemini != null ? " (" + erroGemini + ")" : "") +
                             " e não há questões aprovadas suficientes no banco para fallback.");
@@ -174,12 +175,22 @@ public class GeracaoQuestaoIAService {
         questao = questaoRepository.save(questao);
 
         int ordem = 1;
+        boolean jaTemCorreta = false;
         if (dto.getAlternativas() != null) {
             for (AlternativaGeradaDTO altDto : dto.getAlternativas()) {
                 Alternativa alternativa = new Alternativa();
                 alternativa.setQuestao(questao);
                 alternativa.setTexto(altDto.getTexto());
-                alternativa.setCorreta(altDto.isCorreta());
+                // Normaliza a resposta do Gemini para no máximo uma alternativa
+                // correta por questão (mesma invariante de AlternativaService.
+                // validarCorretaUnica, que aqui é contornada por persistirmos
+                // via repository diretamente): a partir da segunda ocorrência
+                // de correta=true, força false — evita quebrar a apuração de
+                // acertos em SimuladoAlunoService.finalizar caso a IA retorne
+                // um JSON malformado com zero ou múltiplas corretas.
+                boolean correta = altDto.isCorreta() && !jaTemCorreta;
+                if (correta) jaTemCorreta = true;
+                alternativa.setCorreta(correta);
                 alternativa.setOrdem(ordem++);
                 alternativaRepository.save(alternativa);
             }

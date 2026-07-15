@@ -1,5 +1,6 @@
 package studojurata_api.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import studojurata_api.dto.AlternativaRequestDTO;
@@ -28,12 +29,12 @@ public class AlternativaController {
     }
 
     @PostMapping
-    public AlternativaResponseDTO salvar(@RequestBody AlternativaRequestDTO dto) {
+    public AlternativaResponseDTO salvar(@Valid @RequestBody AlternativaRequestDTO dto) {
         return mapper.toResponseDTO(service.salvar(mapper.toEntity(dto)));
     }
 
     @PutMapping("/{id}")
-    public AlternativaResponseDTO atualizar(@PathVariable Long id, @RequestBody AlternativaRequestDTO dto) {
+    public AlternativaResponseDTO atualizar(@PathVariable Long id, @Valid @RequestBody AlternativaRequestDTO dto) {
         return mapper.toResponseDTO(service.atualizar(id, mapper.toEntity(dto)));
     }
 

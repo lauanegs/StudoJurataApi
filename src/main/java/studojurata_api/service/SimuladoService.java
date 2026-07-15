@@ -1,10 +1,11 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
+import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.Aluno;
 import studojurata_api.model.AlunoTurma;
 import studojurata_api.model.Simulado;
@@ -37,7 +38,10 @@ public class SimuladoService {
 
     public List<Simulado> listar() { return repository.findAll(); }
 
-    public Simulado buscar(Long id) { return repository.findById(id).orElseThrow(); }
+    public Simulado buscar(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Simulado " + id + " não encontrado."));
+    }
 
     public Simulado salvar(Simulado obj) {
         if (obj.getStatus() == null) {
@@ -54,10 +58,13 @@ public class SimuladoService {
     public Simulado atualizar(Long id, Simulado obj) {
         Simulado existente = buscar(id);
         if (existente.getStatus() != StatusSimulado.RASCUNHO) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new RegraNegocioException(
                     "Só é possível editar os dados de um simulado enquanto ele está em RASCUNHO.");
         }
         obj.setId(id);
+        // preserva o status (RASCUNHO) — o DTO de entrada não expõe este campo,
+        // que é controlado exclusivamente pelo fluxo de lancar()/encerrar().
+        obj.setStatus(existente.getStatus());
         return repository.save(obj);
     }
 
@@ -79,15 +86,13 @@ public class SimuladoService {
         Simulado simulado = buscar(simuladoId);
 
         if (simulado.getStatus() != StatusSimulado.RASCUNHO) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Este simulado já foi lançado ou está encerrado.");
+            throw new RegraNegocioException("Este simulado já foi lançado ou está encerrado.");
         }
 
         List<SimuladoQuestao> questoesAtivas = simuladoQuestaoRepository
                 .findBySimuladoIdAndStatusOrderByOrdem(simuladoId, StatusSimuladoQuestao.ATIVA);
         if (questoesAtivas.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Não é possível lançar um simulado sem questões.");
+            throw new RegraNegocioException("Não é possível lançar um simulado sem questões.");
         }
 
         List<Long> naoAprovadas = questoesAtivas.stream()
@@ -96,7 +101,7 @@ public class SimuladoService {
                 .map(q -> q.getId())
                 .toList();
         if (!naoAprovadas.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new RegraNegocioException(
                     "Existem questões pendentes de revisão neste simulado (ids: " + naoAprovadas + "). "
                             + "Todas as questões precisam estar APROVADAS antes do lançamento.");
         }
@@ -124,18 +129,18 @@ public class SimuladoService {
     private List<Aluno> resolverElegiveis(Simulado simulado, List<Long> alunoIdsEspecificos) {
         if (simulado.getTipoDestinacao() == TipoDestinacaoSimulado.ESPECIFICO) {
             if (alunoIdsEspecificos == null || alunoIdsEspecificos.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                throw new RequisicaoInvalidaException(
                         "Informe ao menos um aluno para um simulado com destinação ESPECIFICO.");
             }
             return alunoIdsEspecificos.stream()
                     .map(id -> alunoRepository.findById(id)
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            .orElseThrow(() -> new RecursoNaoEncontradoException(
                                     "Aluno " + id + " não encontrado.")))
                     .toList();
         }
 
         if (simulado.getTurma() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+            throw new RequisicaoInvalidaException(
                     "Simulado com destinação TODOS precisa estar vinculado a uma turma.");
         }
         return alunoTurmaRepository
@@ -153,8 +158,7 @@ public class SimuladoService {
     public Simulado encerrar(Long simuladoId) {
         Simulado simulado = buscar(simuladoId);
         if (simulado.getStatus() != StatusSimulado.PUBLICADO) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Só é possível encerrar um simulado que esteja PUBLICADO.");
+            throw new RegraNegocioException("Só é possível encerrar um simulado que esteja PUBLICADO.");
         }
         simulado.setStatus(StatusSimulado.ENCERRADO);
         if (simulado.getDataFim() == null) {

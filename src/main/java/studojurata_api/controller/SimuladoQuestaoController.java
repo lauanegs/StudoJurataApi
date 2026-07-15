@@ -1,5 +1,6 @@
 package studojurata_api.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import studojurata_api.dto.SimuladoQuestaoRequestDTO;
@@ -28,12 +29,12 @@ public class SimuladoQuestaoController {
     }
 
     @PostMapping
-    public SimuladoQuestaoResponseDTO salvar(@RequestBody SimuladoQuestaoRequestDTO dto) {
+    public SimuladoQuestaoResponseDTO salvar(@Valid @RequestBody SimuladoQuestaoRequestDTO dto) {
         return mapper.toResponseDTO(service.salvar(mapper.toEntity(dto)));
     }
 
     @PutMapping("/{id}")
-    public SimuladoQuestaoResponseDTO atualizar(@PathVariable Long id, @RequestBody SimuladoQuestaoRequestDTO dto) {
+    public SimuladoQuestaoResponseDTO atualizar(@PathVariable Long id, @Valid @RequestBody SimuladoQuestaoRequestDTO dto) {
         return mapper.toResponseDTO(service.atualizar(id, mapper.toEntity(dto)));
     }
 

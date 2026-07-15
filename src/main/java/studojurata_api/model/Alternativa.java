@@ -11,7 +11,7 @@ import lombok.Setter;
 @EqualsAndHashCode(callSuper = true)
 public class Alternativa extends BaseEntity {
 
-    @ManyToOne
+    @ManyToOne(optional = false)
     private Questao questao;
 
     private String texto;

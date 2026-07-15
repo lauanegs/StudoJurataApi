@@ -23,10 +23,10 @@ import studojurata_api.model.enums.StatusSimuladoAluno;
 @EqualsAndHashCode(callSuper = true)
 public class SimuladoAluno extends BaseEntity {
 
-    @ManyToOne
+    @ManyToOne(optional = false)
     private Simulado simulado;
 
-    @ManyToOne
+    @ManyToOne(optional = false)
     private Aluno aluno;
 
     private Integer quantidadeAcertos;

@@ -1,11 +1,11 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.dto.FinalizarSimuladoRequest;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.model.Alternativa;
 import studojurata_api.model.Questao;
 import studojurata_api.model.QuestaoAluno;
@@ -34,7 +34,10 @@ public class SimuladoAlunoService {
 
     public List<SimuladoAluno> listar() { return repository.findAll(); }
 
-    public SimuladoAluno buscar(Long id) { return repository.findById(id).orElseThrow(); }
+    public SimuladoAluno buscar(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("SimuladoAluno " + id + " não encontrado."));
+    }
 
     public List<SimuladoAluno> listarPorAluno(Long alunoId) {
         return repository.findByAlunoId(alunoId);
@@ -86,10 +89,10 @@ public class SimuladoAlunoService {
         SimuladoAluno simuladoAluno = buscar(simuladoAlunoId);
 
         if (simuladoAluno.getStatus() == StatusSimuladoAluno.CONCLUIDO) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Esta tentativa já foi finalizada.");
+            throw new RegraNegocioException("Esta tentativa já foi finalizada.");
         }
         if (simuladoAluno.getSimulado().getStatus() == StatusSimulado.ENCERRADO) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Este simulado já está encerrado.");
+            throw new RegraNegocioException("Este simulado já está encerrado.");
         }
 
         List<SimuladoQuestao> questoes = simuladoQuestaoRepository.findBySimuladoIdAndStatusOrderByOrdem(
@@ -120,7 +123,7 @@ public class SimuladoAlunoService {
 
             if (resposta != null && resposta.getAlternativaId() != null) {
                 alternativaEscolhida = alternativaRepository.findById(resposta.getAlternativaId())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        .orElseThrow(() -> new RecursoNaoEncontradoException(
                                 "Alternativa " + resposta.getAlternativaId() + " não encontrada."));
                 acertou = Boolean.TRUE.equals(alternativaEscolhida.getCorreta());
                 tempoResposta = resposta.getTempoResposta();

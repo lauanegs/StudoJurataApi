@@ -1,5 +1,6 @@
 package studojurata_api.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import studojurata_api.dto.FinalizarSimuladoRequest;
@@ -39,7 +40,7 @@ public class SimuladoAlunoController {
     }
 
     @PostMapping
-    public SimuladoAlunoResponseDTO salvar(@RequestBody SimuladoAlunoRequestDTO dto) {
+    public SimuladoAlunoResponseDTO salvar(@Valid @RequestBody SimuladoAlunoRequestDTO dto) {
         return mapper.toResponseDTO(service.salvar(mapper.toEntity(dto)));
     }
 

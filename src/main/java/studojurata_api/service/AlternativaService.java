@@ -1,10 +1,10 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.model.Alternativa;
 import studojurata_api.repository.AlternativaRepository;
 
@@ -18,7 +18,10 @@ public class AlternativaService {
 
     public List<Alternativa> listar() { return repository.findAll(); }
 
-    public Alternativa buscar(Long id) { return repository.findById(id).orElseThrow(); }
+    public Alternativa buscar(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Alternativa " + id + " não encontrada."));
+    }
 
     /**
      * Garante no máximo uma alternativa correta por Questao — regra
@@ -48,8 +51,7 @@ public class AlternativaService {
         boolean existeOutraCorreta = repository.findByQuestaoIdAndCorretaTrue(obj.getQuestao().getId()).stream()
                 .anyMatch(a -> ignorarId == null || !a.getId().equals(ignorarId));
         if (existeOutraCorreta) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Esta questão já possui uma alternativa marcada como correta.");
+            throw new RegraNegocioException("Esta questão já possui uma alternativa marcada como correta.");
         }
     }
 }

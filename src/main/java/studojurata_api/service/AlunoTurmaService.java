@@ -129,13 +129,13 @@ public class AlunoTurmaService {
      * respeitando a capacidade máxima do destino.
      *
      * Importante: isso NÃO impede que o aluno mantenha outra matrícula ATIVA
-     * em uma turma diferente (ex.: o aluno continua vinculado à turma do seu
-     * curso, mas frequenta pontualmente outra turma para apoio). A regra de
-     * unicidade é sempre por par (aluno, turma), nunca "1 turma ativa por
-     * aluno no sistema todo". Para o caso de transferência real (o aluno sai
-     * definitivamente da turma de origem), chame este método passando a
-     * matrícula de origem; se o objetivo for apenas adicionar o aluno a uma
-     * turma extra sem encerrar a original, use matricular() diretamente.
+     * em uma turma diferente — um aluno pode estar matriculado em duas ou
+     * mais turmas ao mesmo tempo normalmente. A regra de unicidade é sempre
+     * por par (aluno, turma), nunca "1 turma ativa por aluno no sistema
+     * todo". Para o caso de transferência real (o aluno sai definitivamente
+     * da turma de origem), chame este método passando a matrícula de origem;
+     * se o objetivo for apenas adicionar o aluno a uma turma extra sem
+     * encerrar a original, use matricular() diretamente.
      */
     @Transactional
     public AlunoTurma transferir(Long matriculaOrigemId, Long turmaDestinoId, LocalDate dataTransferencia) {

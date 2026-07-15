@@ -1,10 +1,11 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
+import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.SimuladoQuestao;
 import studojurata_api.model.enums.StatusSimuladoQuestao;
 import studojurata_api.repository.QuestaoConteudoRepository;
@@ -21,7 +22,10 @@ public class SimuladoQuestaoService {
 
     public List<SimuladoQuestao> listar() { return repository.findAll(); }
 
-    public SimuladoQuestao buscar(Long id) { return repository.findById(id).orElseThrow(); }
+    public SimuladoQuestao buscar(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("SimuladoQuestao " + id + " não encontrada."));
+    }
 
     /**
      * Ver item 7.1 da Análise Crítica: toda questão usada em um simulado
@@ -39,8 +43,12 @@ public class SimuladoQuestaoService {
 
     @Transactional
     public SimuladoQuestao atualizar(Long id, SimuladoQuestao obj) {
+        SimuladoQuestao existente = buscar(id);
         obj.setId(id);
         validarQuestaoVinculadaAoConteudo(obj);
+        // preserva o status — o DTO de entrada não expõe este campo, que é
+        // controlado exclusivamente pelo fluxo de remover() (soft-delete).
+        obj.setStatus(existente.getStatus());
         return repository.save(obj);
     }
 
@@ -66,10 +74,10 @@ public class SimuladoQuestaoService {
 
     private void validarQuestaoVinculadaAoConteudo(SimuladoQuestao obj) {
         if (obj.getQuestao() == null || obj.getQuestao().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Questão é obrigatória.");
+            throw new RequisicaoInvalidaException("Questão é obrigatória.");
         }
         if (!questaoConteudoRepository.existsByQuestaoId(obj.getQuestao().getId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new RegraNegocioException(
                     "A questão precisa estar vinculada a um conteúdo antes de compor um simulado.");
         }
     }

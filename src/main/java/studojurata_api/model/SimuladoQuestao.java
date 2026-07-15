@@ -18,10 +18,10 @@ import studojurata_api.model.enums.StatusSimuladoQuestao;
 @EqualsAndHashCode(callSuper = true)
 public class SimuladoQuestao extends BaseEntity {
 
-    @ManyToOne
+    @ManyToOne(optional = false)
     private Simulado simulado;
 
-    @ManyToOne
+    @ManyToOne(optional = false)
     private Questao questao;
 
     private Integer ordem;

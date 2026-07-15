@@ -58,6 +58,26 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/pessoas/**", "/alunos/**", "/professores/**",
                         "/responsaveis/**", "/responsavel-aluno/**").hasRole("ADMINISTRADOR")
 
+                // Módulo de simulados: montagem/moderação/lançamento é tarefa do
+                // professor (ou administrador); o aluno só consulta (GET) e
+                // finaliza a própria tentativa (POST /simulado-aluno/{id}/finalizar).
+                .requestMatchers(HttpMethod.POST, "/simulado-aluno/*/finalizar").authenticated()
+                .requestMatchers(HttpMethod.GET, "/simulados/**", "/questoes/**", "/alternativas/**",
+                        "/simulado-questao/**", "/simulado-aluno/**", "/questao-aluno/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/simulados/**", "/questoes/**", "/alternativas/**",
+                        "/simulado-questao/**", "/simulado-aluno/**", "/questao-aluno/**")
+                        .hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.PUT, "/simulados/**", "/questoes/**", "/alternativas/**",
+                        "/simulado-questao/**", "/questao-aluno/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/simulados/**", "/questoes/**", "/alternativas/**",
+                        "/simulado-questao/**", "/simulado-aluno/**", "/questao-aluno/**").hasRole("ADMINISTRADOR")
+
+                // Módulo de IA: geração, revisão de conteúdo e histórico são
+                // ferramentas de gestão pedagógica (professor/administrador);
+                // recomendações também, já que hoje alimentam a decisão do
+                // professor de gerar (ou não) um novo simulado (item 1.4).
+                .requestMatchers("/ia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session

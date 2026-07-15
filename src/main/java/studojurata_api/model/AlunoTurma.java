@@ -14,10 +14,11 @@ import studojurata_api.model.enums.StatusMatricula;
  * Um mesmo Aluno pode ter múltiplos registros ao longo do tempo (histórico),
  * mas a camada de serviço garante que não existam dois registros com
  * status = ATIVA para o mesmo par (aluno, turma) simultaneamente (ver
- * AlunoTurmaService). Propositalmente não há constraint que impeça um aluno
- * de ter matrículas ATIVAS em turmas diferentes ao mesmo tempo: isso cobre
- * casos como o aluno que continua vinculado à turma do seu curso mas também
- * frequenta outra turma para receber apoio pontual.
+ * AlunoTurmaService). Um aluno pode, sim, ter matrículas ATIVAS em turmas
+ * diferentes ao mesmo tempo — matricular-se em duas ou mais turmas
+ * simultaneamente é um cenário normal e sempre suportado, não uma exceção.
+ * A regra de unicidade é sempre por par (aluno, turma), nunca "1 turma ativa
+ * por aluno no sistema todo".
  */
 @Entity
 @Getter
