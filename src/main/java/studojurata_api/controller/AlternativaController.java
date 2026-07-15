@@ -3,7 +3,7 @@ package studojurata_api.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import studojurata_api.model.Alternativa;
-import studojurata_api.repository.AlternativaRepository;
+import studojurata_api.service.AlternativaService;
 
 import java.util.List;
 
@@ -12,23 +12,22 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AlternativaController {
 
-    private final AlternativaRepository repository;
+    private final AlternativaService service;
 
     @GetMapping
-    public List<Alternativa> listar() { return repository.findAll(); }
+    public List<Alternativa> listar() { return service.listar(); }
 
     @GetMapping("/{id}")
-    public Alternativa buscar(@PathVariable Long id) { return repository.findById(id).orElseThrow(); }
+    public Alternativa buscar(@PathVariable Long id) { return service.buscar(id); }
 
     @PostMapping
-    public Alternativa salvar(@RequestBody Alternativa obj) { return repository.save(obj); }
+    public Alternativa salvar(@RequestBody Alternativa obj) { return service.salvar(obj); }
 
     @PutMapping("/{id}")
     public Alternativa atualizar(@PathVariable Long id, @RequestBody Alternativa obj) {
-        obj.setId(id);
-        return repository.save(obj);
+        return service.atualizar(id, obj);
     }
 
     @DeleteMapping("/{id}")
-    public void deletar(@PathVariable Long id) { repository.deleteById(id); }
+    public void deletar(@PathVariable Long id) { service.deletar(id); }
 }
