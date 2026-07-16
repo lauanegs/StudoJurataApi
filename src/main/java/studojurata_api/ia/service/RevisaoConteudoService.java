@@ -9,6 +9,7 @@ import studojurata_api.ia.model.enums.NivelDominio;
 import studojurata_api.ia.repository.RevisaoConteudoRepository;
 import studojurata_api.repository.AlunoRepository;
 import studojurata_api.repository.ConteudoPlanoRepository;
+import studojurata_api.service.gamificacao.PontuacaoAlunoService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -19,6 +20,11 @@ import java.util.List;
  * TCC: a cada reforço, o intervalo até o próximo dobra (2^quantidadeReforcos
  * dias), afastando progressivamente a revisão de conteúdos já dominados e
  * mantendo frequente a de conteúdos ainda frágeis.
+ *
+ * Correção 8.1/8.2 da Segunda Análise Crítica: cada reforço registrado
+ * também concede moedas de gamificação (mesma quantidade concedida por
+ * simulado concluído), garantindo que quem revisa seja tão beneficiado
+ * quanto quem acerta de primeira.
  */
 @Service
 @RequiredArgsConstructor
@@ -27,6 +33,7 @@ public class RevisaoConteudoService {
     private final RevisaoConteudoRepository repository;
     private final AlunoRepository alunoRepository;
     private final ConteudoPlanoRepository conteudoPlanoRepository;
+    private final PontuacaoAlunoService pontuacaoAlunoService;
 
     public List<RevisaoConteudo> listarPorAluno(Long alunoId) {
         return repository.findByAlunoId(alunoId);
@@ -65,7 +72,11 @@ public class RevisaoConteudoService {
             revisao.setNivelDominio(nivelDominioObservado);
         }
 
-        return repository.save(revisao);
+        RevisaoConteudo salva = repository.save(revisao);
+
+        pontuacaoAlunoService.concederMoedas(alunoId, PontuacaoAlunoService.MOEDAS_POR_REFORCO, 0);
+
+        return salva;
     }
 
     private RevisaoConteudo criar(Long alunoId, Long conteudoPlanoId) {

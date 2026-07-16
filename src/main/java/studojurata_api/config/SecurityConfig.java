@@ -46,8 +46,21 @@ public class SecurityConfig {
                 // Login é público; o restante exige autenticação.
                 .requestMatchers("/auth/login").permitAll()
 
-                // Gestão de usuários (login/senha/papel) é restrita ao Administrador.
+                // Swagger/OpenAPI liberado sem autenticação — conveniência de
+                // ambiente de desenvolvimento (o "Try it out" das rotas
+                // protegidas continuará exigindo sessão logada). ATENÇÃO:
+                // antes de subir para produção, avalie restringir isso (ex.:
+                // hasRole("ADMINISTRADOR") ou springdoc.swagger-ui.enabled=false
+                // em application-prod.properties), pois expõe publicamente a
+                // documentação de todos os endpoints da API.
+                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
+                        "/v3/api-docs.yaml").permitAll()
+
+                // Gestão de usuários (login/senha/papel) e de escolas (tenant, item
+                // 9.1) é restrita ao Administrador.
                 .requestMatchers("/usuarios/**").hasRole("ADMINISTRADOR")
+                .requestMatchers("/escolas/**").hasRole("ADMINISTRADOR")
+                .requestMatchers("/audit-log/**").hasRole("ADMINISTRADOR")
 
                 // Cadastro/edição/exclusão de perfis é restrita ao Administrador;
                 // consulta (GET) fica liberada para qualquer usuário autenticado.
@@ -57,6 +70,24 @@ public class SecurityConfig {
                         "/responsaveis/**", "/responsavel-aluno/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/pessoas/**", "/alunos/**", "/professores/**",
                         "/responsaveis/**", "/responsavel-aluno/**").hasRole("ADMINISTRADOR")
+                // Checkbox de aceite de consentimento (item 10.3) pode ser feito por
+                // qualquer usuário autenticado (o próprio responsável).
+                .requestMatchers(HttpMethod.POST, "/responsavel-aluno/*/aceitar-termos").authenticated()
+
+                // Eventos (item 2.8): apenas o Administrador cria/edita/exclui,
+                // conforme o Documento de Interfaces; consulta liberada a todos.
+                .requestMatchers(HttpMethod.GET, "/eventos/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/eventos/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.PUT, "/eventos/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/eventos/**").hasRole("ADMINISTRADOR")
+
+                // Notas (item 1.2/2.13): recalcular/consultar liberado a qualquer
+                // usuário autenticado — o próprio aluno acessa seu histórico.
+                .requestMatchers("/notas/**").authenticated()
+
+                // Gamificação (item 8.1/8.2): sempre por aluno específico, nunca
+                // uma listagem comparativa — liberado a qualquer autenticado.
+                .requestMatchers("/gamificacao/**").authenticated()
 
                 // Módulo de simulados: montagem/moderação/lançamento é tarefa do
                 // professor (ou administrador); o aluno só consulta (GET) e
@@ -81,7 +112,11 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
-                // Expiração de sessão (item 10.5): limita a 1 sessão ativa por usuário.
+                // maximumSessions(1) limita sessões concorrentes (1 login ativo por
+                // usuário) — é complementar, não é timeout por inatividade. A
+                // expiração de sessão real (item 5.3/10.5 da Segunda Análise
+                // Crítica) está configurada em server.servlet.session.timeout
+                // (application.properties).
                 .maximumSessions(1)
             )
             .formLogin(AbstractHttpConfigurer::disable)

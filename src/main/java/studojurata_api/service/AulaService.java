@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.model.Aula;
 import studojurata_api.model.PlanoAula;
+import studojurata_api.model.enums.AcaoAuditoria;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.repository.AulaRepository;
 import studojurata_api.repository.PlanoAulaRepository;
@@ -14,12 +15,14 @@ import studojurata_api.repository.PlanoAulaRepository;
 import java.time.LocalDate;
 import java.util.List;
 
+/** Correção 2.9: Aula é uma das 3 entidades priorizadas para AuditLog (junto com Nota e SimuladoAluno). */
 @Service
 @RequiredArgsConstructor
 public class AulaService {
 
     private final AulaRepository repository;
     private final PlanoAulaRepository planoAulaRepository;
+    private final AuditLogService auditLogService;
 
     public List<Aula> listar() { return repository.findAll(); }
 
@@ -36,7 +39,9 @@ public class AulaService {
         if (obj.getStatus() == null) {
             obj.setStatus(StatusAtivoInativo.ATIVO);
         }
-        return repository.save(obj);
+        Aula salva = repository.save(obj);
+        auditLogService.registrar("Aula", salva.getId(), AcaoAuditoria.CRIACAO, "Aula criada: " + salva.getTitulo());
+        return salva;
     }
 
     @Transactional
@@ -44,7 +49,9 @@ public class AulaService {
         buscar(id);
         obj.setId(id);
         validar(obj);
-        return repository.save(obj);
+        Aula salva = repository.save(obj);
+        auditLogService.registrar("Aula", salva.getId(), AcaoAuditoria.ATUALIZACAO, "Aula atualizada: " + salva.getTitulo());
+        return salva;
     }
 
     /**
@@ -71,6 +78,7 @@ public class AulaService {
         Aula obj = buscar(id);
         obj.setStatus(StatusAtivoInativo.INATIVO);
         repository.save(obj);
+        auditLogService.registrar("Aula", id, AcaoAuditoria.EXCLUSAO, "Aula marcada como INATIVA (soft-delete).");
     }
 
     private void validar(Aula obj) {

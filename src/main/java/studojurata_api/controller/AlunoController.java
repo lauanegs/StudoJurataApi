@@ -3,20 +3,21 @@ package studojurata_api.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import studojurata_api.model.Aluno;
-import studojurata_api.repository.AlunoRepository;
+import studojurata_api.service.AlunoService;
 
 import java.util.List;
 
+/** Correção 5.1: passa a falar com AlunoService (soft-delete), não mais com o Repository diretamente. */
 @RestController
 @RequestMapping("/alunos")
 @RequiredArgsConstructor
 public class AlunoController {
 
-    private final AlunoRepository repository;
+    private final AlunoService service;
 
-    @GetMapping public List<Aluno> listar(){ return repository.findAll();}
-    @GetMapping("/{id}") public Aluno buscar(@PathVariable Long id){ return repository.findById(id).orElseThrow();}
-    @PostMapping public Aluno salvar(@RequestBody Aluno o){ return repository.save(o);}
-    @PutMapping("/{id}") public Aluno atualizar(@PathVariable Long id,@RequestBody Aluno o){ o.setId(id); return repository.save(o);}
-    @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ repository.deleteById(id);}
+    @GetMapping public List<Aluno> listar(){ return service.listar(); }
+    @GetMapping("/{id}") public Aluno buscar(@PathVariable Long id){ return service.buscar(id); }
+    @PostMapping public Aluno salvar(@RequestBody Aluno o){ return service.salvar(o); }
+    @PutMapping("/{id}") public Aluno atualizar(@PathVariable Long id,@RequestBody Aluno o){ return service.atualizar(id, o); }
+    @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
 }

@@ -14,6 +14,10 @@ import studojurata_api.model.enums.TipoUsuario;
 @EqualsAndHashCode(callSuper = true)
 public class Usuario extends BaseEntity {
 
+    /** Correção 9.1 (Escola/tenant). */
+    @ManyToOne(optional = false)
+    private Escola escola;
+
     /**
      * 1 Pessoa = no máximo 1 Usuario (login).
      */

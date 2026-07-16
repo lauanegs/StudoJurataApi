@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import studojurata_api.model.enums.StatusAtivoInativo;
 
 @Entity
 @Getter
@@ -20,5 +21,7 @@ public class TurmaDisciplina extends BaseEntity {
     @ManyToOne
     private Professor professor;
 
-    private String status;
+    /** Correção 2.11 da Segunda Análise Crítica: era String livre, agora enum. */
+    @Enumerated(EnumType.STRING)
+    private StatusAtivoInativo status;
 }

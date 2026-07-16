@@ -11,6 +11,7 @@ import studojurata_api.model.Questao;
 import studojurata_api.model.QuestaoAluno;
 import studojurata_api.model.SimuladoAluno;
 import studojurata_api.model.SimuladoQuestao;
+import studojurata_api.model.enums.AcaoAuditoria;
 import studojurata_api.model.enums.StatusSimulado;
 import studojurata_api.model.enums.StatusSimuladoAluno;
 import studojurata_api.model.enums.StatusSimuladoQuestao;
@@ -18,6 +19,7 @@ import studojurata_api.repository.AlternativaRepository;
 import studojurata_api.repository.QuestaoAlunoRepository;
 import studojurata_api.repository.SimuladoAlunoRepository;
 import studojurata_api.repository.SimuladoQuestaoRepository;
+import studojurata_api.service.gamificacao.PontuacaoAlunoService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +33,9 @@ public class SimuladoAlunoService {
     private final SimuladoQuestaoRepository simuladoQuestaoRepository;
     private final QuestaoAlunoRepository questaoAlunoRepository;
     private final AlternativaRepository alternativaRepository;
+    private final NotaService notaService;
+    private final AuditLogService auditLogService;
+    private final PontuacaoAlunoService pontuacaoAlunoService;
 
     public List<SimuladoAluno> listar() { return repository.findAll(); }
 
@@ -157,6 +162,26 @@ public class SimuladoAlunoService {
         simuladoAluno.setFinalizadoPorTempo(request.isFinalizadoPorTempo());
         simuladoAluno.setStatus(StatusSimuladoAluno.CONCLUIDO);
 
-        return repository.save(simuladoAluno);
+        SimuladoAluno salvo = repository.save(simuladoAluno);
+
+        auditLogService.registrar("SimuladoAluno", salvo.getId(), AcaoAuditoria.ATUALIZACAO,
+                "Finalizado: nota=" + nota + ", acertos=" + acertos + "/" + questoes.size()
+                        + (Boolean.TRUE.equals(salvo.getFinalizadoPorTempo()) ? " (por esgotamento do tempo)" : ""));
+
+        // Correção 1.2/2.13: Nota da disciplina é sempre recalculada (derivada) a
+        // partir dos simulados concluídos, nunca setada diretamente.
+        Long disciplinaId = salvo.getSimulado().getDisciplina() != null ? salvo.getSimulado().getDisciplina().getId() : null;
+        String periodoLetivo = salvo.getSimulado().getPlanoEnsino() != null
+                ? salvo.getSimulado().getPlanoEnsino().getPeriodoLetivo() : null;
+        if (disciplinaId != null && periodoLetivo != null) {
+            notaService.recalcular(salvo.getAluno().getId(), disciplinaId, periodoLetivo);
+        }
+
+        // Correção 8.1/8.2: moeda concedida sempre por concluir o simulado,
+        // independente da nota obtida (equidade — não é bonificação por acerto).
+        pontuacaoAlunoService.concederMoedas(salvo.getAluno().getId(),
+                PontuacaoAlunoService.MOEDAS_POR_SIMULADO_CONCLUIDO, acertos);
+
+        return salvo;
     }
 }
