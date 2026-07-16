@@ -28,7 +28,18 @@ public class PlanoEnsino extends BaseEntity {
     private String curso;
 
     private Integer cargaHoraria;
+
+    /**
+     * Correção 2.4 da Terceira Análise Crítica: passou a ser obrigatório.
+     * O recálculo automático da Nota do aluno (NotaService.recalcular,
+     * chamado por SimuladoAlunoService.finalizar) depende deste campo para
+     * agrupar os simulados concluídos por período letivo — antes, um plano
+     * de ensino cadastrado sem periodoLetivo fazia esse recálculo ser
+     * silenciosamente pulado, e o aluno nunca via a nota da disciplina.
+     */
+    @Column(nullable = false)
     private String periodoLetivo;
+
     private String ementa;
     private String objetivoGeral;
     private String metodologia;

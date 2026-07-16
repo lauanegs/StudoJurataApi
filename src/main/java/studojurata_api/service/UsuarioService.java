@@ -7,6 +7,7 @@ import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.Usuario;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.repository.UsuarioRepository;
+import studojurata_api.security.EscolaContext;
 
 import java.util.List;
 
@@ -18,6 +19,10 @@ import java.util.List;
  * Antes havia dois caminhos de escrita para Usuario: o controller (que
  * hasheava certo) e este service (que não hasheava, e nunca era chamado).
  * Agora existe um único caminho, e ele está correto.
+ *
+ * Correção 2.2 da Terceira Análise Crítica (isolamento multi-tenant):
+ * listar() filtra pela escola do usuário autenticado — antes, qualquer
+ * Administrador via a lista de usuários de todas as escolas.
  */
 @Service
 @RequiredArgsConstructor
@@ -25,8 +30,13 @@ public class UsuarioService {
 
     private final UsuarioRepository repository;
     private final PasswordEncoder passwordEncoder;
+    private final EscolaContext escolaContext;
 
-    public List<Usuario> listar() { return repository.findAll(); }
+    /** Filtra pela escola do usuário autenticado; se não houver escola resolvível, devolve tudo (bootstrapping). */
+    public List<Usuario> listar() {
+        Long escolaId = escolaContext.escolaAtualId();
+        return escolaId != null ? repository.findByEscola_Id(escolaId) : repository.findAll();
+    }
 
     public Usuario buscar(Long id) {
         return repository.findById(id)

@@ -81,13 +81,46 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/eventos/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/eventos/**").hasRole("ADMINISTRADOR")
 
-                // Notas (item 1.2/2.13): recalcular/consultar liberado a qualquer
-                // usuário autenticado — o próprio aluno acessa seu histórico.
+                // Notas (item 1.2/2.13 + correção 2.1 da Terceira Análise —
+                // IDOR): listagem geral e recálculo são operações de gestão,
+                // não consulta do próprio aluno, então ficam restritas a
+                // quem administra notas; exclusão fica só com o Admin. Os
+                // demais endpoints (buscar por id, histórico por aluno)
+                // continuam liberados a qualquer autenticado, mas o
+                // NotaController garante via AlunoAccessGuard que um Aluno
+                // só veja as suas próprias notas.
+                .requestMatchers(HttpMethod.GET, "/notas").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.POST, "/notas/recalcular").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/notas/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/notas/**").authenticated()
 
                 // Gamificação (item 8.1/8.2): sempre por aluno específico, nunca
-                // uma listagem comparativa — liberado a qualquer autenticado.
+                // uma listagem comparativa — liberado a qualquer autenticado,
+                // mas o GamificacaoController garante via AlunoAccessGuard
+                // (correção 2.1 da Terceira Análise) que um Aluno só acesse a
+                // própria pontuação/skins, nunca as de outro aluno.
                 .requestMatchers("/gamificacao/**").authenticated()
+
+                // Correção 2.5 da Terceira Análise Crítica: gestão pedagógica
+                // (turmas, disciplinas, vínculo turma-disciplina, planos de
+                // ensino/aula, conteúdo, aulas e frequência) não tinha
+                // nenhuma regra própria e caía em anyRequest().authenticated()
+                // — ou seja, um Aluno logado podia criar/editar/excluir esses
+                // registros via API. Consulta (GET) continua liberada a
+                // qualquer autenticado; escrita fica restrita a quem
+                // efetivamente gerencia esse conteúdo (Professor/Admin).
+                .requestMatchers(HttpMethod.GET, "/turmas/**", "/disciplinas/**", "/turma-disciplina/**",
+                        "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**", "/aulas/**",
+                        "/aula-conteudo/**", "/frequencia/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/turmas/**", "/disciplinas/**", "/turma-disciplina/**",
+                        "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**", "/aulas/**",
+                        "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.PUT, "/turmas/**", "/disciplinas/**", "/turma-disciplina/**",
+                        "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**", "/aulas/**",
+                        "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/turmas/**", "/disciplinas/**", "/turma-disciplina/**",
+                        "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**", "/aulas/**",
+                        "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
 
                 // Módulo de simulados: montagem/moderação/lançamento é tarefa do
                 // professor (ou administrador); o aluno só consulta (GET) e

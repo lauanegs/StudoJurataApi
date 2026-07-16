@@ -6,17 +6,27 @@ import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.Disciplina;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.repository.DisciplinaRepository;
+import studojurata_api.security.EscolaContext;
 
 import java.util.List;
 
-/** Correção 5.1: controller passa a usar este service, não mais o Repository. */
+/**
+ * Correção 5.1: controller passa a usar este service, não mais o Repository.
+ * Correção 2.2 da Terceira Análise Crítica (isolamento multi-tenant):
+ * listar() filtra pela escola do usuário autenticado.
+ */
 @Service
 @RequiredArgsConstructor
 public class DisciplinaService {
 
     private final DisciplinaRepository repository;
+    private final EscolaContext escolaContext;
 
-    public List<Disciplina> listar() { return repository.findAll(); }
+    /** Filtra pela escola do usuário autenticado; se não houver escola resolvível, devolve tudo (bootstrapping). */
+    public List<Disciplina> listar() {
+        Long escolaId = escolaContext.escolaAtualId();
+        return escolaId != null ? repository.findByEscola_Id(escolaId) : repository.findAll();
+    }
 
     public Disciplina buscar(Long id) {
         return repository.findById(id)

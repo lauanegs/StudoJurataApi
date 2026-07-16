@@ -175,6 +175,16 @@ public class SimuladoAlunoService {
                 ? salvo.getSimulado().getPlanoEnsino().getPeriodoLetivo() : null;
         if (disciplinaId != null && periodoLetivo != null) {
             notaService.recalcular(salvo.getAluno().getId(), disciplinaId, periodoLetivo);
+        } else {
+            // Correção 2.4 da Terceira Análise Crítica: PlanoEnsino.periodoLetivo
+            // agora é obrigatório para planos novos, mas planos já existentes
+            // (cadastrados antes da correção) ainda podem estar sem esse campo.
+            // Nesses casos o recálculo é pulado — registramos em AuditLog para
+            // o Administrador identificar e corrigir o cadastro, em vez de o
+            // aluno simplesmente nunca ver a nota da disciplina, sem explicação.
+            auditLogService.registrar("SimuladoAluno", salvo.getId(), AcaoAuditoria.ATUALIZACAO,
+                    "Nota da disciplina NÃO recalculada: disciplina ou período letivo do plano de ensino "
+                            + "ausente (planoEnsino/disciplina desatualizados). Corrija o cadastro do plano de ensino.");
         }
 
         // Correção 8.1/8.2: moeda concedida sempre por concluir o simulado,

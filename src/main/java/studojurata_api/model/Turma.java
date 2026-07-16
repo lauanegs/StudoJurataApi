@@ -29,7 +29,14 @@ public class Turma extends BaseEntity {
      * mesmo curso). Não existe mais o conceito de "turma oficial vs. de
      * apoio": toda turma é igualmente oficial, e o aluno sempre segue o
      * curso vinculado à turma em que está matriculado (ver AlunoTurma).
+     *
+     * Correção 2.4 da Terceira Análise Crítica: o campo passou a ser
+     * obrigatório (nullable = false) — sem isso, nada impedia cadastrar uma
+     * turma sem curso, reabrindo a própria ambiguidade que este campo foi
+     * criado para fechar. Validado também em TurmaService (mensagem 400
+     * amigável, em vez de deixar a constraint do banco estourar como 500).
      */
+    @Column(nullable = false)
     private String curso;
 
     /*
