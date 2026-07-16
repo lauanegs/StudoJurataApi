@@ -10,6 +10,7 @@ import studojurata_api.model.PlanoEnsino;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.repository.CursoRepository;
 import studojurata_api.repository.PlanoEnsinoRepository;
+import studojurata_api.security.EscolaContext;
 
 import java.util.List;
 
@@ -21,6 +22,11 @@ import java.util.List;
  * Vínculo pedido explicitamente: todo Plano de Ensino pertence a um Curso
  * (ver PlanoEnsino.curso) — validado e resolvido da mesma forma que
  * TurmaService faz para Turma.curso.
+ *
+ * Correção 3.1 da Quarta Análise Crítica (isolamento por escola na
+ * escrita): validarCurso recusa (403) um Curso que não pertence à escola
+ * do usuário autenticado. Correção 3.3: recusa (409) vincular um plano de
+ * ensino a um Curso já INATIVO.
  */
 @Service
 @RequiredArgsConstructor
@@ -28,6 +34,7 @@ public class PlanoEnsinoService {
 
     private final PlanoEnsinoRepository repository;
     private final CursoRepository cursoRepository;
+    private final EscolaContext escolaContext;
 
     public List<PlanoEnsino> listar() { return repository.findAll(); }
 
@@ -69,6 +76,18 @@ public class PlanoEnsinoService {
         }
         Curso curso = cursoRepository.findById(obj.getCurso().getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Curso " + obj.getCurso().getId() + " não encontrado."));
+
+        if (curso.getStatus() == StatusAtivoInativo.INATIVO) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "O curso \"" + curso.getNome() + "\" está inativo e não pode receber novos planos de ensino.");
+        }
+
+        Long escolaId = escolaContext.escolaAtualId();
+        if (escolaId != null && curso.getEscola() != null && !escolaId.equals(curso.getEscola().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Este curso pertence a outra escola e não pode ser vinculado a este plano de ensino.");
+        }
+
         obj.setCurso(curso);
     }
 

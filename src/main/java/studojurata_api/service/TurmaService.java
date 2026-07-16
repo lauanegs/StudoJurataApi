@@ -7,6 +7,7 @@ import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.Curso;
 import studojurata_api.model.Turma;
+import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.model.enums.StatusMatricula;
 import studojurata_api.model.enums.StatusTurma;
 import studojurata_api.repository.AlunoTurmaRepository;
@@ -30,6 +31,13 @@ import java.util.List;
  * do banco estourar como erro 500). O horário semanal da turma passou a
  * ser tratado à parte, em HorarioTurma/HorarioTurmaService (1 Turma : N
  * HorarioTurma, pois uma turma tem aula em mais de um dia da semana).
+ *
+ * Correção 3.1 da Quarta Análise Crítica (isolamento por escola na
+ * escrita): validarCurso agora também recusa (403) um Curso que não
+ * pertence à escola do usuário autenticado — antes, qualquer Curso
+ * existente podia ser vinculado a qualquer Turma só pelo id, mesmo sendo
+ * de outra escola. Correção 3.3: recusa (409) vincular uma turma a um
+ * Curso já INATIVO (soft-deletado/descontinuado).
  */
 @Service
 @RequiredArgsConstructor
@@ -100,6 +108,22 @@ public class TurmaService {
         }
         Curso curso = cursoRepository.findById(obj.getCurso().getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Curso " + obj.getCurso().getId() + " não encontrado."));
+
+        if (curso.getStatus() == StatusAtivoInativo.INATIVO) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "O curso \"" + curso.getNome() + "\" está inativo e não pode receber novas turmas.");
+        }
+
+        // Correção 3.1 da Quarta Análise Crítica: o Curso precisa pertencer à
+        // mesma escola do usuário autenticado — sem isso, qualquer Curso
+        // cadastrado no sistema (de qualquer escola) podia ser vinculado a
+        // esta Turma só sabendo o id.
+        Long escolaId = escolaContext.escolaAtualId();
+        if (escolaId != null && curso.getEscola() != null && !escolaId.equals(curso.getEscola().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Este curso pertence a outra escola e não pode ser vinculado a esta turma.");
+        }
+
         obj.setCurso(curso);
     }
 }
