@@ -4,10 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.model.Curso;
 import studojurata_api.model.Turma;
 import studojurata_api.model.enums.StatusMatricula;
 import studojurata_api.model.enums.StatusTurma;
 import studojurata_api.repository.AlunoTurmaRepository;
+import studojurata_api.repository.CursoRepository;
 import studojurata_api.repository.TurmaRepository;
 import studojurata_api.security.EscolaContext;
 
@@ -21,7 +24,12 @@ import java.util.List;
  * (Turma.status = INATIVA) — o campo já existia mas nunca era usado, e uma
  * Turma pode ter AlunoTurma/TurmaDisciplina/histórico de simulados
  * vinculados, o mesmo risco que motivou soft-delete nas demais entidades.
- * Correção 2.4: curso passa a ser obrigatório (ver Turma.curso).
+ * Correção 2.4: curso passa a ser obrigatório (ver Turma.curso), e agora é
+ * a entidade Curso — validarCurso resolve o Curso completo a partir do id
+ * enviado, garantindo que ele existe (404 amigável em vez de a constraint
+ * do banco estourar como erro 500). O horário semanal da turma passou a
+ * ser tratado à parte, em HorarioTurma/HorarioTurmaService (1 Turma : N
+ * HorarioTurma, pois uma turma tem aula em mais de um dia da semana).
  */
 @Service
 @RequiredArgsConstructor
@@ -29,6 +37,7 @@ public class TurmaService {
 
     private final TurmaRepository repository;
     private final AlunoTurmaRepository alunoTurmaRepository;
+    private final CursoRepository cursoRepository;
     private final EscolaContext escolaContext;
 
     /** Filtra pela escola do usuário autenticado; se não houver escola resolvível, devolve tudo (bootstrapping). */
@@ -85,9 +94,12 @@ public class TurmaService {
     }
 
     private void validarCurso(Turma obj) {
-        if (obj.getCurso() == null || obj.getCurso().isBlank()) {
+        if (obj.getCurso() == null || obj.getCurso().getId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Curso é obrigatório: o aluno matriculado na turma sempre segue o curso vinculado a ela.");
         }
+        Curso curso = cursoRepository.findById(obj.getCurso().getId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Curso " + obj.getCurso().getId() + " não encontrado."));
+        obj.setCurso(curso);
     }
 }

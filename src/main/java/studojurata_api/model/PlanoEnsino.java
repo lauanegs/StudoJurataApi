@@ -20,12 +20,16 @@ public class PlanoEnsino extends BaseEntity {
     private String titulo;
 
     /**
-     * @deprecated a fonte de verdade do curso passou a ser Turma.curso (ver
-     * correção da "gambiarra" de troca de turma na Segunda Análise Crítica) —
-     * mantido aqui apenas por compatibilidade, não usar em código novo.
+     * Vínculo pedido explicitamente: cada Curso pode ter vários Planos de
+     * Ensino (um por disciplina do currículo daquele curso). Antes disso
+     * existia aqui apenas um campo "curso" (String, @Deprecated) que já
+     * havia perdido a função de fonte de verdade para Turma.curso — agora
+     * vira a relação de fato com a entidade Curso (ver Curso.java),
+     * permitindo listar todos os planos de ensino de um curso
+     * (CursoController: GET /cursos/{id}/planos-ensino).
      */
-    @Deprecated
-    private String curso;
+    @ManyToOne(optional = false)
+    private Curso curso;
 
     private Integer cargaHoraria;
 

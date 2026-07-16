@@ -102,25 +102,27 @@ public class SecurityConfig {
                 .requestMatchers("/gamificacao/**").authenticated()
 
                 // Correção 2.5 da Terceira Análise Crítica: gestão pedagógica
-                // (turmas, disciplinas, vínculo turma-disciplina, planos de
-                // ensino/aula, conteúdo, aulas e frequência) não tinha
-                // nenhuma regra própria e caía em anyRequest().authenticated()
-                // — ou seja, um Aluno logado podia criar/editar/excluir esses
-                // registros via API. Consulta (GET) continua liberada a
-                // qualquer autenticado; escrita fica restrita a quem
-                // efetivamente gerencia esse conteúdo (Professor/Admin).
-                .requestMatchers(HttpMethod.GET, "/turmas/**", "/disciplinas/**", "/turma-disciplina/**",
-                        "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**", "/aulas/**",
-                        "/aula-conteudo/**", "/frequencia/**").authenticated()
-                .requestMatchers(HttpMethod.POST, "/turmas/**", "/disciplinas/**", "/turma-disciplina/**",
-                        "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**", "/aulas/**",
-                        "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
-                .requestMatchers(HttpMethod.PUT, "/turmas/**", "/disciplinas/**", "/turma-disciplina/**",
-                        "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**", "/aulas/**",
-                        "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
-                .requestMatchers(HttpMethod.DELETE, "/turmas/**", "/disciplinas/**", "/turma-disciplina/**",
-                        "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**", "/aulas/**",
-                        "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                // (cursos, turmas e seus horários semanais, disciplinas,
+                // vínculo turma-disciplina, planos de ensino/aula, conteúdo,
+                // aulas e frequência) não tinha nenhuma regra própria e caía
+                // em anyRequest().authenticated() — ou seja, um Aluno logado
+                // podia criar/editar/excluir esses registros via API.
+                // Consulta (GET) continua liberada a qualquer autenticado;
+                // escrita fica restrita a quem efetivamente gerencia esse
+                // conteúdo (Professor/Admin). /horarios/** cobre o DELETE de
+                // HorarioTurma (rota própria, fora de /turmas/**).
+                .requestMatchers(HttpMethod.GET, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
+                        "/turma-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/aulas/**", "/aula-conteudo/**", "/frequencia/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
+                        "/turma-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.PUT, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
+                        "/turma-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
+                        "/turma-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
 
                 // Módulo de simulados: montagem/moderação/lançamento é tarefa do
                 // professor (ou administrador); o aluno só consulta (GET) e

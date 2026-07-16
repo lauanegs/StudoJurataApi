@@ -31,13 +31,18 @@ public class Turma extends BaseEntity {
      * curso vinculado à turma em que está matriculado (ver AlunoTurma).
      *
      * Correção 2.4 da Terceira Análise Crítica: o campo passou a ser
-     * obrigatório (nullable = false) — sem isso, nada impedia cadastrar uma
-     * turma sem curso, reabrindo a própria ambiguidade que este campo foi
-     * criado para fechar. Validado também em TurmaService (mensagem 400
-     * amigável, em vez de deixar a constraint do banco estourar como 500).
+     * obrigatório — sem isso, nada impedia cadastrar uma turma sem curso,
+     * reabrindo a própria ambiguidade que este campo foi criado para
+     * fechar. Validado também em TurmaService (mensagem 400 amigável).
+     *
+     * Evolução pedida posteriormente: curso deixou de ser um texto livre e
+     * passou a ser a entidade Curso (ver Curso.java) — uma escola pode
+     * oferecer vários cursos, cada um com atributos próprios (descrição,
+     * carga horária total), e várias turmas diferentes podem pertencer ao
+     * mesmo curso.
      */
-    @Column(nullable = false)
-    private String curso;
+    @ManyToOne(optional = false)
+    private Curso curso;
 
     /*
      * quantidadeAlunos foi removido: era um campo persistido e redundante,
