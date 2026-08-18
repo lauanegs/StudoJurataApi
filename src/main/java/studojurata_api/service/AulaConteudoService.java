@@ -1,10 +1,11 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
+import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.Aula;
 import studojurata_api.model.AulaConteudo;
 import studojurata_api.model.ConteudoPlano;
@@ -33,26 +34,29 @@ public class AulaConteudoService {
 
     public List<AulaConteudo> listar() { return repository.findAll(); }
 
-    public AulaConteudo buscar(Long id) { return repository.findById(id).orElseThrow(); }
+    public AulaConteudo buscar(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Vínculo aula-conteúdo " + id + " não encontrado."));
+    }
 
     public List<AulaConteudo> listarPorAula(Long aulaId) { return repository.findByAula_Id(aulaId); }
 
     @Transactional
     public AulaConteudo vincular(Long aulaId, Long conteudoPlanoId) {
         Aula aula = aulaRepository.findById(aulaId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Aula não encontrada."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Aula " + aulaId + " não encontrada."));
         ConteudoPlano conteudoPlano = conteudoPlanoRepository.findById(conteudoPlanoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conteúdo não encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Conteúdo " + conteudoPlanoId + " não encontrado."));
 
         Long planoEnsinoDaAulaId = aula.getPlanoAula().getPlanoEnsino().getId();
         Long planoEnsinoDoConteudoId = conteudoPlano.getPlanoEnsino() != null ? conteudoPlano.getPlanoEnsino().getId() : null;
         if (!planoEnsinoDaAulaId.equals(planoEnsinoDoConteudoId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+            throw new RequisicaoInvalidaException(
                     "Só é possível vincular conteúdos do plano de ensino vinculado a esta aula.");
         }
 
         if (repository.existsByAula_IdAndConteudoPlano_Id(aulaId, conteudoPlanoId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Este conteúdo já está vinculado a esta aula.");
+            throw new RegraNegocioException("Este conteúdo já está vinculado a esta aula.");
         }
 
         AulaConteudo aulaConteudo = new AulaConteudo();

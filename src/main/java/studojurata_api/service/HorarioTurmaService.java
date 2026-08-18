@@ -1,10 +1,10 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
+import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.HorarioTurma;
 import studojurata_api.model.Turma;
 import studojurata_api.repository.HorarioTurmaRepository;
@@ -47,13 +47,13 @@ public class HorarioTurmaService {
 
     private void validar(HorarioTurma obj) {
         if (obj.getDiaSemana() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dia da semana é obrigatório.");
+            throw new RequisicaoInvalidaException("Dia da semana é obrigatório.");
         }
         if (obj.getHoraInicio() == null || obj.getHoraFim() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hora de início e hora de fim são obrigatórias.");
+            throw new RequisicaoInvalidaException("Hora de início e hora de fim são obrigatórias.");
         }
         if (!obj.getHoraInicio().isBefore(obj.getHoraFim())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hora de início deve ser antes da hora de fim.");
+            throw new RequisicaoInvalidaException("Hora de início deve ser antes da hora de fim.");
         }
     }
 
@@ -64,7 +64,7 @@ public class HorarioTurmaService {
                 novo.getHoraInicio().isBefore(existente.getHoraFim())
                         && novo.getHoraFim().isAfter(existente.getHoraInicio()));
         if (sobrepoe) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new RegraNegocioException(
                     "Já existe um horário cadastrado para esta turma neste dia que se sobrepõe ao informado.");
         }
     }

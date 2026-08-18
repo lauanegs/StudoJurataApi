@@ -5,6 +5,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
+import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.Curso;
 import studojurata_api.model.PlanoEnsino;
 import studojurata_api.model.enums.StatusAtivoInativo;
@@ -36,7 +38,17 @@ public class PlanoEnsinoService {
     private final CursoRepository cursoRepository;
     private final EscolaContext escolaContext;
 
-    public List<PlanoEnsino> listar() { return repository.findAll(); }
+    /**
+     * Filtra pela escola do usuário autenticado (via Curso.escola); se não
+     * houver escola resolvível, devolve tudo (bootstrapping). Correção de
+     * auditoria: antes listar() ignorava EscolaContext (que já era usado em
+     * validarCurso, no caminho de escrita), devolvendo planos de ensino de
+     * todas as escolas para qualquer usuário autenticado.
+     */
+    public List<PlanoEnsino> listar() {
+        Long escolaId = escolaContext.escolaAtualId();
+        return escolaId != null ? repository.findByCurso_Escola_Id(escolaId) : repository.findAll();
+    }
 
     public PlanoEnsino buscar(Long id) {
         return repository.findById(id)
@@ -64,21 +76,20 @@ public class PlanoEnsinoService {
 
     private void validarPeriodoLetivo(PlanoEnsino obj) {
         if (obj.getPeriodoLetivo() == null || obj.getPeriodoLetivo().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+            throw new RequisicaoInvalidaException(
                     "Período letivo é obrigatório: sem ele, a nota do aluno nesta disciplina não pode ser calculada.");
         }
     }
 
     private void validarCurso(PlanoEnsino obj) {
         if (obj.getCurso() == null || obj.getCurso().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Curso é obrigatório: todo plano de ensino pertence a um curso.");
+            throw new RequisicaoInvalidaException("Curso é obrigatório: todo plano de ensino pertence a um curso.");
         }
         Curso curso = cursoRepository.findById(obj.getCurso().getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Curso " + obj.getCurso().getId() + " não encontrado."));
 
         if (curso.getStatus() == StatusAtivoInativo.INATIVO) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new RegraNegocioException(
                     "O curso \"" + curso.getNome() + "\" está inativo e não pode receber novos planos de ensino.");
         }
 

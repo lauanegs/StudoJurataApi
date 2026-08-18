@@ -47,4 +47,13 @@ public class ResponsavelAluno extends BaseEntity {
     /** Texto curto exibido junto ao checkbox no momento do aceite (não um sistema de versionamento formal). */
     @Column(length = 500)
     private String textoVersao;
+
+    /**
+     * Opt-in (item 9.8): responsável só recebe registro de notificação se
+     * marcar explicitamente. Começa desligado. Sem nullable=false de
+     * propósito — assim como aceitouTermos, é um campo novo numa tabela que
+     * já tinha registros; ddl-auto=update não teria como popular um NOT NULL
+     * sem default nas linhas existentes.
+     */
+    private Boolean receberNotificacoes = false;
 }

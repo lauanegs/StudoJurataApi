@@ -29,4 +29,8 @@ public class Pessoa extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private StatusAtivoInativo status;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "endereco_id")
+    private Endereco endereco;
 }

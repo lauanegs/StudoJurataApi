@@ -1,11 +1,12 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.dto.ChamadaRequest;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
+import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.Aluno;
 import studojurata_api.model.Aula;
 import studojurata_api.model.Frequencia;
@@ -43,11 +44,11 @@ public class FrequenciaService {
     @Transactional
     public List<Frequencia> registrarChamada(Long aulaId, ChamadaRequest request) {
         if (request == null || request.getAlunos() == null || request.getAlunos().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe ao menos um aluno para realizar a chamada.");
+            throw new RequisicaoInvalidaException("Informe ao menos um aluno para realizar a chamada.");
         }
 
         Aula aula = aulaRepository.findById(aulaId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Aula não encontrada."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Aula " + aulaId + " não encontrada."));
         Long turmaId = aula.getPlanoAula().getTurmaDisciplina().getTurma().getId();
 
         return request.getAlunos().stream()
@@ -57,19 +58,19 @@ public class FrequenciaService {
 
     private Frequencia registrarPresenca(Aula aula, Long turmaId, ChamadaRequest.Item item) {
         if (item.getAlunoId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "alunoId é obrigatório para cada item da chamada.");
+            throw new RequisicaoInvalidaException("alunoId é obrigatório para cada item da chamada.");
         }
         if (item.getPresente() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "presente é obrigatório para cada item da chamada.");
+            throw new RequisicaoInvalidaException("presente é obrigatório para cada item da chamada.");
         }
 
         Aluno aluno = alunoRepository.findById(item.getAlunoId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Aluno não encontrado: " + item.getAlunoId()));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Aluno não encontrado: " + item.getAlunoId()));
 
         boolean matriculaAtiva = alunoTurmaRepository.existsByAluno_IdAndTurma_IdAndStatus(
                 aluno.getId(), turmaId, StatusMatricula.ATIVA);
         if (!matriculaAtiva) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new RegraNegocioException(
                     "Aluno " + aluno.getId() + " não possui matrícula ativa na turma desta aula.");
         }
 

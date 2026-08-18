@@ -1,14 +1,16 @@
 package studojurata_api.dto;
 
+import lombok.Getter;
 import studojurata_api.model.enums.TipoUsuario;
 
+@Getter
 public class LoginResponse {
 
-    private Long usuarioId;
-    private String username;
-    private TipoUsuario tipoUsuario;
-    private Long pessoaId;
-    private String nomePessoa;
+    private final Long usuarioId;
+    private final String username;
+    private final TipoUsuario tipoUsuario;
+    private final Long pessoaId;
+    private final String nomePessoa;
 
     public LoginResponse(Long usuarioId, String username, TipoUsuario tipoUsuario, Long pessoaId, String nomePessoa) {
         this.usuarioId = usuarioId;
@@ -16,25 +18,5 @@ public class LoginResponse {
         this.tipoUsuario = tipoUsuario;
         this.pessoaId = pessoaId;
         this.nomePessoa = nomePessoa;
-    }
-
-    public Long getUsuarioId() {
-        return usuarioId;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public TipoUsuario getTipoUsuario() {
-        return tipoUsuario;
-    }
-
-    public Long getPessoaId() {
-        return pessoaId;
-    }
-
-    public String getNomePessoa() {
-        return nomePessoa;
     }
 }

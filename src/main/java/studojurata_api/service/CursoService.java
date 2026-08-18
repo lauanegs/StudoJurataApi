@@ -1,10 +1,9 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.Curso;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.repository.CursoRepository;
@@ -59,7 +58,7 @@ public class CursoService {
 
     private void validarNome(Curso obj) {
         if (obj.getNome() == null || obj.getNome().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nome do curso é obrigatório.");
+            throw new RequisicaoInvalidaException("Nome do curso é obrigatório.");
         }
     }
 

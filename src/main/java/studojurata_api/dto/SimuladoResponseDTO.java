@@ -21,5 +21,6 @@ public class SimuladoResponseDTO {
     private Integer tempoLimite;
     private Double notaMaxima;
     private Integer quantidadeQuestoes;
+    private String periodoLetivo;
     private StatusSimulado status;
 }

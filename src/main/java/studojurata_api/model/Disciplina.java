@@ -17,7 +17,6 @@ public class Disciplina extends BaseEntity {
     private Escola escola;
 
     private String titulo;
-    private Integer cargaHoraria;
 
     /** Correção 2.11 da Segunda Análise Crítica: era String livre, agora enum. */
     @Enumerated(EnumType.STRING)

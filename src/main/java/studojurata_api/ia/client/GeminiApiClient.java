@@ -57,9 +57,22 @@ public class GeminiApiClient implements GeminiQuestaoClient {
     @Value("${studojurata.ia.gemini.timeout-ms:8000}")
     private long timeoutMs;
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
+    // Construído sob demanda (não no campo) — abrir o HttpClient já cria o
+    // Selector do java.net.http em segundo plano, e alguns ambientes
+    // restringem esse socket de loopback na inicialização do processo. Como
+    // gerarQuestoes já tem fallback documentado quando a chamada falha, adiar
+    // a criação evita que só o BOOT da aplicação dependa dessa permissão de
+    // rede — só passa a exigir quando a geração por IA é realmente usada.
+    private HttpClient httpClient;
+
+    private HttpClient httpClient() {
+        if (httpClient == null) {
+            httpClient = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(5))
+                    .build();
+        }
+        return httpClient;
+    }
 
     @Override
     public String getModelo() {
@@ -87,7 +100,7 @@ public class GeminiApiClient implements GeminiQuestaoClient {
                     .POST(HttpRequest.BodyPublishers.ofString(corpoRequisicao))
                     .build();
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = httpClient().send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new GeminiIndisponivelException(

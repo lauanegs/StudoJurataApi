@@ -74,7 +74,7 @@ public class RevisaoConteudoService {
 
         RevisaoConteudo salva = repository.save(revisao);
 
-        pontuacaoAlunoService.concederMoedas(alunoId, PontuacaoAlunoService.MOEDAS_POR_REFORCO, 0);
+        pontuacaoAlunoService.concederMoedas(alunoId, PontuacaoAlunoService.MOEDAS_POR_REFORCO);
 
         return salva;
     }

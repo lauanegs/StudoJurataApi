@@ -1,10 +1,11 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
+import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.AlunoTurma;
 import studojurata_api.model.Turma;
 import studojurata_api.model.enums.StatusMatricula;
@@ -23,7 +24,10 @@ public class AlunoTurmaService {
 
     public List<AlunoTurma> listar() { return repository.findAll(); }
 
-    public AlunoTurma buscar(Long id) { return repository.findById(id).orElseThrow(); }
+    public AlunoTurma buscar(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Matrícula " + id + " não encontrada."));
+    }
 
     /** Lista o histórico completo de matrículas de uma turma (ativas ou não). */
     public List<AlunoTurma> historicoPorTurma(Long turmaId) {
@@ -54,10 +58,10 @@ public class AlunoTurmaService {
     @Transactional
     public AlunoTurma matricular(AlunoTurma obj) {
         if (obj.getAluno() == null || obj.getAluno().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aluno é obrigatório para a matrícula.");
+            throw new RequisicaoInvalidaException("Aluno é obrigatório para a matrícula.");
         }
         if (obj.getTurma() == null || obj.getTurma().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Turma é obrigatória para a matrícula.");
+            throw new RequisicaoInvalidaException("Turma é obrigatória para a matrícula.");
         }
         if (obj.getStatus() == null) {
             obj.setStatus(StatusMatricula.ATIVA);
@@ -142,16 +146,14 @@ public class AlunoTurmaService {
         AlunoTurma origem = buscar(matriculaOrigemId);
 
         if (origem.getStatus() != StatusMatricula.ATIVA) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Só é possível transferir uma matrícula que esteja ATIVA.");
+            throw new RegraNegocioException("Só é possível transferir uma matrícula que esteja ATIVA.");
         }
         if (origem.getTurma().getId().equals(turmaDestinoId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Turma de destino deve ser diferente da turma de origem.");
+            throw new RequisicaoInvalidaException("Turma de destino deve ser diferente da turma de origem.");
         }
 
         Turma destino = turmaRepository.findById(turmaDestinoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turma de destino não encontrada."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Turma de destino " + turmaDestinoId + " não encontrada."));
 
         LocalDate data = dataTransferencia != null ? dataTransferencia : LocalDate.now();
 
@@ -176,7 +178,7 @@ public class AlunoTurmaService {
     /**
      * Exclusão física: mantida apenas para compatibilidade/uso administrativo
      * pontual. Preferir sempre cancelar()/concluir() para preservar
-     * histórico pedagógico (ver 4.3 da análise crítica).
+     * histórico pedagógico.
      */
     public void deletar(Long id) { repository.deleteById(id); }
 
@@ -185,18 +187,17 @@ public class AlunoTurmaService {
                 .filter(m -> ignorarMatriculaId == null || !m.getId().equals(ignorarMatriculaId))
                 .isPresent();
         if (jaAtiva) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Este aluno já possui uma matrícula ativa nesta turma.");
+            throw new RegraNegocioException("Este aluno já possui uma matrícula ativa nesta turma.");
         }
     }
 
     private void validarCapacidade(Long turmaId) {
         Turma turma = turmaRepository.findById(turmaId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turma não encontrada."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Turma " + turmaId + " não encontrada."));
         if (turma.getCapacidadeMaxima() != null) {
             long ativos = repository.countByTurmaIdAndStatus(turmaId, StatusMatricula.ATIVA);
             if (ativos >= turma.getCapacidadeMaxima()) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                throw new RegraNegocioException(
                         "Capacidade máxima da turma atingida (" + turma.getCapacidadeMaxima() + " alunos).");
             }
         }

@@ -44,6 +44,14 @@ public class Simulado extends BaseEntity {
     private Double notaMaxima;
     private Integer quantidadeQuestoes;
 
+    /**
+     * Correção do bug "nota não recalcula sem Plano de Ensino": período
+     * letivo próprio do Simulado, não mais herdado de planoEnsino (que é
+     * opcional). Obrigatório para simulados novos; registros antigos podem
+     * continuar null (ver SimuladoAlunoService.finalizar).
+     */
+    private String periodoLetivo;
+
     @Enumerated(EnumType.STRING)
     private StatusSimulado status;
 }

@@ -32,4 +32,8 @@ build/
 ### VS Code ###
 .vscode/
 
+### Logs locais de execução (mvnw spring-boot:run) ###
+# Ver docs/architecture.md item 9 — dezenas de backend_run*.log ficaram na
+# raiz do repositório sem estar cobertos pelo .gitignore.
+backend_run*.log
 

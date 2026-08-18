@@ -1,10 +1,10 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.PlanoAula;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.repository.AulaRepository;
@@ -22,7 +22,10 @@ public class PlanoAulaService {
 
     public List<PlanoAula> listar() { return repository.findAll(); }
 
-    public PlanoAula buscar(Long id) { return repository.findById(id).orElseThrow(); }
+    public PlanoAula buscar(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Plano de aula " + id + " não encontrado."));
+    }
 
     public List<PlanoAula> listarPorTurmaDisciplina(Long turmaDisciplinaId) {
         return repository.findByTurmaDisciplina_Id(turmaDisciplinaId);
@@ -76,10 +79,10 @@ public class PlanoAulaService {
 
     private void validar(PlanoAula obj) {
         if (obj.getTurmaDisciplina() == null || obj.getTurmaDisciplina().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Turma/Disciplina é obrigatória para o plano de aula.");
+            throw new RequisicaoInvalidaException("Turma/Disciplina é obrigatória para o plano de aula.");
         }
         if (obj.getPlanoEnsino() == null || obj.getPlanoEnsino().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Plano de ensino é obrigatório para o plano de aula.");
+            throw new RequisicaoInvalidaException("Plano de ensino é obrigatório para o plano de aula.");
         }
     }
 }

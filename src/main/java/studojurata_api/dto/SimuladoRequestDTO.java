@@ -23,4 +23,6 @@ public class SimuladoRequestDTO {
     private Integer tempoLimite;
     private Double notaMaxima;
     private Integer quantidadeQuestoes;
+    @NotBlank(message = "periodoLetivo é obrigatório")
+    private String periodoLetivo;
 }

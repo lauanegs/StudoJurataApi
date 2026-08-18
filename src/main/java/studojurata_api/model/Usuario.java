@@ -1,6 +1,6 @@
 package studojurata_api.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -30,9 +30,15 @@ public class Usuario extends BaseEntity {
 
     /**
      * Sempre armazenada com hash (BCrypt), nunca em texto puro.
-     * Nunca é serializada nas respostas da API.
+     * Nunca é serializada nas respostas da API — mas precisa continuar
+     * aceitando escrita (@JsonIgnore bloqueava as DUAS direções, então a
+     * senha enviada em POST/PUT /usuarios nunca chegava a
+     * UsuarioService.salvar/atualizar; passwordEncoder.encode(null) estourava
+     * 500 sempre que alguém tentava criar um usuário pela API — bug
+     * pré-existente, só não detectado porque o DevDataResetSeeder cria
+     * Usuario direto em Java, sem passar pelo Jackson).
      */
-    @JsonIgnore
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String senha;
 
     /**

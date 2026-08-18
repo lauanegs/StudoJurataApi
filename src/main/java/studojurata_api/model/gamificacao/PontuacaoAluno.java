@@ -29,7 +29,4 @@ public class PontuacaoAluno extends BaseEntity {
 
     @Column(nullable = false)
     private Integer moedas = 0;
-
-    @Column(nullable = false)
-    private Integer xpTotal = 0;
 }

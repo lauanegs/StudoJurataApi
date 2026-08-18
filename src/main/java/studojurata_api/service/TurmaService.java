@@ -5,6 +5,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
+import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.Curso;
 import studojurata_api.model.Turma;
 import studojurata_api.model.enums.StatusAtivoInativo;
@@ -54,7 +56,10 @@ public class TurmaService {
         return escolaId != null ? repository.findByEscola_Id(escolaId) : repository.findAll();
     }
 
-    public Turma buscar(Long id) { return repository.findById(id).orElseThrow(); }
+    public Turma buscar(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Turma " + id + " não encontrada."));
+    }
 
     public Turma salvar(Turma obj) {
         validarCapacidadeMaxima(obj);
@@ -74,7 +79,7 @@ public class TurmaService {
         if (obj.getCapacidadeMaxima() != null) {
             long ativos = alunoTurmaRepository.countByTurmaIdAndStatus(id, StatusMatricula.ATIVA);
             if (ativos > obj.getCapacidadeMaxima()) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                throw new RegraNegocioException(
                         "Não é possível reduzir a capacidade máxima para " + obj.getCapacidadeMaxima()
                                 + ": a turma já possui " + ativos + " aluno(s) com matrícula ativa.");
             }
@@ -97,20 +102,20 @@ public class TurmaService {
 
     private void validarCapacidadeMaxima(Turma obj) {
         if (obj.getCapacidadeMaxima() != null && obj.getCapacidadeMaxima() <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Capacidade máxima deve ser maior que zero.");
+            throw new RequisicaoInvalidaException("Capacidade máxima deve ser maior que zero.");
         }
     }
 
     private void validarCurso(Turma obj) {
         if (obj.getCurso() == null || obj.getCurso().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+            throw new RequisicaoInvalidaException(
                     "Curso é obrigatório: o aluno matriculado na turma sempre segue o curso vinculado a ela.");
         }
         Curso curso = cursoRepository.findById(obj.getCurso().getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Curso " + obj.getCurso().getId() + " não encontrado."));
 
         if (curso.getStatus() == StatusAtivoInativo.INATIVO) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new RegraNegocioException(
                     "O curso \"" + curso.getNome() + "\" está inativo e não pode receber novas turmas.");
         }
 

@@ -171,26 +171,26 @@ public class SimuladoAlunoService {
         // Correção 1.2/2.13: Nota da disciplina é sempre recalculada (derivada) a
         // partir dos simulados concluídos, nunca setada diretamente.
         Long disciplinaId = salvo.getSimulado().getDisciplina() != null ? salvo.getSimulado().getDisciplina().getId() : null;
-        String periodoLetivo = salvo.getSimulado().getPlanoEnsino() != null
-                ? salvo.getSimulado().getPlanoEnsino().getPeriodoLetivo() : null;
+        String periodoLetivo = salvo.getSimulado().getPeriodoLetivo();
         if (disciplinaId != null && periodoLetivo != null) {
             notaService.recalcular(salvo.getAluno().getId(), disciplinaId, periodoLetivo);
         } else {
-            // Correção 2.4 da Terceira Análise Crítica: PlanoEnsino.periodoLetivo
-            // agora é obrigatório para planos novos, mas planos já existentes
-            // (cadastrados antes da correção) ainda podem estar sem esse campo.
-            // Nesses casos o recálculo é pulado — registramos em AuditLog para
-            // o Administrador identificar e corrigir o cadastro, em vez de o
-            // aluno simplesmente nunca ver a nota da disciplina, sem explicação.
+            // Simulado.periodoLetivo é obrigatório para simulados novos (fix do
+            // bug "nota não recalcula sem Plano de Ensino"), mas simulados já
+            // existentes (cadastrados antes da correção) ainda podem estar sem
+            // esse campo. Nesses casos o recálculo é pulado — registramos em
+            // AuditLog para o Administrador identificar e corrigir o cadastro,
+            // em vez de o aluno simplesmente nunca ver a nota da disciplina,
+            // sem explicação.
             auditLogService.registrar("SimuladoAluno", salvo.getId(), AcaoAuditoria.ATUALIZACAO,
-                    "Nota da disciplina NÃO recalculada: disciplina ou período letivo do plano de ensino "
-                            + "ausente (planoEnsino/disciplina desatualizados). Corrija o cadastro do plano de ensino.");
+                    "Nota da disciplina NÃO recalculada: disciplina ou período letivo do simulado "
+                            + "ausente (simulado cadastrado antes da correção). Corrija o cadastro do simulado.");
         }
 
         // Correção 8.1/8.2: moeda concedida sempre por concluir o simulado,
         // independente da nota obtida (equidade — não é bonificação por acerto).
         pontuacaoAlunoService.concederMoedas(salvo.getAluno().getId(),
-                PontuacaoAlunoService.MOEDAS_POR_SIMULADO_CONCLUIDO, acertos);
+                PontuacaoAlunoService.MOEDAS_POR_SIMULADO_CONCLUIDO);
 
         return salvo;
     }

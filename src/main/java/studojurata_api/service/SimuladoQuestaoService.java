@@ -7,6 +7,7 @@ import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.SimuladoQuestao;
+import studojurata_api.model.enums.OrigemQuestao;
 import studojurata_api.model.enums.StatusSimuladoQuestao;
 import studojurata_api.repository.QuestaoConteudoRepository;
 import studojurata_api.repository.SimuladoQuestaoRepository;
@@ -31,6 +32,15 @@ public class SimuladoQuestaoService {
      * Ver item 7.1 da Análise Crítica: toda questão usada em um simulado
      * precisa estar vinculada a um conteúdo (QuestaoConteudo) — pré-requisito
      * estrutural para qualquer geração/adaptação futura baseada em conteúdo.
+     *
+     * A exigência vale só para questões de origem IA (que já nascem com esse
+     * vínculo em GeracaoQuestaoIAService — ver item 7.1). Questões de origem
+     * PROFESSOR são escritas na tela "Novo simulado" (SimuladoFormulario),
+     * que nunca teve — e não tem hoje — nenhum campo para escolher um
+     * ConteudoPlano; aplicar a mesma exigência a elas travava toda criação
+     * manual de simulado com 409 "A questão precisa estar vinculada a um
+     * conteúdo antes de compor um simulado", sem nenhuma forma de o professor
+     * satisfazer o requisito pela interface.
      */
     @Transactional
     public SimuladoQuestao salvar(SimuladoQuestao obj) {
@@ -75,6 +85,9 @@ public class SimuladoQuestaoService {
     private void validarQuestaoVinculadaAoConteudo(SimuladoQuestao obj) {
         if (obj.getQuestao() == null || obj.getQuestao().getId() == null) {
             throw new RequisicaoInvalidaException("Questão é obrigatória.");
+        }
+        if (obj.getQuestao().getOrigem() == OrigemQuestao.PROFESSOR) {
+            return;
         }
         if (!questaoConteudoRepository.existsByQuestaoId(obj.getQuestao().getId())) {
             throw new RegraNegocioException(

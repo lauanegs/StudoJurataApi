@@ -1,10 +1,10 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.Aula;
 import studojurata_api.model.PlanoAula;
 import studojurata_api.model.enums.AcaoAuditoria;
@@ -26,7 +26,10 @@ public class AulaService {
 
     public List<Aula> listar() { return repository.findAll(); }
 
-    public Aula buscar(Long id) { return repository.findById(id).orElseThrow(); }
+    public Aula buscar(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Aula " + id + " não encontrada."));
+    }
 
     /** Aulas de um plano de aula, na ordem em que devem ser ministradas. */
     public List<Aula> listarPorPlanoAula(Long planoAulaId) {
@@ -83,10 +86,10 @@ public class AulaService {
 
     private void validar(Aula obj) {
         if (obj.getPlanoAula() == null || obj.getPlanoAula().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Plano de aula é obrigatório para a aula.");
+            throw new RequisicaoInvalidaException("Plano de aula é obrigatório para a aula.");
         }
         PlanoAula planoAula = planoAulaRepository.findById(obj.getPlanoAula().getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Plano de aula não encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Plano de aula " + obj.getPlanoAula().getId() + " não encontrado."));
         obj.setPlanoAula(planoAula);
     }
 }

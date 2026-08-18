@@ -1,5 +1,7 @@
 package studojurata_api.config;
 
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -11,6 +13,9 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import studojurata_api.security.CustomUserDetailsService;
 
 @Configuration
@@ -39,9 +44,43 @@ public class SecurityConfig {
         return configuration.getAuthenticationManager();
     }
 
+    /**
+     * Libera o front-end local (Vite) a consumir a API.
+     * Como a autenticação é baseada em sessão (cookie JSESSIONID), é
+     * necessário setAllowCredentials(true) e o front precisa enviar as
+     * requisições com credentials: "include" (fetch) ou withCredentials:
+     * true (axios) — caso contrário o navegador não envia/recebe o cookie
+     * de sessão mesmo com o CORS liberado.
+     *
+     * Usa um padrão (localhost em qualquer porta) em vez de travar em
+     * "http://localhost:5173": o Vite sobe na 5173 por padrão, mas troca
+     * sozinho de porta (5174, 5175...) sempre que a 5173 já está ocupada
+     * por outro processo na máquina do desenvolvedor — com uma origem fixa,
+     * a troca de porta faz todo login falhar com 403 sem nenhuma pista de
+     * que o problema é CORS. Continua restrito a localhost/127.0.0.1;
+     * ajuste (ou adicione) as origens de produção quando o deploy do front
+     * for feito.
+     */
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            // Ativa o CORS usando o CorsConfigurationSource acima. Sem isso,
+            // o Spring Security bloqueia o preflight (OPTIONS) antes mesmo
+            // de qualquer @CrossOrigin de controller ser considerado.
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 // Login é público; o restante exige autenticação.
                 .requestMatchers("/auth/login").permitAll()
@@ -61,6 +100,8 @@ public class SecurityConfig {
                 .requestMatchers("/usuarios/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/escolas/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/audit-log/**").hasRole("ADMINISTRADOR")
+                // Notificações (item 9.8): só estrutura + log, consulta restrita ao Administrador.
+                .requestMatchers("/notificacoes/**").hasRole("ADMINISTRADOR")
 
                 // Cadastro/edição/exclusão de perfis é restrita ao Administrador;
                 // consulta (GET) fica liberada para qualquer usuário autenticado.
@@ -123,6 +164,25 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
                         "/turma-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+
+                // Correção de auditoria: /aluno-turma/** (matricular, atualizar,
+                // cancelar, concluir, transferir, deletar) e /questao-conteudo/**
+                // (vínculo questão-conteúdo) não tinham nenhuma regra própria e
+                // caíam em anyRequest().authenticated() — a mesma lacuna que a
+                // correção 2.5 já havia fechado para cursos/turmas/disciplinas/
+                // planos, mas que ficou de fora para estas duas rotas. Sem isso,
+                // um Aluno logado podia se automatricular, transferir/cancelar a
+                // matrícula de outro aluno, ou alterar vínculos questão-conteúdo,
+                // via API. Consulta (GET) continua liberada a qualquer
+                // autenticado; escrita fica restrita a quem gerencia matrícula/
+                // currículo (Professor/Administrador).
+                .requestMatchers(HttpMethod.GET, "/aluno-turma/**", "/questao-conteudo/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/aluno-turma/**", "/questao-conteudo/**")
+                        .hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.PUT, "/aluno-turma/**", "/questao-conteudo/**")
+                        .hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/aluno-turma/**", "/questao-conteudo/**")
+                        .hasAnyRole("PROFESSOR", "ADMINISTRADOR")
 
                 // Módulo de simulados: montagem/moderação/lançamento é tarefa do
                 // professor (ou administrador); o aluno só consulta (GET) e

@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -70,6 +71,23 @@ public class GlobalExceptionHandler {
         HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
         if (status == null) status = HttpStatus.INTERNAL_SERVER_ERROR;
         return corpo(status, ex.getReason(), request);
+    }
+
+    /**
+     * Correção de auditoria: AuthController.login() chama
+     * AuthenticationManager.authenticate() diretamente (fora do filtro
+     * padrão de login do Spring Security), então uma credencial inválida
+     * (BadCredentialsException, DisabledException etc.) não passava por
+     * nenhum handler aqui — o corpo da resposta de um login malsucedido
+     * não seguia o mesmo formato ErrorResponse do resto da API. Trata
+     * qualquer AuthenticationException (classe-base de todas as falhas de
+     * autenticação do Spring Security) como 401, com mensagem genérica —
+     * nunca ecoar o motivo exato (usuário inexistente vs. senha errada)
+     * para não facilitar enumeração de usuários válidos.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) {
+        return corpo(HttpStatus.UNAUTHORIZED, "Usuário ou senha inválidos.", request);
     }
 
     private ResponseEntity<ErrorResponse> corpo(HttpStatus status, String mensagem, HttpServletRequest request) {

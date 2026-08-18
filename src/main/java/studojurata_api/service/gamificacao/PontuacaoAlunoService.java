@@ -3,6 +3,7 @@ package studojurata_api.service.gamificacao;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.Aluno;
 import studojurata_api.model.gamificacao.PontuacaoAluno;
 import studojurata_api.model.gamificacao.Skin;
@@ -39,10 +40,10 @@ public class PontuacaoAlunoService {
     public PontuacaoAluno buscarOuCriar(Long alunoId) {
         return repository.findByAluno_Id(alunoId).orElseGet(() -> {
             PontuacaoAluno nova = new PontuacaoAluno();
-            Aluno aluno = alunoRepository.findById(alunoId).orElseThrow();
+            Aluno aluno = alunoRepository.findById(alunoId)
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Aluno " + alunoId + " não encontrado."));
             nova.setAluno(aluno);
             nova.setMoedas(0);
-            nova.setXpTotal(0);
             PontuacaoAluno salva = repository.save(nova);
             concederSkinPadrao(aluno);
             return salva;
@@ -75,10 +76,9 @@ public class PontuacaoAlunoService {
     }
 
     @Transactional
-    public PontuacaoAluno concederMoedas(Long alunoId, int quantidade, int xp) {
+    public PontuacaoAluno concederMoedas(Long alunoId, int quantidade) {
         PontuacaoAluno pontuacao = buscarOuCriar(alunoId);
         pontuacao.setMoedas(pontuacao.getMoedas() + quantidade);
-        pontuacao.setXpTotal(pontuacao.getXpTotal() + xp);
         return repository.save(pontuacao);
     }
 
