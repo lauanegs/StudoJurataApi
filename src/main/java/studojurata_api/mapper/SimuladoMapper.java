@@ -31,7 +31,6 @@ public class SimuladoMapper {
         simulado.setTempoLimite(dto.getTempoLimite());
         simulado.setNotaMaxima(dto.getNotaMaxima());
         simulado.setQuantidadeQuestoes(dto.getQuantidadeQuestoes());
-        simulado.setPeriodoLetivo(dto.getPeriodoLetivo());
 
         if (dto.getDisciplinaId() != null) {
             Disciplina disciplina = disciplinaRepository.findById(dto.getDisciplinaId())
@@ -65,7 +64,6 @@ public class SimuladoMapper {
         dto.setTempoLimite(simulado.getTempoLimite());
         dto.setNotaMaxima(simulado.getNotaMaxima());
         dto.setQuantidadeQuestoes(simulado.getQuantidadeQuestoes());
-        dto.setPeriodoLetivo(simulado.getPeriodoLetivo());
         dto.setStatus(simulado.getStatus());
         return dto;
     }

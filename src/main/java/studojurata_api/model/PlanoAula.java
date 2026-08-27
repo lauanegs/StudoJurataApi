@@ -4,19 +4,19 @@ import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import studojurata_api.model.enums.StatusAtivoInativo;
+import studojurata_api.model.enums.StatusPlano;
 
 /**
  * Plano de aula: nível de execução do currículo para uma TurmaDisciplina,
- * amarrado ao PlanoEnsino (currículo/nível macro) do qual herda curso,
- * carga horária total e período letivo.
+ * amarrado ao PlanoEnsino (currículo/nível macro) do qual herda curso e
+ * carga horária total.
  *
- * Correção 2.6 da Análise Crítica: os campos cargaHoraria, curso e
- * periodoLetivo eram duplicados aqui e em PlanoEnsino, com risco de
- * divergência. Ficou definido (Respostas à Análise Crítica) que esses
- * atributos pertencem ao Plano de Ensino (nível macro); o Plano de Aula
- * passa a obtê-los sempre via planoEnsino.getCargaHoraria() / getCurso() /
- * getPeriodoLetivo(), nunca os armazenando duplicados.
+ * Correção 2.6 da Análise Crítica: os campos cargaHoraria e curso eram
+ * duplicados aqui e em PlanoEnsino, com risco de divergência. Ficou
+ * definido (Respostas à Análise Crítica) que esses atributos pertencem ao
+ * Plano de Ensino (nível macro); o Plano de Aula passa a obtê-los sempre
+ * via planoEnsino.getCargaHoraria() / getCurso(), nunca os armazenando
+ * duplicados.
  */
 @Entity
 @Getter
@@ -31,9 +31,9 @@ public class PlanoAula extends BaseEntity {
     private PlanoEnsino planoEnsino;
 
     /**
-     * Correção 2.11: status deixa de ser String livre e passa a ser enum,
-     * evitando inconsistências como "ativo" vs "Ativo" vs "ATIVO".
+     * Correção "matrícula cíclica": status virou StatusPlano
+     * (ATIVO/CONCLUIDO) — mesmo raciocínio de PlanoEnsino.status.
      */
     @Enumerated(EnumType.STRING)
-    private StatusAtivoInativo status;
+    private StatusPlano status;
 }

@@ -153,16 +153,16 @@ public class SecurityConfig {
                 // conteúdo (Professor/Admin). /horarios/** cobre o DELETE de
                 // HorarioTurma (rota própria, fora de /turmas/**).
                 .requestMatchers(HttpMethod.GET, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
-                        "/turma-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
-                        "/turma-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PUT, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
-                        "/turma-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
-                        "/turma-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
 
                 // Correção de auditoria: /aluno-turma/** (matricular, atualizar,

@@ -6,7 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.PlanoAula;
-import studojurata_api.model.enums.StatusAtivoInativo;
+import studojurata_api.model.enums.StatusPlano;
 import studojurata_api.repository.AulaRepository;
 import studojurata_api.repository.PlanoAulaRepository;
 
@@ -35,7 +35,7 @@ public class PlanoAulaService {
     public PlanoAula salvar(PlanoAula obj) {
         validar(obj);
         if (obj.getStatus() == null) {
-            obj.setStatus(StatusAtivoInativo.ATIVO);
+            obj.setStatus(StatusPlano.ATIVO);
         }
         return repository.save(obj);
     }
@@ -50,13 +50,13 @@ public class PlanoAulaService {
 
     /**
      * Soft delete (correção 4.3): mantém o registro para preservar o
-     * histórico de aulas/conteúdos vinculados, apenas marcando o plano
-     * como INATIVO.
+     * histórico de aulas/conteúdos vinculados, marcando o plano como
+     * CONCLUIDO (matrícula cíclica: a turma pode receber um novo plano).
      */
     @Transactional
     public void deletar(Long id) {
         PlanoAula obj = buscar(id);
-        obj.setStatus(StatusAtivoInativo.INATIVO);
+        obj.setStatus(StatusPlano.CONCLUIDO);
         repository.save(obj);
     }
 

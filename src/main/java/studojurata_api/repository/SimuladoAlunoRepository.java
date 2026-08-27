@@ -20,13 +20,10 @@ public interface SimuladoAlunoRepository extends JpaRepository<SimuladoAluno, Lo
     boolean existsBySimuladoIdAndAlunoId(Long simuladoId, Long alunoId);
 
     /**
-     * Usada por NotaService.recalcular (item 1.2/2.13 da Segunda Análise
-     * Crítica) para obter todos os simulados concluídos de um aluno, numa
-     * disciplina e período letivo específicos. Correção do bug "nota não
-     * recalcula sem Plano de Ensino": passa a percorrer Simulado.periodoLetivo
-     * diretamente (campo próprio do Simulado), não mais via
-     * Simulado.planoEnsino.periodoLetivo, que é opcional.
+     * Usada por NotaService.recalcular para obter todos os simulados
+     * concluídos de um aluno, numa disciplina e turma específicas (turma
+     * substitui periodoLetivo como escopo da nota — ver Nota.java).
      */
-    List<SimuladoAluno> findByAluno_IdAndStatusAndSimulado_Disciplina_IdAndSimulado_PeriodoLetivo(
-            Long alunoId, StatusSimuladoAluno status, Long disciplinaId, String periodoLetivo);
+    List<SimuladoAluno> findByAluno_IdAndStatusAndSimulado_Disciplina_IdAndSimulado_Turma_Id(
+            Long alunoId, StatusSimuladoAluno status, Long disciplinaId, Long turmaId);
 }

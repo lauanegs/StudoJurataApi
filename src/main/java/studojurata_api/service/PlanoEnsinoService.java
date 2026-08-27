@@ -10,6 +10,7 @@ import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.Curso;
 import studojurata_api.model.PlanoEnsino;
 import studojurata_api.model.enums.StatusAtivoInativo;
+import studojurata_api.model.enums.StatusPlano;
 import studojurata_api.repository.CursoRepository;
 import studojurata_api.repository.PlanoEnsinoRepository;
 import studojurata_api.security.EscolaContext;
@@ -18,9 +19,6 @@ import java.util.List;
 
 /**
  * Correção 5.1: controller passa a usar este service, não mais o Repository.
- * Correção 2.4 da Terceira Análise Crítica: periodoLetivo passa a ser
- * validado (obrigatório) — sem ele, o recálculo automático da Nota do aluno
- * é silenciosamente pulado (ver NotaService/SimuladoAlunoService.finalizar).
  * Vínculo pedido explicitamente: todo Plano de Ensino pertence a um Curso
  * (ver PlanoEnsino.curso) — validado e resolvido da mesma forma que
  * TurmaService faz para Turma.curso.
@@ -29,6 +27,10 @@ import java.util.List;
  * escrita): validarCurso recusa (403) um Curso que não pertence à escola
  * do usuário autenticado. Correção 3.3: recusa (409) vincular um plano de
  * ensino a um Curso já INATIVO.
+ *
+ * Correção "matrícula cíclica": periodoLetivo deixou de existir/ser
+ * validado (ver PlanoEnsino.java) — a nota do aluno é escopada por turma,
+ * não por calendário.
  */
 @Service
 @RequiredArgsConstructor
@@ -61,24 +63,15 @@ public class PlanoEnsinoService {
     }
 
     public PlanoEnsino salvar(PlanoEnsino obj) {
-        validarPeriodoLetivo(obj);
         validarCurso(obj);
-        if (obj.getStatus() == null) obj.setStatus(StatusAtivoInativo.ATIVO);
+        if (obj.getStatus() == null) obj.setStatus(StatusPlano.ATIVO);
         return repository.save(obj);
     }
 
     public PlanoEnsino atualizar(Long id, PlanoEnsino obj) {
-        validarPeriodoLetivo(obj);
         validarCurso(obj);
         obj.setId(id);
         return repository.save(obj);
-    }
-
-    private void validarPeriodoLetivo(PlanoEnsino obj) {
-        if (obj.getPeriodoLetivo() == null || obj.getPeriodoLetivo().isBlank()) {
-            throw new RequisicaoInvalidaException(
-                    "Período letivo é obrigatório: sem ele, a nota do aluno nesta disciplina não pode ser calculada.");
-        }
     }
 
     private void validarCurso(PlanoEnsino obj) {
@@ -102,10 +95,14 @@ public class PlanoEnsinoService {
         obj.setCurso(curso);
     }
 
-    /** Soft-delete (item 4.3/5.1 + caso extremo "Plano de ensino alterado após simulados já realizados"). */
+    /**
+     * Soft-delete (item 4.3/5.1 + caso extremo "Plano de ensino alterado
+     * após simulados já realizados") — vira CONCLUIDO, não "excluído" de
+     * fato: histórico (conteúdos, planos de aula, simulados) é preservado.
+     */
     public void deletar(Long id) {
         PlanoEnsino plano = buscar(id);
-        plano.setStatus(StatusAtivoInativo.INATIVO);
+        plano.setStatus(StatusPlano.CONCLUIDO);
         repository.save(plano);
     }
 }

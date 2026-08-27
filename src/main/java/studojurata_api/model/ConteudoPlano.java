@@ -18,7 +18,6 @@ public class ConteudoPlano extends BaseEntity {
     private String titulo;
     private String descricao;
     private Integer ordem;
-    private Integer cargaHoraria;
 
     /**
      * Correção 2.11 da Segunda Análise Crítica: era String livre, agora enum.

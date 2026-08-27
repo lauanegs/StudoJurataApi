@@ -170,21 +170,22 @@ public class SimuladoAlunoService {
 
         // Correção 1.2/2.13: Nota da disciplina é sempre recalculada (derivada) a
         // partir dos simulados concluídos, nunca setada diretamente.
+        // Correção "matrícula cíclica": o escopo passou de periodoLetivo
+        // (calendário) para turma — Simulado.turma é obrigatório quando
+        // tipoDestinacao = TODOS, mas pode ser nulo em ESPECIFICO.
         Long disciplinaId = salvo.getSimulado().getDisciplina() != null ? salvo.getSimulado().getDisciplina().getId() : null;
-        String periodoLetivo = salvo.getSimulado().getPeriodoLetivo();
-        if (disciplinaId != null && periodoLetivo != null) {
-            notaService.recalcular(salvo.getAluno().getId(), disciplinaId, periodoLetivo);
+        Long turmaId = salvo.getSimulado().getTurma() != null ? salvo.getSimulado().getTurma().getId() : null;
+        if (disciplinaId != null && turmaId != null) {
+            notaService.recalcular(salvo.getAluno().getId(), disciplinaId, turmaId);
         } else {
-            // Simulado.periodoLetivo é obrigatório para simulados novos (fix do
-            // bug "nota não recalcula sem Plano de Ensino"), mas simulados já
-            // existentes (cadastrados antes da correção) ainda podem estar sem
-            // esse campo. Nesses casos o recálculo é pulado — registramos em
-            // AuditLog para o Administrador identificar e corrigir o cadastro,
+            // Sem disciplina ou sem turma vinculada ao simulado (ex.: simulado
+            // ESPECIFICO sem turma) não há como escopar a nota — o recálculo é
+            // pulado e registrado em AuditLog para o Administrador identificar,
             // em vez de o aluno simplesmente nunca ver a nota da disciplina,
             // sem explicação.
             auditLogService.registrar("SimuladoAluno", salvo.getId(), AcaoAuditoria.ATUALIZACAO,
-                    "Nota da disciplina NÃO recalculada: disciplina ou período letivo do simulado "
-                            + "ausente (simulado cadastrado antes da correção). Corrija o cadastro do simulado.");
+                    "Nota da disciplina NÃO recalculada: disciplina ou turma do simulado ausente "
+                            + "(simulado sem turma vinculada). Corrija o cadastro do simulado.");
         }
 
         // Correção 8.1/8.2: moeda concedida sempre por concluir o simulado,

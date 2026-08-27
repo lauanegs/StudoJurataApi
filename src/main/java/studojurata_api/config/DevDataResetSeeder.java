@@ -83,6 +83,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
     private final AlunoRepository alunoRepository;
     private final ResponsavelRepository responsavelRepository;
     private final ResponsavelAlunoRepository responsavelAlunoRepository;
+    private final NotificacaoEnviadaRepository notificacaoEnviadaRepository;
     private final UsuarioRepository usuarioRepository;
     private final AlunoTurmaRepository alunoTurmaRepository;
 
@@ -148,6 +149,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
         notaRepository.deleteAllInBatch();
         auditLogRepository.deleteAllInBatch();
         eventoRepository.deleteAllInBatch();
+        notificacaoEnviadaRepository.deleteAllInBatch();
         responsavelAlunoRepository.deleteAllInBatch();
         alunoTurmaRepository.deleteAllInBatch();
         horarioTurmaRepository.deleteAllInBatch();
@@ -314,10 +316,10 @@ public class DevDataResetSeeder implements CommandLineRunner {
         responderSimulado(simuladoB, alunoB2, questoesB, 2);
 
         // ---- Notas (recalculadas "manualmente" a partir do simulado) ----------
-        criarNota(alunoA1, matematica, "2026.1", 8.0, 1);
-        criarNota(alunoA2, matematica, "2026.1", 6.0, 1);
-        criarNota(alunoB1, portugues, "2026.1", 10.0, 1);
-        criarNota(alunoB2, portugues, "2026.1", 4.0, 1);
+        criarNota(alunoA1, matematica, turmaA, 8.0, 1);
+        criarNota(alunoA2, matematica, turmaA, 6.0, 1);
+        criarNota(alunoB1, portugues, turmaB, 10.0, 1);
+        criarNota(alunoB2, portugues, turmaB, 4.0, 1);
 
         // ---- Eventos -------------------------------------------------------------
         criarEvento("Reunião de pais e mestres", "Reunião geral do 1º bimestre.",
@@ -446,13 +448,12 @@ public class DevDataResetSeeder implements CommandLineRunner {
         pe.setCurso(curso);
         pe.setTitulo(titulo);
         pe.setCargaHoraria(80);
-        pe.setPeriodoLetivo("2026.1");
         pe.setEmenta("Ementa de " + titulo);
         pe.setObjetivoGeral("Preparar o aluno para o ENEM.");
         pe.setMetodologia("Aulas expositivas + simulados.");
         pe.setDataInicio(LocalDate.of(2026, 2, 1));
         pe.setDataFim(LocalDate.of(2026, 12, 15));
-        pe.setStatus(StatusAtivoInativo.ATIVO);
+        pe.setStatus(StatusPlano.ATIVO);
         return planoEnsinoRepository.save(pe);
     }
 
@@ -465,7 +466,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
             cp.setTitulo(titulo);
             cp.setDescricao("Conteúdo: " + titulo);
             cp.setOrdem(ordem++);
-            cp.setCargaHoraria(20);
             cp.setStatus(StatusAtivoInativo.ATIVO);
             lista.add(conteudoPlanoRepository.save(cp));
         }
@@ -476,7 +476,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
         PlanoAula pa = new PlanoAula();
         pa.setTurmaDisciplina(td);
         pa.setPlanoEnsino(pe);
-        pa.setStatus(StatusAtivoInativo.ATIVO);
+        pa.setStatus(StatusPlano.ATIVO);
         pa = planoAulaRepository.save(pa);
 
         List<Aula> aulas = new ArrayList<>();
@@ -585,7 +585,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         s.setDisciplina(disciplina);
         s.setPlanoEnsino(planoEnsino);
         s.setTurma(turma);
-        s.setPeriodoLetivo(planoEnsino != null ? planoEnsino.getPeriodoLetivo() : null);
         s.setTipoDestinacao(TipoDestinacaoSimulado.TODOS);
         s.setDataInicio(LocalDateTime.of(2026, 8, 25, 8, 0));
         s.setDataFim(LocalDateTime.of(2026, 8, 25, 10, 0));
@@ -642,11 +641,11 @@ public class DevDataResetSeeder implements CommandLineRunner {
         }
     }
 
-    private void criarNota(Aluno aluno, Disciplina disciplina, String periodo, double total, int qtdSimulados) {
+    private void criarNota(Aluno aluno, Disciplina disciplina, Turma turma, double total, int qtdSimulados) {
         Nota nota = new Nota();
         nota.setAluno(aluno);
         nota.setDisciplina(disciplina);
-        nota.setPeriodoLetivo(periodo);
+        nota.setTurma(turma);
         nota.setTotal(total);
         nota.setQuantidadeSimuladosConsiderados(qtdSimulados);
         notaRepository.save(nota);

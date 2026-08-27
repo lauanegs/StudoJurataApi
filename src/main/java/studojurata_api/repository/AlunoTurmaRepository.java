@@ -20,4 +20,12 @@ public interface AlunoTurmaRepository extends JpaRepository<AlunoTurma, Long> {
     List<AlunoTurma> findByTurmaIdOrderByDataInicioDesc(Long turmaId);
 
     List<AlunoTurma> findByAlunoIdOrderByDataInicioDesc(Long alunoId);
+
+    /**
+     * Usado por NotaService.recalcular para achar a data de matrícula do
+     * aluno na turma (qualquer status — a nota permanece histórica mesmo
+     * após a matrícula ser concluída/cancelada) e não contar simulados
+     * aplicados antes dele entrar na turma.
+     */
+    Optional<AlunoTurma> findFirstByAluno_IdAndTurma_IdOrderByDataInicioDesc(Long alunoId, Long turmaId);
 }

@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import studojurata_api.model.enums.StatusAtivoInativo;
+import studojurata_api.model.enums.StatusPlano;
 
 @Entity
 @Getter
@@ -33,24 +33,20 @@ public class PlanoEnsino extends BaseEntity {
 
     private Integer cargaHoraria;
 
-    /**
-     * Correção 2.4 da Terceira Análise Crítica: passou a ser obrigatório.
-     * O recálculo automático da Nota do aluno (NotaService.recalcular,
-     * chamado por SimuladoAlunoService.finalizar) depende deste campo para
-     * agrupar os simulados concluídos por período letivo — antes, um plano
-     * de ensino cadastrado sem periodoLetivo fazia esse recálculo ser
-     * silenciosamente pulado, e o aluno nunca via a nota da disciplina.
-     */
-    @Column(nullable = false)
-    private String periodoLetivo;
-
     private String ementa;
     private String objetivoGeral;
     private String metodologia;
     private LocalDate dataInicio;
     private LocalDate dataFim;
 
-    /** Correção 2.11 da Segunda Análise Crítica: era String livre, agora enum. */
+    /**
+     * Correção "matrícula cíclica" (revisão pedagógica): periodoLetivo foi
+     * removido — a nota do aluno passou a ser escopada por turma
+     * (AlunoTurma.dataInicio), não por calendário fixo (ver Nota.java), e
+     * status virou StatusPlano (ATIVO/CONCLUIDO em vez de ATIVO/INATIVO):
+     * um plano de ensino não é "desligado", ele conclui o ciclo, e a mesma
+     * TurmaDisciplina pode receber um novo plano em seguida.
+     */
     @Enumerated(EnumType.STRING)
-    private StatusAtivoInativo status;
+    private StatusPlano status;
 }

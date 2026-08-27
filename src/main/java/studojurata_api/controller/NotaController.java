@@ -50,15 +50,15 @@ public class NotaController {
     }
 
     /**
-     * Recalcula (deriva) a nota do aluno numa disciplina/período letivo a
-     * partir dos simulados concluídos — este é o único jeito de gerar/alterar
-     * uma Nota agora; não existe mais POST/PUT de total livre. Restrito a
+     * Recalcula (deriva) a nota do aluno numa disciplina/turma a partir dos
+     * simulados concluídos — este é o único jeito de gerar/alterar uma Nota
+     * agora; não existe mais POST/PUT de total livre. Restrito a
      * PROFESSOR/ADMINISTRADOR (ver SecurityConfig): é uma operação de
      * reprocessamento, não uma consulta do aluno.
      */
     @PostMapping("/recalcular")
-    public Nota recalcular(@RequestParam Long alunoId, @RequestParam Long disciplinaId, @RequestParam String periodoLetivo) {
-        return service.recalcular(alunoId, disciplinaId, periodoLetivo);
+    public Nota recalcular(@RequestParam Long alunoId, @RequestParam Long disciplinaId, @RequestParam Long turmaId) {
+        return service.recalcular(alunoId, disciplinaId, turmaId);
     }
 
     /** Restrito a ADMINISTRADOR (ver SecurityConfig). */
