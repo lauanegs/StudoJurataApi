@@ -35,16 +35,22 @@ import studojurata_api.repository.gamificacao.SkinAlunoRepository;
 import studojurata_api.repository.gamificacao.SkinRepository;
 
 /**
- * Script de reset + carga de dados de demonstração.
+ * Script de reset + carga de dados reais da escola administrada (cursos de
+ * tecnologia infantojuvenil: Geek Júnior, Robótica, Programação Gamificada,
+ * Geek Teens).
  *
  * O QUE FAZ:
  * 1) Apaga TODOS os registros de TODAS as tabelas do banco (respeitando a
  *    ordem de dependência das FKs, sem precisar de DROP/TRUNCATE manual em SQL).
- * 2) Recria um conjunto mínimo e consistente de dados para cada entidade:
- *    1 escola, 1 curso, 2 disciplinas, 2 turmas, 2 professores, 4 alunos
- *    (2 por turma), 1 responsável por aluno, 1 simulado por turma com
- *    5 questões cada, além de aulas, frequência, notas, gamificação,
- *    eventos, auditoria e registros do módulo de IA.
+ * 2) Recria os dados reais da escola: 1 escola, 4 cursos, 2 disciplinas
+ *    (Robótica e Programação Gamificada), 4 turmas (1 por curso, 1 aula
+ *    semanal de 1h30, capacidade 8), 2 professores (1 titular por
+ *    disciplina), 16 alunos de 7 a 14 anos (14 com matrícula ativa + 2 só no
+ *    histórico — 1 concluída, 1 cancelada — cobrindo todas as situações de
+ *    matrícula), responsáveis, planos de ensino/aula, aulas, frequência,
+ *    simulados (alguns já respondidos, outros pendentes — "a fazer" — e
+ *    questões de IA aguardando revisão do professor), notas, eventos de
+ *    aula demonstrativa, gamificação e histórico do módulo de IA.
  *
  * COMO RODAR (NUNCA roda sozinho em produção — só com o profile "seed"):
  *   mvn spring-boot:run -Dspring-boot.run.profiles=seed
@@ -52,14 +58,6 @@ import studojurata_api.repository.gamificacao.SkinRepository;
  *
  * ATENÇÃO: isso apaga TODOS os dados existentes no banco configurado em
  * application.properties. Use apenas em ambiente de desenvolvimento/teste.
- *
- * Correção de auditoria: até então esta classe não tinha nenhum guard de
- * profile — sendo um CommandLineRunner comum, o Spring Boot executava
- * run() (limpar + semear o banco inteiro) em TODA subida da aplicação,
- * independentemente de profile ativo, contradizendo o parágrafo acima.
- * @Profile("seed") agora faz o guard ser real: sem "-Dspring-boot.run.profiles=seed"
- * (ou "seed" em "Active profiles"), este seeder simplesmente não é
- * instanciado pelo Spring, e o banco não é tocado no boot normal.
  */
 @Component
 @RequiredArgsConstructor
@@ -76,6 +74,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
     private final TurmaRepository turmaRepository;
     private final HorarioTurmaRepository horarioTurmaRepository;
     private final TurmaDisciplinaRepository turmaDisciplinaRepository;
+    private final TurmaDisciplinaSubstitutoRepository turmaDisciplinaSubstitutoRepository;
 
     // --- pessoas / perfis ---
     private final PessoaRepository pessoaRepository;
@@ -153,6 +152,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
         responsavelAlunoRepository.deleteAllInBatch();
         alunoTurmaRepository.deleteAllInBatch();
         horarioTurmaRepository.deleteAllInBatch();
+        turmaDisciplinaSubstitutoRepository.deleteAllInBatch();
         turmaDisciplinaRepository.deleteAllInBatch();
         usuarioRepository.deleteAllInBatch();
         alunoRepository.deleteAllInBatch();
@@ -166,204 +166,366 @@ public class DevDataResetSeeder implements CommandLineRunner {
         escolaRepository.deleteAllInBatch();
     }
 
+    /** Um aluno a matricular numa turma — usado só para reduzir repetição no semear(). */
+    private record AlunoSeed(String nome, String cpf, String nascimentoIso, String username,
+                              Sexo sexo, String nomeResponsavel, Parentesco parentesco) {
+    }
+
     // =========================================================================
     // 2) CARGA DE DADOS — do "pai" para o "filho"
     // =========================================================================
     private void semear() {
 
-        // ---- Escola / Curso / Disciplinas ----------------------------------
+        LocalDate inicioAnoLetivo = LocalDate.of(2026, 2, 2);
+        LocalDate fimAnoLetivo = LocalDate.of(2026, 12, 18);
+
+        // ---- Escola ------------------------------------------------------------
         Escola escola = new Escola();
         escola.setNome("Escola Studo Jurata");
         escola.setCnpj("12.345.678/0001-90");
         escola.setStatus(StatusAtivoInativo.ATIVO);
         escola = escolaRepository.save(escola);
 
-        Curso curso = new Curso();
-        curso.setEscola(escola);
-        curso.setNome("Preparatório ENEM");
-        curso.setDescricao("Curso preparatório para o Exame Nacional do Ensino Médio.");
-        curso.setCargaHorariaTotal(400);
-        curso.setStatus(StatusAtivoInativo.ATIVO);
-        curso = cursoRepository.save(curso);
+        // ---- Cursos --------------------------------------------------------------
+        Curso cursoGeekJunior = criarCurso(escola, "Geek Júnior",
+                "Primeiros passos em tecnologia para crianças de 7 a 9 anos: robótica e programação gamificada.", 60);
+        Curso cursoRobotica = criarCurso(escola, "Robótica",
+                "Montagem de circuitos, sensores e lógica de automação com kits de robótica.", 60);
+        Curso cursoProgGamificada = criarCurso(escola, "Programação Gamificada",
+                "Lógica de programação por blocos, com jogos e desafios gamificados.", 60);
+        Curso cursoGeekTeens = criarCurso(escola, "Geek Teens",
+                "Robótica e programação gamificada em nível avançado para adolescentes de 12 a 14 anos.", 60);
 
-        Disciplina matematica = new Disciplina();
-        matematica.setEscola(escola);
-        matematica.setTitulo("Matemática");
-        matematica.setStatus(StatusAtivoInativo.ATIVO);
-        matematica = disciplinaRepository.save(matematica);
+        // ---- Disciplinas -----------------------------------------------------------
+        Disciplina discRobotica = new Disciplina();
+        discRobotica.setEscola(escola);
+        discRobotica.setTitulo("Robótica");
+        discRobotica.setStatus(StatusAtivoInativo.ATIVO);
+        discRobotica = disciplinaRepository.save(discRobotica);
 
-        Disciplina portugues = new Disciplina();
-        portugues.setEscola(escola);
-        portugues.setTitulo("Português");
-        portugues.setStatus(StatusAtivoInativo.ATIVO);
-        portugues = disciplinaRepository.save(portugues);
+        Disciplina discProgGamificada = new Disciplina();
+        discProgGamificada.setEscola(escola);
+        discProgGamificada.setTitulo("Programação Gamificada");
+        discProgGamificada.setStatus(StatusAtivoInativo.ATIVO);
+        discProgGamificada = disciplinaRepository.save(discProgGamificada);
 
-        // ---- Turmas + Horários ----------------------------------------------
-        Turma turmaA = new Turma();
-        turmaA.setEscola(escola);
-        turmaA.setCurso(curso);
-        turmaA.setTitulo("Turma A - Matutino");
-        turmaA.setCapacidadeMaxima(30);
-        turmaA.setStatus(StatusTurma.ATIVA);
-        turmaA.setDataInicio(LocalDate.of(2026, 2, 1));
-        turmaA.setDataFim(LocalDate.of(2026, 12, 15));
-        turmaA = turmaRepository.save(turmaA);
+        // ---- Turmas (1 por curso, 1 aula semanal de 1h30, capacidade 8) ------------
+        // Confirmado pelo usuário: nome da turma = curso + dia da semana + horário de início.
+        Turma turmaGeekJunior = criarTurma(escola, cursoGeekJunior, DiaSemana.TERCA, 8, 0,
+                inicioAnoLetivo, fimAnoLetivo);
+        Turma turmaRobotica = criarTurma(escola, cursoRobotica, DiaSemana.QUARTA, 14, 0,
+                inicioAnoLetivo, fimAnoLetivo);
+        Turma turmaProgGamificada = criarTurma(escola, cursoProgGamificada, DiaSemana.QUINTA, 14, 0,
+                inicioAnoLetivo, fimAnoLetivo);
+        Turma turmaGeekTeens = criarTurma(escola, cursoGeekTeens, DiaSemana.SABADO, 9, 0,
+                inicioAnoLetivo, fimAnoLetivo);
 
-        Turma turmaB = new Turma();
-        turmaB.setEscola(escola);
-        turmaB.setCurso(curso);
-        turmaB.setTitulo("Turma B - Vespertino");
-        turmaB.setCapacidadeMaxima(30);
-        turmaB.setStatus(StatusTurma.ATIVA);
-        turmaB.setDataInicio(LocalDate.of(2026, 2, 1));
-        turmaB.setDataFim(LocalDate.of(2026, 12, 15));
-        turmaB = turmaRepository.save(turmaB);
+        // ---- Professores (1 titular por disciplina) --------------------------------
+        Pessoa pessoaProfRobotica = criarPessoa("Rafael Torres Mendes", "800.000.000-01",
+                LocalDate.of(1990, 4, 18), "(11) 98100-0001", "rafael.mendes@studojurata.com", Sexo.MASCULINO);
+        Pessoa pessoaProfProgGamificada = criarPessoa("Juliana Prado Costa", "800.000.000-02",
+                LocalDate.of(1992, 9, 7), "(11) 98100-0002", "juliana.costa@studojurata.com", Sexo.FEMININO);
 
-        criarHorario(turmaA, DiaSemana.SEGUNDA, 8, 0, 10, 0);
-        criarHorario(turmaA, DiaSemana.QUARTA, 8, 0, 10, 0);
-        criarHorario(turmaB, DiaSemana.TERCA, 14, 0, 16, 0);
-        criarHorario(turmaB, DiaSemana.QUINTA, 14, 0, 16, 0);
+        Professor profRobotica = new Professor();
+        profRobotica.setPessoa(pessoaProfRobotica);
+        profRobotica.setStatus(StatusAtivoInativo.ATIVO);
+        profRobotica = professorRepository.save(profRobotica);
 
-        // ---- Professores ------------------------------------------------------
-        Pessoa pessoaProf1 = criarPessoa("João Carlos Silva", "111.111.111-11",
-                LocalDate.of(1985, 3, 12), "(11) 91111-1111", "joao.silva@studojurata.com", Sexo.MASCULINO);
-        Pessoa pessoaProf2 = criarPessoa("Maria Fernanda Souza", "222.222.222-22",
-                LocalDate.of(1988, 7, 25), "(11) 92222-2222", "maria.souza@studojurata.com", Sexo.FEMININO);
+        Professor profProgGamificada = new Professor();
+        profProgGamificada.setPessoa(pessoaProfProgGamificada);
+        profProgGamificada.setStatus(StatusAtivoInativo.ATIVO);
+        profProgGamificada = professorRepository.save(profProgGamificada);
 
-        Professor professor1 = new Professor();
-        professor1.setPessoa(pessoaProf1);
-        professor1.setStatus(StatusAtivoInativo.ATIVO);
-        professor1 = professorRepository.save(professor1);
-
-        Professor professor2 = new Professor();
-        professor2.setPessoa(pessoaProf2);
-        professor2.setStatus(StatusAtivoInativo.ATIVO);
-        professor2 = professorRepository.save(professor2);
-
-        Usuario usuarioProf1 = criarUsuario(escola, pessoaProf1, "joao.silva", "senha123", TipoUsuario.PROFESSOR, null, professor1);
-        Usuario usuarioProf2 = criarUsuario(escola, pessoaProf2, "maria.souza", "senha123", TipoUsuario.PROFESSOR, null, professor2);
+        criarUsuario(escola, pessoaProfRobotica, "rafael.mendes", "senha123", TipoUsuario.PROFESSOR, null, profRobotica);
+        criarUsuario(escola, pessoaProfProgGamificada, "juliana.costa", "senha123", TipoUsuario.PROFESSOR, null, profProgGamificada);
 
         // ---- Administrador (necessário para Evento.criadoPor) -----------------
         Pessoa pessoaAdmin = criarPessoa("Ana Paula Admin", "000.000.000-00",
                 LocalDate.of(1980, 1, 1), "(11) 90000-0000", "admin@studojurata.com", Sexo.FEMININO);
         Usuario usuarioAdmin = criarUsuario(escola, pessoaAdmin, "admin", "admin123", TipoUsuario.ADMINISTRADOR, null, null);
 
-        // ---- TurmaDisciplina (2 disciplinas x 2 turmas) ------------------------
-        TurmaDisciplina tdA_mat = criarTurmaDisciplina(turmaA, matematica, professor1);
-        TurmaDisciplina tdA_port = criarTurmaDisciplina(turmaA, portugues, professor2);
-        TurmaDisciplina tdB_mat = criarTurmaDisciplina(turmaB, matematica, professor1);
-        TurmaDisciplina tdB_port = criarTurmaDisciplina(turmaB, portugues, professor2);
+        // ---- TurmaDisciplina --------------------------------------------------------
+        // Confirmado pelo usuário: Robótica só tem a matéria Robótica; Programação
+        // Gamificada só tem a matéria Programação Gamificada; Geek Júnior e Geek Teens
+        // têm as duas.
+        TurmaDisciplina tdGeekJuniorRobotica = criarTurmaDisciplina(turmaGeekJunior, discRobotica, profRobotica);
+        TurmaDisciplina tdGeekJuniorProgGamificada = criarTurmaDisciplina(turmaGeekJunior, discProgGamificada, profProgGamificada);
+        TurmaDisciplina tdRobotica = criarTurmaDisciplina(turmaRobotica, discRobotica, profRobotica);
+        TurmaDisciplina tdProgGamificada = criarTurmaDisciplina(turmaProgGamificada, discProgGamificada, profProgGamificada);
+        TurmaDisciplina tdGeekTeensRobotica = criarTurmaDisciplina(turmaGeekTeens, discRobotica, profRobotica);
+        TurmaDisciplina tdGeekTeensProgGamificada = criarTurmaDisciplina(turmaGeekTeens, discProgGamificada, profProgGamificada);
 
-        // ---- Alunos (2 por turma = 4) + Responsáveis (1 por aluno) -----------
-        Aluno alunoA1 = criarAlunoComResponsavel(escola, "Pedro Henrique Lima", "333.333.333-33",
-                "2009-05-10", "aluno.pedro", "Carlos Lima (pai)", Parentesco.PAI);
-        Aluno alunoA2 = criarAlunoComResponsavel(escola, "Beatriz Costa Almeida", "444.444.444-44",
-                "2009-08-22", "aluno.beatriz", "Fernanda Almeida (mãe)", Parentesco.MAE);
-        Aluno alunoB1 = criarAlunoComResponsavel(escola, "Lucas Gabriel Oliveira", "555.555.555-55",
-                "2008-11-02", "aluno.lucas", "Roberto Oliveira (pai)", Parentesco.PAI);
-        Aluno alunoB2 = criarAlunoComResponsavel(escola, "Camila Ribeiro Santos", "666.666.666-66",
-                "2008-12-30", "aluno.camila", "Juliana Santos (mãe)", Parentesco.MAE);
+        // ---- Alunos (7 a 14 anos) + Responsáveis + Matrículas ativas ---------------
+        List<AlunoSeed> seedsGeekJunior = List.of(
+                new AlunoSeed("Enzo Ferreira Lima", "700.000.000-01", "2019-03-14", "aluno.enzo",
+                        Sexo.MASCULINO, "Marcelo Ferreira Lima (pai)", Parentesco.PAI),
+                new AlunoSeed("Alice Martins Souza", "700.000.000-02", "2019-06-02", "aluno.alice",
+                        Sexo.FEMININO, "Patrícia Martins Souza (mãe)", Parentesco.MAE),
+                new AlunoSeed("Davi Rodrigues Alves", "700.000.000-03", "2018-04-20", "aluno.davi",
+                        Sexo.MASCULINO, "Renata Rodrigues Alves (mãe)", Parentesco.MAE),
+                new AlunoSeed("Sophia Cardoso Pinto", "700.000.000-04", "2017-02-11", "aluno.sophia",
+                        Sexo.FEMININO, "Eduardo Cardoso Pinto (pai)", Parentesco.PAI));
 
-        criarMatricula(alunoA1, turmaA);
-        criarMatricula(alunoA2, turmaA);
-        criarMatricula(alunoB1, turmaB);
-        criarMatricula(alunoB2, turmaB);
+        List<AlunoSeed> seedsRobotica = List.of(
+                new AlunoSeed("Miguel Santos Barbosa", "700.000.000-05", "2017-05-30", "aluno.miguel",
+                        Sexo.MASCULINO, "Vanessa Santos Barbosa (mãe)", Parentesco.MAE),
+                new AlunoSeed("Laura Nascimento Dias", "700.000.000-06", "2016-01-18", "aluno.laura",
+                        Sexo.FEMININO, "Ricardo Nascimento Dias (pai)", Parentesco.PAI),
+                new AlunoSeed("Gabriel Almeida Rocha", "700.000.000-07", "2015-07-09", "aluno.gabriel",
+                        Sexo.MASCULINO, "Cláudia Almeida Rocha (avó)", Parentesco.AVO),
+                new AlunoSeed("Isabela Correia Teixeira", "700.000.000-08", "2014-03-25", "aluno.isabela",
+                        Sexo.FEMININO, "Fábio Correia Teixeira (pai)", Parentesco.PAI));
 
-        // ---- Plano de Ensino + Conteúdo + Plano de Aula + Aulas ----------------
-        PlanoEnsino peA_mat = criarPlanoEnsino(tdA_mat, curso, "Matemática Básica - Turma A");
-        PlanoEnsino peA_port = criarPlanoEnsino(tdA_port, curso, "Redação e Interpretação - Turma A");
-        PlanoEnsino peB_mat = criarPlanoEnsino(tdB_mat, curso, "Matemática Básica - Turma B");
-        PlanoEnsino peB_port = criarPlanoEnsino(tdB_port, curso, "Redação e Interpretação - Turma B");
+        List<AlunoSeed> seedsProgGamificada = List.of(
+                new AlunoSeed("Bernardo Vieira Castro", "700.000.000-09", "2016-06-12", "aluno.bernardo",
+                        Sexo.MASCULINO, "Adriana Vieira Castro (mãe)", Parentesco.MAE),
+                new AlunoSeed("Manuela Ribeiro Duarte", "700.000.000-10", "2015-02-28", "aluno.manuela",
+                        Sexo.FEMININO, "Marcos Ribeiro Duarte (pai)", Parentesco.PAI),
+                new AlunoSeed("Heitor Monteiro Farias", "700.000.000-11", "2014-07-04", "aluno.heitor",
+                        Sexo.MASCULINO, "Simone Monteiro Farias (mãe)", Parentesco.MAE));
 
-        List<ConteudoPlano> conteudosA_mat = criarConteudos(peA_mat, "Funções", "Geometria Plana");
-        List<ConteudoPlano> conteudosA_port = criarConteudos(peA_port, "Interpretação de Texto", "Gramática");
-        List<ConteudoPlano> conteudosB_mat = criarConteudos(peB_mat, "Funções", "Geometria Plana");
-        List<ConteudoPlano> conteudosB_port = criarConteudos(peB_port, "Interpretação de Texto", "Gramática");
+        List<AlunoSeed> seedsGeekTeens = List.of(
+                new AlunoSeed("Yasmin Cunha Moreira", "700.000.000-12", "2014-01-09", "aluno.yasmin",
+                        Sexo.FEMININO, "Tiago Cunha Moreira (pai)", Parentesco.PAI),
+                new AlunoSeed("Arthur Pereira Nogueira", "700.000.000-13", "2013-05-17", "aluno.arthur",
+                        Sexo.MASCULINO, "Letícia Pereira Nogueira (mãe)", Parentesco.MAE),
+                new AlunoSeed("Luiza Batista Gonçalves", "700.000.000-14", "2012-03-03", "aluno.luiza",
+                        Sexo.FEMININO, "Otávio Batista Gonçalves (pai)", Parentesco.PAI));
 
-        List<Aula> aulasA_mat = criarPlanoAulaComAulas(tdA_mat, peA_mat, "Aula de Matemática");
-        List<Aula> aulasA_port = criarPlanoAulaComAulas(tdA_port, peA_port, "Aula de Português");
-        List<Aula> aulasB_mat = criarPlanoAulaComAulas(tdB_mat, peB_mat, "Aula de Matemática");
-        List<Aula> aulasB_port = criarPlanoAulaComAulas(tdB_port, peB_port, "Aula de Português");
+        List<Aluno> alunosGeekJunior = criarAlunos(escola, seedsGeekJunior);
+        List<Aluno> alunosRobotica = criarAlunos(escola, seedsRobotica);
+        List<Aluno> alunosProgGamificada = criarAlunos(escola, seedsProgGamificada);
+        List<Aluno> alunosGeekTeens = criarAlunos(escola, seedsGeekTeens);
 
-        // Vincula 1 conteúdo a cada aula (AulaConteudo)
-        vincularAulaConteudo(aulasA_mat, conteudosA_mat);
-        vincularAulaConteudo(aulasA_port, conteudosA_port);
-        vincularAulaConteudo(aulasB_mat, conteudosB_mat);
-        vincularAulaConteudo(aulasB_port, conteudosB_port);
+        for (Aluno aluno : alunosGeekJunior) criarMatricula(aluno, turmaGeekJunior, StatusMatricula.ATIVA, inicioAnoLetivo, null);
+        for (Aluno aluno : alunosRobotica) criarMatricula(aluno, turmaRobotica, StatusMatricula.ATIVA, inicioAnoLetivo, null);
+        for (Aluno aluno : alunosProgGamificada) criarMatricula(aluno, turmaProgGamificada, StatusMatricula.ATIVA, inicioAnoLetivo, null);
+        for (Aluno aluno : alunosGeekTeens) criarMatricula(aluno, turmaGeekTeens, StatusMatricula.ATIVA, inicioAnoLetivo, null);
 
-        // ---- Frequência: os 2 alunos de cada turma nas aulas daquela turma -----
-        for (Aula aula : concat(aulasA_mat, aulasA_port)) {
-            criarFrequencia(alunoA1, aula, true, null);
-            criarFrequencia(alunoA2, aula, true, null);
-        }
-        for (Aula aula : concat(aulasB_mat, aulasB_port)) {
-            criarFrequencia(alunoB1, aula, true, null);
-            criarFrequencia(alunoB2, aula, false, "Atestado médico");
-        }
+        // ---- Alunos só no histórico (cobrem CONCLUIDA e CANCELADA) -----------------
+        Aluno alunoConcluido = criarAlunos(escola, List.of(
+                new AlunoSeed("Théo Azevedo Ramos", "700.000.000-15", "2016-04-08", "aluno.theo",
+                        Sexo.MASCULINO, "Camila Azevedo Ramos (mãe)", Parentesco.MAE))).get(0);
+        Aluno alunoCancelado = criarAlunos(escola, List.of(
+                new AlunoSeed("Valentina Moraes Lopes", "700.000.000-16", "2013-08-01", "aluno.valentina",
+                        Sexo.FEMININO, "Bruno Moraes Lopes (pai)", Parentesco.PAI))).get(0);
 
-        // ---- Questões (5 por turma) + Alternativas + QuestaoConteudo ----------
-        List<Questao> questoesA = criarQuestoes(matematica, conteudosA_mat, "Turma A");
-        List<Questao> questoesB = criarQuestoes(portugues, conteudosB_port, "Turma B");
+        criarMatricula(alunoConcluido, turmaRobotica, StatusMatricula.CONCLUIDA,
+                LocalDate.of(2025, 2, 3), LocalDate.of(2025, 12, 12));
+        criarMatricula(alunoCancelado, turmaGeekTeens, StatusMatricula.CANCELADA,
+                inicioAnoLetivo, LocalDate.of(2026, 5, 16));
 
-        // ---- Simulado (1 por turma, 5 questões cada) ---------------------------
-        Simulado simuladoA = criarSimulado("Simulado 1 - Matemática", matematica, peA_mat, turmaA, questoesA);
-        Simulado simuladoB = criarSimulado("Simulado 1 - Português", portugues, peB_port, turmaB, questoesB);
+        // ---- Plano de Ensino + Conteúdo + Plano de Aula + Aulas --------------------
+        PlanoEnsino peGeekJuniorRobotica = criarPlanoEnsino(tdGeekJuniorRobotica, cursoGeekJunior,
+                "Robótica - Geek Júnior");
+        PlanoEnsino peGeekJuniorProgGamificada = criarPlanoEnsino(tdGeekJuniorProgGamificada, cursoGeekJunior,
+                "Programação Gamificada - Geek Júnior");
+        PlanoEnsino peRobotica = criarPlanoEnsino(tdRobotica, cursoRobotica, "Robótica");
+        PlanoEnsino peProgGamificada = criarPlanoEnsino(tdProgGamificada, cursoProgGamificada, "Programação Gamificada");
+        PlanoEnsino peGeekTeensRobotica = criarPlanoEnsino(tdGeekTeensRobotica, cursoGeekTeens,
+                "Robótica - Geek Teens");
+        PlanoEnsino peGeekTeensProgGamificada = criarPlanoEnsino(tdGeekTeensProgGamificada, cursoGeekTeens,
+                "Programação Gamificada - Geek Teens");
 
-        // ---- SimuladoAluno + QuestaoAluno (respostas) --------------------------
-        responderSimulado(simuladoA, alunoA1, questoesA, 4);
-        responderSimulado(simuladoA, alunoA2, questoesA, 3);
-        responderSimulado(simuladoB, alunoB1, questoesB, 5);
-        responderSimulado(simuladoB, alunoB2, questoesB, 2);
+        List<ConteudoPlano> conteudosGeekJuniorRobotica = criarConteudos(peGeekJuniorRobotica, "Introdução à Robótica", "Montagem de Circuitos");
+        List<ConteudoPlano> conteudosGeekJuniorProgGamificada = criarConteudos(peGeekJuniorProgGamificada, "Lógica de Programação", "Estruturas de Repetição");
+        List<ConteudoPlano> conteudosRobotica = criarConteudos(peRobotica, "Sensores e Atuadores", "Montagem de Circuitos");
+        List<ConteudoPlano> conteudosProgGamificada = criarConteudos(peProgGamificada, "Lógica de Programação", "Estruturas de Repetição");
+        List<ConteudoPlano> conteudosGeekTeensRobotica = criarConteudos(peGeekTeensRobotica, "Sensores e Atuadores", "Automação Avançada");
+        List<ConteudoPlano> conteudosGeekTeensProgGamificada = criarConteudos(peGeekTeensProgGamificada, "Estruturas de Repetição", "Projeto de Jogo Final");
 
-        // ---- Notas (recalculadas "manualmente" a partir do simulado) ----------
-        criarNota(alunoA1, matematica, turmaA, 8.0, 1);
-        criarNota(alunoA2, matematica, turmaA, 6.0, 1);
-        criarNota(alunoB1, portugues, turmaB, 10.0, 1);
-        criarNota(alunoB2, portugues, turmaB, 4.0, 1);
+        List<Aula> aulasGeekJuniorRobotica = criarPlanoAulaComAulas(tdGeekJuniorRobotica, peGeekJuniorRobotica, "Aula de Robótica");
+        List<Aula> aulasGeekJuniorProgGamificada = criarPlanoAulaComAulas(tdGeekJuniorProgGamificada, peGeekJuniorProgGamificada, "Aula de Programação Gamificada");
+        List<Aula> aulasRobotica = criarPlanoAulaComAulas(tdRobotica, peRobotica, "Aula de Robótica");
+        List<Aula> aulasProgGamificada = criarPlanoAulaComAulas(tdProgGamificada, peProgGamificada, "Aula de Programação Gamificada");
+        List<Aula> aulasGeekTeensRobotica = criarPlanoAulaComAulas(tdGeekTeensRobotica, peGeekTeensRobotica, "Aula de Robótica");
+        List<Aula> aulasGeekTeensProgGamificada = criarPlanoAulaComAulas(tdGeekTeensProgGamificada, peGeekTeensProgGamificada, "Aula de Programação Gamificada");
 
-        // ---- Eventos -------------------------------------------------------------
-        criarEvento("Reunião de pais e mestres", "Reunião geral do 1º bimestre.",
-                LocalDateTime.of(2026, 8, 15, 19, 0), usuarioAdmin);
-        criarEvento("Semana de provas", "Semana de aplicação dos simulados bimestrais.",
-                LocalDateTime.of(2026, 8, 25, 8, 0), usuarioAdmin);
+        vincularAulaConteudo(aulasGeekJuniorRobotica, conteudosGeekJuniorRobotica);
+        vincularAulaConteudo(aulasGeekJuniorProgGamificada, conteudosGeekJuniorProgGamificada);
+        vincularAulaConteudo(aulasRobotica, conteudosRobotica);
+        vincularAulaConteudo(aulasProgGamificada, conteudosProgGamificada);
+        vincularAulaConteudo(aulasGeekTeensRobotica, conteudosGeekTeensRobotica);
+        vincularAulaConteudo(aulasGeekTeensProgGamificada, conteudosGeekTeensProgGamificada);
+
+        // ---- Frequência: alunos ativos de cada turma, nas aulas daquela turma -----
+        marcarFrequenciaTurma(alunosGeekJunior, concat(aulasGeekJuniorRobotica, aulasGeekJuniorProgGamificada));
+        marcarFrequenciaTurma(alunosRobotica, aulasRobotica);
+        marcarFrequenciaTurma(alunosProgGamificada, aulasProgGamificada);
+        marcarFrequenciaTurma(alunosGeekTeens, concat(aulasGeekTeensRobotica, aulasGeekTeensProgGamificada));
+
+        // ---- Questões (5 por turma-disciplina) + Simulados -------------------------
+        List<Questao> questoesGeekJuniorRobotica = criarQuestoes(discRobotica, conteudosGeekJuniorRobotica, "Geek Júnior");
+        List<Questao> questoesGeekJuniorProgGamificada = criarQuestoes(discProgGamificada, conteudosGeekJuniorProgGamificada, "Geek Júnior");
+        List<Questao> questoesRobotica = criarQuestoes(discRobotica, conteudosRobotica, "Robótica");
+        List<Questao> questoesProgGamificada = criarQuestoes(discProgGamificada, conteudosProgGamificada, "Programação Gamificada");
+        List<Questao> questoesGeekTeensRobotica = criarQuestoes(discRobotica, conteudosGeekTeensRobotica, "Geek Teens");
+        List<Questao> questoesGeekTeensProgGamificada = criarQuestoes(discProgGamificada, conteudosGeekTeensProgGamificada, "Geek Teens");
+
+        Simulado simuladoGeekJuniorRobotica = criarSimulado("Simulado de Robótica - Geek Júnior", discRobotica, peGeekJuniorRobotica, turmaGeekJunior, questoesGeekJuniorRobotica);
+        Simulado simuladoGeekJuniorProgGamificada = criarSimulado("Simulado de Programação Gamificada - Geek Júnior", discProgGamificada, peGeekJuniorProgGamificada, turmaGeekJunior, questoesGeekJuniorProgGamificada);
+        Simulado simuladoRobotica = criarSimulado("Simulado de Robótica", discRobotica, peRobotica, turmaRobotica, questoesRobotica);
+        Simulado simuladoProgGamificada = criarSimulado("Simulado de Programação Gamificada", discProgGamificada, peProgGamificada, turmaProgGamificada, questoesProgGamificada);
+        Simulado simuladoGeekTeensRobotica = criarSimulado("Simulado de Robótica - Geek Teens", discRobotica, peGeekTeensRobotica, turmaGeekTeens, questoesGeekTeensRobotica);
+        Simulado simuladoGeekTeensProgGamificada = criarSimulado("Simulado de Programação Gamificada - Geek Teens", discProgGamificada, peGeekTeensProgGamificada, turmaGeekTeens, questoesGeekTeensProgGamificada);
+
+        // ---- SimuladoAluno: metade responde (CONCLUIDO), metade fica "a fazer" ----
+        // (StatusSimuladoAluno.PENDENTE — ver Javadoc do enum: é o estado normal
+        // logo após o lançamento do simulado, antes do aluno abrir a prova.)
+        responderSimulado(simuladoGeekJuniorRobotica, alunosGeekJunior.get(0), questoesGeekJuniorRobotica, 4);
+        responderSimulado(simuladoGeekJuniorRobotica, alunosGeekJunior.get(1), questoesGeekJuniorRobotica, 3);
+        criarSimuladoAlunoPendente(simuladoGeekJuniorRobotica, alunosGeekJunior.get(2));
+        criarSimuladoAlunoPendente(simuladoGeekJuniorRobotica, alunosGeekJunior.get(3));
+
+        responderSimulado(simuladoGeekJuniorProgGamificada, alunosGeekJunior.get(2), questoesGeekJuniorProgGamificada, 5);
+        criarSimuladoAlunoPendente(simuladoGeekJuniorProgGamificada, alunosGeekJunior.get(0));
+        criarSimuladoAlunoPendente(simuladoGeekJuniorProgGamificada, alunosGeekJunior.get(1));
+        criarSimuladoAlunoPendente(simuladoGeekJuniorProgGamificada, alunosGeekJunior.get(3));
+
+        responderSimulado(simuladoRobotica, alunosRobotica.get(0), questoesRobotica, 5);
+        responderSimulado(simuladoRobotica, alunosRobotica.get(1), questoesRobotica, 2);
+        criarSimuladoAlunoPendente(simuladoRobotica, alunosRobotica.get(2));
+        criarSimuladoAlunoPendente(simuladoRobotica, alunosRobotica.get(3));
+
+        responderSimulado(simuladoProgGamificada, alunosProgGamificada.get(0), questoesProgGamificada, 3);
+        criarSimuladoAlunoPendente(simuladoProgGamificada, alunosProgGamificada.get(1));
+        criarSimuladoAlunoPendente(simuladoProgGamificada, alunosProgGamificada.get(2));
+
+        responderSimulado(simuladoGeekTeensRobotica, alunosGeekTeens.get(0), questoesGeekTeensRobotica, 4);
+        criarSimuladoAlunoPendente(simuladoGeekTeensRobotica, alunosGeekTeens.get(1));
+        criarSimuladoAlunoPendente(simuladoGeekTeensRobotica, alunosGeekTeens.get(2));
+
+        responderSimulado(simuladoGeekTeensProgGamificada, alunosGeekTeens.get(1), questoesGeekTeensProgGamificada, 5);
+        responderSimulado(simuladoGeekTeensProgGamificada, alunosGeekTeens.get(2), questoesGeekTeensProgGamificada, 1);
+        criarSimuladoAlunoPendente(simuladoGeekTeensProgGamificada, alunosGeekTeens.get(0));
+
+        // ---- Notas (por aluno/disciplina/turma) -------------------------------------
+        criarNota(alunosGeekJunior.get(0), discRobotica, turmaGeekJunior, 8.0, 1);
+        criarNota(alunosGeekJunior.get(1), discRobotica, turmaGeekJunior, 6.0, 1);
+        criarNota(alunosGeekJunior.get(2), discProgGamificada, turmaGeekJunior, 10.0, 1);
+        criarNota(alunosRobotica.get(0), discRobotica, turmaRobotica, 10.0, 1);
+        criarNota(alunosRobotica.get(1), discRobotica, turmaRobotica, 4.0, 1);
+        criarNota(alunosProgGamificada.get(0), discProgGamificada, turmaProgGamificada, 6.0, 1);
+        criarNota(alunosGeekTeens.get(0), discRobotica, turmaGeekTeens, 8.0, 1);
+        criarNota(alunosGeekTeens.get(1), discProgGamificada, turmaGeekTeens, 10.0, 1);
+        criarNota(alunosGeekTeens.get(2), discProgGamificada, turmaGeekTeens, 2.0, 1);
+
+        // ---- Questões de IA pendentes de revisão ("simulados a revisar") -----------
+        // Vinculadas a um simulado ainda em RASCUNHO por disciplina, cobrindo a tela
+        // de revisão de questões geradas por IA antes de irem para um simulado real.
+        Simulado revisaoRobotica = criarSimuladoRascunho("Revisão IA — Robótica", discRobotica, turmaRobotica);
+        Simulado revisaoProgGamificada = criarSimuladoRascunho("Revisão IA — Programação Gamificada", discProgGamificada, turmaProgGamificada);
+
+        Questao questaoIaRobotica1 = criarQuestaoIaPendente(discRobotica, conteudosRobotica.get(0),
+                "Qual componente converte energia elétrica em movimento no robô?", NivelDificuldade.FACIL,
+                "Motor", "Resistor", "LED");
+        Questao questaoIaRobotica2 = criarQuestaoIaPendente(discRobotica, conteudosRobotica.get(1),
+                "O que acontece se os fios do motor forem invertidos?", NivelDificuldade.MEDIA,
+                "O motor gira no sentido contrário", "O motor não liga mais", "O motor gira mais rápido");
+        Questao questaoIaProgGamificada1 = criarQuestaoIaPendente(discProgGamificada, conteudosProgGamificada.get(0),
+                "Qual bloco repete um conjunto de comandos várias vezes?", NivelDificuldade.FACIL,
+                "Bloco de repetição", "Bloco de espera", "Bloco de som");
+        Questao questaoIaProgGamificada2 = criarQuestaoIaPendente(discProgGamificada, conteudosProgGamificada.get(1),
+                "Um laço de repetição sem condição de parada causa qual problema?", NivelDificuldade.MEDIA,
+                "Trava o programa em um loop infinito", "Deixa o programa mais rápido", "Apaga as variáveis do programa");
+
+        vincularSimuladoQuestao(revisaoRobotica, questaoIaRobotica1, 1);
+        vincularSimuladoQuestao(revisaoRobotica, questaoIaRobotica2, 2);
+        vincularSimuladoQuestao(revisaoProgGamificada, questaoIaProgGamificada1, 1);
+        vincularSimuladoQuestao(revisaoProgGamificada, questaoIaProgGamificada2, 2);
+
+        criarHistoricoGeracaoIA(conteudosRobotica.get(0), discRobotica, revisaoRobotica, NivelDificuldade.FACIL,
+                TipoQuestao.ALTERNATIVAS, 2, 0, 2, 0, OrigemResultadoGeracao.MISTA, "gemini-1.5-flash", 1400L);
+        criarHistoricoGeracaoIA(conteudosProgGamificada.get(0), discProgGamificada, revisaoProgGamificada, NivelDificuldade.FACIL,
+                TipoQuestao.ALTERNATIVAS, 2, 1, 1, 0, OrigemResultadoGeracao.FALLBACK_BANCO, "gemini-1.5-flash", 1800L);
+
+        // ---- Eventos: aulas demonstrativas constantes + reunião -------------------
+        criarEvento("Aula demonstrativa — Robótica", "Aula aberta para famílias interessadas no curso de Robótica.",
+                LocalDateTime.of(2026, 7, 18, 9, 0), usuarioAdmin, true);
+        criarEvento("Aula demonstrativa — Geek Júnior", "Aula aberta para famílias interessadas no curso Geek Júnior.",
+                LocalDateTime.of(2026, 9, 12, 8, 0), usuarioAdmin, false);
+        criarEvento("Aula demonstrativa — Programação Gamificada", "Aula aberta para famílias interessadas no curso de Programação Gamificada.",
+                LocalDateTime.of(2026, 9, 19, 14, 0), usuarioAdmin, false);
+        criarEvento("Aula demonstrativa — Geek Teens", "Aula aberta para famílias interessadas no curso Geek Teens.",
+                LocalDateTime.of(2026, 9, 26, 9, 0), usuarioAdmin, false);
+        criarEvento("Reunião de pais e mestres", "Reunião geral do semestre.",
+                LocalDateTime.of(2026, 9, 5, 19, 0), usuarioAdmin, false);
 
         // ---- Auditoria -------------------------------------------------------------
         criarAuditLog("Nota", 1L, AcaoAuditoria.ATUALIZACAO, "admin", "total: 7.0 -> 8.0");
-        criarAuditLog("SimuladoAluno", 1L, AcaoAuditoria.CRIACAO, "joao.silva", "tentativa finalizada pelo aluno");
+        criarAuditLog("SimuladoAluno", 1L, AcaoAuditoria.CRIACAO, "rafael.mendes", "tentativa finalizada pelo aluno");
 
         // ---- Gamificação -------------------------------------------------------------
         Skin skinClassico = criarSkin("Mascote Clássico", "Visual padrão do mascote Studo Jurata.", 0, "skins/classico.png");
         Skin skinExplorador = criarSkin("Mascote Explorador", "Traje de explorador, desbloqueado com moedas de reforço.", 50, "skins/explorador.png");
         criarSkin("Mascote Cientista", "Jaleco de cientista, para quem completa muitos simulados.", 80, "skins/cientista.png");
 
-        criarPontuacao(alunoA1, 120);
-        criarPontuacao(alunoA2, 40);
-        criarPontuacao(alunoB1, 200);
-        criarPontuacao(alunoB2, 10);
+        criarPontuacao(alunosGeekJunior.get(0), 120);
+        criarPontuacao(alunosGeekJunior.get(2), 40);
+        criarPontuacao(alunosRobotica.get(0), 200);
+        criarPontuacao(alunosRobotica.get(1), 10);
+        criarPontuacao(alunosGeekTeens.get(1), 260);
 
-        criarSkinAluno(alunoA1, skinClassico, true);
-        criarSkinAluno(alunoB1, skinExplorador, true);
+        criarSkinAluno(alunosGeekJunior.get(0), skinClassico, true);
+        criarSkinAluno(alunosRobotica.get(0), skinExplorador, true);
 
-        // ---- Módulo de IA (histórico de geração + revisão espaçada) -------------
-        criarRevisao(alunoA2, conteudosA_mat.get(0), 1, NivelDominio.BAIXO);
-        criarRevisao(alunoB2, conteudosB_port.get(0), 3, NivelDominio.MEDIO);
-
-        criarHistoricoGeracaoIA(conteudosA_mat.get(0), matematica, simuladoA, NivelDificuldade.MEDIA,
-                TipoQuestao.ALTERNATIVAS, 5, 2, 3, 0, OrigemResultadoGeracao.MISTA, "gemini-1.5-flash", 1200L);
-        criarHistoricoGeracaoIA(conteudosB_port.get(0), portugues, simuladoB, NivelDificuldade.FACIL,
-                TipoQuestao.VERDADEIRO_FALSO, 5, 0, 4, 1, OrigemResultadoGeracao.FALLBACK_BANCO, "gemini-1.5-flash", 2100L);
+        // ---- Módulo de IA (revisão espaçada) ---------------------------------------
+        criarRevisao(alunosGeekJunior.get(3), conteudosGeekJuniorRobotica.get(0), 1, NivelDominio.BAIXO);
+        criarRevisao(alunosProgGamificada.get(1), conteudosProgGamificada.get(0), 3, NivelDominio.MEDIO);
     }
 
     // =========================================================================
     // Helpers
     // =========================================================================
 
-    private void criarHorario(Turma turma, DiaSemana dia, int hIni, int mIni, int hFim, int mFim) {
+    private Curso criarCurso(Escola escola, String nome, String descricao, int cargaHorariaTotal) {
+        Curso curso = new Curso();
+        curso.setEscola(escola);
+        curso.setNome(nome);
+        curso.setDescricao(descricao);
+        curso.setCargaHorariaTotal(cargaHorariaTotal);
+        curso.setStatus(StatusAtivoInativo.ATIVO);
+        return cursoRepository.save(curso);
+    }
+
+    /** Nome da turma = curso + dia da semana + horário de início (confirmado pelo usuário). */
+    private Turma criarTurma(Escola escola, Curso curso, DiaSemana dia, int horaInicio, int minutoInicio,
+                              LocalDate dataInicio, LocalDate dataFim) {
+        LocalTime inicio = LocalTime.of(horaInicio, minutoInicio);
+        LocalTime fim = inicio.plusMinutes(90);
+
+        Turma turma = new Turma();
+        turma.setEscola(escola);
+        turma.setCurso(curso);
+        turma.setTitulo(curso.getNome() + " - " + rotuloDiaSemana(dia) + " " + inicio);
+        turma.setCapacidadeMaxima(8);
+        turma.setStatus(StatusTurma.ATIVA);
+        turma.setDataInicio(dataInicio);
+        turma.setDataFim(dataFim);
+        turma = turmaRepository.save(turma);
+
+        criarHorario(turma, dia, inicio, fim);
+        return turma;
+    }
+
+    private String rotuloDiaSemana(DiaSemana dia) {
+        return switch (dia) {
+            case SEGUNDA -> "Segunda";
+            case TERCA -> "Terça";
+            case QUARTA -> "Quarta";
+            case QUINTA -> "Quinta";
+            case SEXTA -> "Sexta";
+            case SABADO -> "Sábado";
+            case DOMINGO -> "Domingo";
+        };
+    }
+
+    private void criarHorario(Turma turma, DiaSemana dia, LocalTime inicio, LocalTime fim) {
         HorarioTurma h = new HorarioTurma();
         h.setTurma(turma);
         h.setDiaSemana(dia);
-        h.setHoraInicio(LocalTime.of(hIni, mIni));
-        h.setHoraFim(LocalTime.of(hFim, mFim));
+        h.setHoraInicio(inicio);
+        h.setHoraFim(fim);
         horarioTurmaRepository.save(h);
     }
 
@@ -402,21 +564,30 @@ public class DevDataResetSeeder implements CommandLineRunner {
         return turmaDisciplinaRepository.save(td);
     }
 
-    private Aluno criarAlunoComResponsavel(Escola escola, String nomeAluno, String cpfAluno, String nascimentoIso,
-                                            String username, String nomeResponsavel, Parentesco parentesco) {
-        Pessoa pessoaAluno = criarPessoa(nomeAluno, cpfAluno, LocalDate.parse(nascimentoIso),
-                "(11) 93333-0000", username.replace(".", "_") + "@studojurata.com", Sexo.MASCULINO);
+    private List<Aluno> criarAlunos(Escola escola, List<AlunoSeed> seeds) {
+        List<Aluno> alunos = new ArrayList<>();
+        for (AlunoSeed seed : seeds) {
+            alunos.add(criarAlunoComResponsavel(escola, seed));
+        }
+        return alunos;
+    }
+
+    private Aluno criarAlunoComResponsavel(Escola escola, AlunoSeed seed) {
+        Pessoa pessoaAluno = criarPessoa(seed.nome(), seed.cpf(), LocalDate.parse(seed.nascimentoIso()),
+                "(11) 93" + seed.cpf().substring(10, 12) + "-0000",
+                seed.username().replace(".", "_") + "@studojurata.com", seed.sexo());
 
         Aluno aluno = new Aluno();
         aluno.setPessoa(pessoaAluno);
         aluno.setMatricula("MAT-" + pessoaAluno.getId());
         aluno = alunoRepository.save(aluno);
 
-        criarUsuario(escola, pessoaAluno, username, "senha123", TipoUsuario.ALUNO, aluno, null);
+        criarUsuario(escola, pessoaAluno, seed.username(), "senha123", TipoUsuario.ALUNO, aluno, null);
 
-        // Responsável (1 por aluno)
-        Pessoa pessoaResp = criarPessoa(nomeResponsavel, "RESP-" + pessoaAluno.getId(),
-                LocalDate.of(1980, 1, 1), "(11) 94444-0000", "resp." + username + "@studojurata.com", Sexo.FEMININO);
+        Pessoa pessoaResp = criarPessoa(seed.nomeResponsavel(), "RESP-" + pessoaAluno.getId(),
+                LocalDate.of(1980, 1, 1), "(11) 94" + seed.cpf().substring(10, 12) + "-0000",
+                "resp." + seed.username() + "@studojurata.com",
+                seed.parentesco() == Parentesco.PAI || seed.parentesco() == Parentesco.TIO ? Sexo.MASCULINO : Sexo.FEMININO);
         Responsavel responsavel = new Responsavel();
         responsavel.setPessoa(pessoaResp);
         responsavel = responsavelRepository.save(responsavel);
@@ -424,7 +595,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
         ResponsavelAluno ra = new ResponsavelAluno();
         ra.setResponsavel(responsavel);
         ra.setAluno(aluno);
-        ra.setParentesco(parentesco);
+        ra.setParentesco(seed.parentesco());
         ra.setAceitouTermos(true);
         ra.setDataAceite(LocalDateTime.now());
         ra.setTextoVersao("Aceito o uso dos dados do meu dependente na plataforma Studo Jurata.");
@@ -433,26 +604,28 @@ public class DevDataResetSeeder implements CommandLineRunner {
         return aluno;
     }
 
-    private void criarMatricula(Aluno aluno, Turma turma) {
+    private void criarMatricula(Aluno aluno, Turma turma, StatusMatricula status, LocalDate dataInicio, LocalDate dataFim) {
         AlunoTurma at = new AlunoTurma();
         at.setAluno(aluno);
         at.setTurma(turma);
-        at.setDataInicio(turma.getDataInicio());
-        at.setStatus(StatusMatricula.ATIVA);
+        at.setDataInicio(dataInicio);
+        at.setDataFim(dataFim);
+        at.setStatus(status);
         alunoTurmaRepository.save(at);
     }
 
     private PlanoEnsino criarPlanoEnsino(TurmaDisciplina td, Curso curso, String titulo) {
         PlanoEnsino pe = new PlanoEnsino();
         pe.setTurmaDisciplina(td);
+        pe.setProfessor(td.getProfessor());
         pe.setCurso(curso);
         pe.setTitulo(titulo);
-        pe.setCargaHoraria(80);
+        pe.setCargaHoraria(60);
         pe.setEmenta("Ementa de " + titulo);
-        pe.setObjetivoGeral("Preparar o aluno para o ENEM.");
-        pe.setMetodologia("Aulas expositivas + simulados.");
-        pe.setDataInicio(LocalDate.of(2026, 2, 1));
-        pe.setDataFim(LocalDate.of(2026, 12, 15));
+        pe.setObjetivoGeral("Desenvolver o raciocínio lógico e as habilidades práticas do curso " + curso.getNome() + ".");
+        pe.setMetodologia("Aulas práticas com kits e desafios em grupo.");
+        pe.setDataInicio(LocalDate.of(2026, 2, 2));
+        pe.setDataFim(LocalDate.of(2026, 12, 18));
         pe.setStatus(StatusPlano.ATIVO);
         return planoEnsinoRepository.save(pe);
     }
@@ -504,6 +677,17 @@ public class DevDataResetSeeder implements CommandLineRunner {
         }
     }
 
+    private void marcarFrequenciaTurma(List<Aluno> alunosDaTurma, List<Aula> aulasDaTurma) {
+        for (Aula aula : aulasDaTurma) {
+            for (int i = 0; i < alunosDaTurma.size(); i++) {
+                // Um aluno por turma falta com justificativa, os demais presentes —
+                // cobre os dois estados de frequência na tela do professor.
+                boolean presente = i != alunosDaTurma.size() - 1;
+                criarFrequencia(alunosDaTurma.get(i), aula, presente, presente ? null : "Atestado médico");
+            }
+        }
+    }
+
     private void criarFrequencia(Aluno aluno, Aula aula, boolean presente, String justificativa) {
         Frequencia f = new Frequencia();
         f.setAluno(aluno);
@@ -513,63 +697,124 @@ public class DevDataResetSeeder implements CommandLineRunner {
         frequenciaRepository.save(f);
     }
 
+    /** Uma questão de múltipla escolha pronta pra semear: enunciado + até 3 alternativas (a 1ª é a correta). */
+    private record QuestaoAlternativasSeed(String enunciado, NivelDificuldade nivel, String... alternativas) {
+    }
+
+    /** Uma afirmação de questão Verdadeiro/Falso: cada uma julgada à parte (ver AlternativaVerdadeiroFalso no front). */
+    private record AfirmacaoSeed(String texto, boolean verdadeira) {
+    }
+
+    /** Uma questão Verdadeiro/Falso pronta pra semear: enunciado + até 3 afirmações independentes. */
+    private record QuestaoVFSeed(String enunciado, AfirmacaoSeed... afirmacoes) {
+    }
+
+    /**
+     * Banco de questões reais por disciplina (não texto placeholder) — no máximo
+     * 3 alternativas por questão (MAXIMO_ALTERNATIVAS do front) e V/F com
+     * afirmações cujo gabarito bate de fato com a resposta certa.
+     */
     private List<Questao> criarQuestoes(Disciplina disciplina, List<ConteudoPlano> conteudos, String rotulo) {
+        boolean robotica = disciplina.getTitulo().equals("Robótica");
+
+        List<QuestaoAlternativasSeed> bancoAlternativas = robotica
+                ? List.of(
+                    new QuestaoAlternativasSeed(
+                            "Qual componente transforma energia elétrica em movimento no robô?",
+                            NivelDificuldade.FACIL, "Motor", "Resistor", "LED"),
+                    new QuestaoAlternativasSeed(
+                            "Qual sensor permite ao robô detectar um obstáculo à frente?",
+                            NivelDificuldade.MEDIA, "Sensor ultrassônico", "Sensor de luz", "Sensor de temperatura"),
+                    new QuestaoAlternativasSeed(
+                            "O que acontece se os dois fios do motor forem invertidos?",
+                            NivelDificuldade.DIFICIL, "O motor gira no sentido contrário", "O motor não liga mais", "O motor gira mais rápido"))
+                : List.of(
+                    new QuestaoAlternativasSeed(
+                            "Qual bloco repete um conjunto de comandos várias vezes?",
+                            NivelDificuldade.FACIL, "Bloco de repetição", "Bloco de espera", "Bloco de som"),
+                    new QuestaoAlternativasSeed(
+                            "O que é um algoritmo?",
+                            NivelDificuldade.MEDIA, "Uma sequência de passos para resolver um problema", "Um tipo de sensor", "Um personagem do jogo"),
+                    new QuestaoAlternativasSeed(
+                            "Para o personagem andar só quando uma tecla for pressionada, qual bloco deve ser usado?",
+                            NivelDificuldade.DIFICIL, "Bloco de condição (se)", "Bloco de repetição", "Bloco de variável"));
+
+        List<QuestaoVFSeed> bancoVF = robotica
+                ? List.of(
+                    new QuestaoVFSeed("Julgue as afirmações sobre componentes eletrônicos:",
+                            new AfirmacaoSeed("O resistor limita a passagem de corrente elétrica no circuito.", true),
+                            new AfirmacaoSeed("A bateria é o componente que gera o movimento mecânico do robô.", false),
+                            new AfirmacaoSeed("Um circuito precisa estar fechado para a corrente elétrica circular.", true)),
+                    new QuestaoVFSeed("Julgue as afirmações sobre sensores e automação:",
+                            new AfirmacaoSeed("O sensor ultrassônico usa som para medir distância.", true),
+                            new AfirmacaoSeed("Sensores permitem que o robô reaja automaticamente ao ambiente.", true),
+                            new AfirmacaoSeed("Um sensor não muda o comportamento do robô, só o motor faz isso.", false)))
+                : List.of(
+                    new QuestaoVFSeed("Julgue as afirmações sobre lógica de programação:",
+                            new AfirmacaoSeed("Um laço de repetição sem condição de parada pode travar o programa.", true),
+                            new AfirmacaoSeed("Uma variável guarda um valor que pode mudar durante o programa.", true),
+                            new AfirmacaoSeed("Comandos dentro de um bloco \"se\" são executados mesmo quando a condição é falsa.", false)),
+                    new QuestaoVFSeed("Julgue as afirmações sobre blocos e eventos:",
+                            new AfirmacaoSeed("O bloco \"quando a bandeira verde for clicada\" inicia o programa.", true),
+                            new AfirmacaoSeed("Eventos servem para o programa reagir a ações do jogador.", true),
+                            new AfirmacaoSeed("Todo programa precisa ter um bloco de som para funcionar.", false)));
+
         List<Questao> questoes = new ArrayList<>();
-
-        // 3 questões de múltipla escolha (4 alternativas cada, 1 correta)
-        for (int i = 1; i <= 3; i++) {
-            Questao q = new Questao();
-            q.setEnunciado("[" + rotulo + "] Questão de múltipla escolha nº " + i);
-            q.setTipo(TipoQuestao.ALTERNATIVAS);
-            q.setDisciplina(disciplina);
-            q.setNivelDificuldade(i == 1 ? NivelDificuldade.FACIL : i == 2 ? NivelDificuldade.MEDIA : NivelDificuldade.DIFICIL);
-            q.setOrigem(OrigemQuestao.PROFESSOR);
-            q.setStatus(StatusQuestao.APROVADA);
-            q = questaoRepository.save(q);
-
-            for (int alt = 1; alt <= 4; alt++) {
-                Alternativa a = new Alternativa();
-                a.setQuestao(q);
-                a.setTexto("Alternativa " + (char) ('A' + alt - 1));
-                a.setCorreta(alt == 1);
-                a.setOrdem(alt);
-                alternativaRepository.save(a);
-            }
-
-            vincularQuestaoConteudo(q, conteudos);
-            questoes.add(q);
+        for (QuestaoAlternativasSeed seed : bancoAlternativas) {
+            questoes.add(criarQuestaoAlternativas(disciplina, conteudos, rotulo, seed));
         }
-
-        // 2 questões de verdadeiro/falso (2 alternativas cada)
-        for (int i = 1; i <= 2; i++) {
-            Questao q = new Questao();
-            q.setEnunciado("[" + rotulo + "] Questão verdadeiro/falso nº " + i);
-            q.setTipo(TipoQuestao.VERDADEIRO_FALSO);
-            q.setDisciplina(disciplina);
-            q.setNivelDificuldade(NivelDificuldade.MEDIA);
-            q.setOrigem(OrigemQuestao.PROFESSOR);
-            q.setStatus(StatusQuestao.APROVADA);
-            q = questaoRepository.save(q);
-
-            Alternativa v = new Alternativa();
-            v.setQuestao(q);
-            v.setTexto("Verdadeiro");
-            v.setCorreta(true);
-            v.setOrdem(1);
-            alternativaRepository.save(v);
-
-            Alternativa f = new Alternativa();
-            f.setQuestao(q);
-            f.setTexto("Falso");
-            f.setCorreta(false);
-            f.setOrdem(2);
-            alternativaRepository.save(f);
-
-            vincularQuestaoConteudo(q, conteudos);
-            questoes.add(q);
+        for (QuestaoVFSeed seed : bancoVF) {
+            questoes.add(criarQuestaoVF(disciplina, conteudos, rotulo, seed));
         }
-
         return questoes;
+    }
+
+    private Questao criarQuestaoAlternativas(Disciplina disciplina, List<ConteudoPlano> conteudos, String rotulo,
+                                              QuestaoAlternativasSeed seed) {
+        Questao q = new Questao();
+        q.setEnunciado("[" + rotulo + "] " + seed.enunciado());
+        q.setTipo(TipoQuestao.ALTERNATIVAS);
+        q.setDisciplina(disciplina);
+        q.setNivelDificuldade(seed.nivel());
+        q.setOrigem(OrigemQuestao.PROFESSOR);
+        q.setStatus(StatusQuestao.APROVADA);
+        q = questaoRepository.save(q);
+
+        for (int i = 0; i < seed.alternativas().length; i++) {
+            Alternativa a = new Alternativa();
+            a.setQuestao(q);
+            a.setTexto(seed.alternativas()[i]);
+            a.setCorreta(i == 0); // a primeira do array é sempre a correta, por convenção do banco acima
+            a.setOrdem(i + 1);
+            alternativaRepository.save(a);
+        }
+
+        vincularQuestaoConteudo(q, conteudos);
+        return q;
+    }
+
+    private Questao criarQuestaoVF(Disciplina disciplina, List<ConteudoPlano> conteudos, String rotulo, QuestaoVFSeed seed) {
+        Questao q = new Questao();
+        q.setEnunciado("[" + rotulo + "] " + seed.enunciado());
+        q.setTipo(TipoQuestao.VERDADEIRO_FALSO);
+        q.setDisciplina(disciplina);
+        q.setNivelDificuldade(NivelDificuldade.MEDIA);
+        q.setOrigem(OrigemQuestao.PROFESSOR);
+        q.setStatus(StatusQuestao.APROVADA);
+        q = questaoRepository.save(q);
+
+        for (int i = 0; i < seed.afirmacoes().length; i++) {
+            AfirmacaoSeed afirmacao = seed.afirmacoes()[i];
+            Alternativa a = new Alternativa();
+            a.setQuestao(q);
+            a.setTexto(afirmacao.texto());
+            a.setCorreta(afirmacao.verdadeira());
+            a.setOrdem(i + 1);
+            alternativaRepository.save(a);
+        }
+
+        vincularQuestaoConteudo(q, conteudos);
+        return q;
     }
 
     private void vincularQuestaoConteudo(Questao questao, List<ConteudoPlano> conteudos) {
@@ -579,6 +824,39 @@ public class DevDataResetSeeder implements CommandLineRunner {
         questaoConteudoRepository.save(qc);
     }
 
+    /**
+     * Questão de origem IA, ainda PENDENTE — aparece na tela de revisão do
+     * professor. Até 3 alternativas (MAXIMO_ALTERNATIVAS do front); a
+     * primeira do array é sempre a correta.
+     */
+    private Questao criarQuestaoIaPendente(Disciplina disciplina, ConteudoPlano conteudo, String enunciado,
+                                            NivelDificuldade nivel, String... alternativas) {
+        Questao q = new Questao();
+        q.setEnunciado(enunciado);
+        q.setTipo(TipoQuestao.ALTERNATIVAS);
+        q.setDisciplina(disciplina);
+        q.setNivelDificuldade(nivel);
+        q.setOrigem(OrigemQuestao.IA);
+        q.setStatus(StatusQuestao.PENDENTE);
+        q = questaoRepository.save(q);
+
+        for (int i = 0; i < alternativas.length; i++) {
+            Alternativa a = new Alternativa();
+            a.setQuestao(q);
+            a.setTexto(alternativas[i]);
+            a.setCorreta(i == 0);
+            a.setOrdem(i + 1);
+            alternativaRepository.save(a);
+        }
+
+        QuestaoConteudo qc = new QuestaoConteudo();
+        qc.setQuestao(q);
+        qc.setConteudoPlano(conteudo);
+        questaoConteudoRepository.save(qc);
+
+        return q;
+    }
+
     private Simulado criarSimulado(String titulo, Disciplina disciplina, PlanoEnsino planoEnsino, Turma turma, List<Questao> questoes) {
         Simulado s = new Simulado();
         s.setTitulo(titulo);
@@ -586,9 +864,9 @@ public class DevDataResetSeeder implements CommandLineRunner {
         s.setPlanoEnsino(planoEnsino);
         s.setTurma(turma);
         s.setTipoDestinacao(TipoDestinacaoSimulado.TODOS);
-        s.setDataInicio(LocalDateTime.of(2026, 8, 25, 8, 0));
-        s.setDataFim(LocalDateTime.of(2026, 8, 25, 10, 0));
-        s.setTempoLimite(3600);
+        s.setDataInicio(LocalDateTime.of(2026, 8, 20, 8, 0));
+        s.setDataFim(LocalDateTime.of(2026, 9, 20, 23, 59));
+        s.setTempoLimite(1800);
         s.setNotaMaxima(10.0);
         s.setQuantidadeQuestoes(questoes.size());
         s.setStatus(StatusSimulado.PUBLICADO);
@@ -596,15 +874,32 @@ public class DevDataResetSeeder implements CommandLineRunner {
 
         int ordem = 1;
         for (Questao q : questoes) {
-            SimuladoQuestao sq = new SimuladoQuestao();
-            sq.setSimulado(s);
-            sq.setQuestao(q);
-            sq.setOrdem(ordem++);
-            sq.setPontuacao(2.0);
-            sq.setStatus(StatusSimuladoQuestao.ATIVA);
-            simuladoQuestaoRepository.save(sq);
+            vincularSimuladoQuestao(s, q, ordem++);
         }
         return s;
+    }
+
+    /** Simulado ainda em RASCUNHO — reúne as questões de IA aguardando aprovação. */
+    private Simulado criarSimuladoRascunho(String titulo, Disciplina disciplina, Turma turma) {
+        Simulado s = new Simulado();
+        s.setTitulo(titulo);
+        s.setDisciplina(disciplina);
+        s.setTurma(turma);
+        s.setTipoDestinacao(TipoDestinacaoSimulado.TODOS);
+        s.setNotaMaxima(10.0);
+        s.setQuantidadeQuestoes(0);
+        s.setStatus(StatusSimulado.RASCUNHO);
+        return simuladoRepository.save(s);
+    }
+
+    private void vincularSimuladoQuestao(Simulado simulado, Questao questao, int ordem) {
+        SimuladoQuestao sq = new SimuladoQuestao();
+        sq.setSimulado(simulado);
+        sq.setQuestao(questao);
+        sq.setOrdem(ordem);
+        sq.setPontuacao(2.0);
+        sq.setStatus(StatusSimuladoQuestao.ATIVA);
+        simuladoQuestaoRepository.save(sq);
     }
 
     private void responderSimulado(Simulado simulado, Aluno aluno, List<Questao> questoes, int quantidadeAcertos) {
@@ -613,7 +908,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
         sa.setAluno(aluno);
         sa.setQuantidadeAcertos(quantidadeAcertos);
         sa.setNota(quantidadeAcertos * 2.0);
-        sa.setTempoGasto(1800);
+        sa.setTempoGasto(900);
         sa.setFinalizadoPorTempo(false);
         sa.setStatus(StatusSimuladoAluno.CONCLUIDO);
         sa = simuladoAlunoRepository.save(sa);
@@ -623,22 +918,42 @@ public class DevDataResetSeeder implements CommandLineRunner {
             boolean acertou = acertosRestantes > 0;
             if (acertou) acertosRestantes--;
 
-            List<Alternativa> alternativas = alternativaRepository.findAll().stream()
-                    .filter(a -> a.getQuestao().getId().equals(questao.getId()))
-                    .toList();
-            Alternativa escolhida = alternativas.stream()
-                    .filter(a -> a.getCorreta().equals(acertou))
-                    .findFirst()
-                    .orElse(alternativas.isEmpty() ? null : alternativas.get(0));
+            List<Alternativa> alternativas = alternativaRepository.findByQuestaoIdOrderByOrdem(questao.getId());
 
             QuestaoAluno qa = new QuestaoAluno();
             qa.setSimuladoAluno(sa);
             qa.setQuestao(questao);
-            qa.setAlternativa(escolhida);
             qa.setAcertou(acertou);
-            qa.setTempoResposta(120);
+            qa.setRespondida(true);
+            qa.setTempoResposta(90);
+
+            if (questao.getTipo() == TipoQuestao.VERDADEIRO_FALSO) {
+                // Acertou = julgou todas as afirmações certas; errou = inverte o
+                // julgamento de todas, garantindo pelo menos uma errada.
+                qa.setAlternativa(null);
+                qa.setAlternativasVerdadeiras(alternativas.stream()
+                        .filter(a -> Boolean.TRUE.equals(a.getCorreta()) == acertou)
+                        .toList());
+            } else {
+                Alternativa escolhida = alternativas.stream()
+                        .filter(a -> a.getCorreta().equals(acertou))
+                        .findFirst()
+                        .orElse(alternativas.isEmpty() ? null : alternativas.get(0));
+                qa.setAlternativa(escolhida);
+                qa.setAlternativasVerdadeiras(List.of());
+            }
+
             questaoAlunoRepository.save(qa);
         }
+    }
+
+    /** Tentativa "a fazer" — criada no lançamento do simulado, aluno ainda não abriu a prova. */
+    private void criarSimuladoAlunoPendente(Simulado simulado, Aluno aluno) {
+        SimuladoAluno sa = new SimuladoAluno();
+        sa.setSimulado(simulado);
+        sa.setAluno(aluno);
+        sa.setStatus(StatusSimuladoAluno.PENDENTE);
+        simuladoAlunoRepository.save(sa);
     }
 
     private void criarNota(Aluno aluno, Disciplina disciplina, Turma turma, double total, int qtdSimulados) {
@@ -651,12 +966,12 @@ public class DevDataResetSeeder implements CommandLineRunner {
         notaRepository.save(nota);
     }
 
-    private void criarEvento(String titulo, String descricao, LocalDateTime dataHorario, Usuario criadoPor) {
+    private void criarEvento(String titulo, String descricao, LocalDateTime dataHorario, Usuario criadoPor, boolean concluido) {
         Evento evento = new Evento();
         evento.setTitulo(titulo);
         evento.setDescricao(descricao);
         evento.setDataHorario(dataHorario);
-        evento.setConcluido(false);
+        evento.setConcluido(concluido);
         evento.setCriadoPor(criadoPor);
         eventoRepository.save(evento);
     }

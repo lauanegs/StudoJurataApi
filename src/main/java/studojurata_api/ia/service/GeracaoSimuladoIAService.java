@@ -4,6 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.ia.model.RevisaoConteudo;
+import studojurata_api.ia.model.SimuladoGeradoIA;
+import studojurata_api.ia.model.enums.MotivoRecomendacao;
+import studojurata_api.ia.repository.RevisaoConteudoRepository;
+import studojurata_api.ia.repository.SimuladoGeradoIARepository;
 import studojurata_api.model.Aluno;
 import studojurata_api.model.ConteudoPlano;
 import studojurata_api.model.PlanoEnsino;
@@ -20,7 +25,10 @@ import studojurata_api.repository.ConteudoPlanoRepository;
 import studojurata_api.repository.SimuladoQuestaoRepository;
 import studojurata_api.repository.SimuladoRepository;
 
+import java.time.LocalDate;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Orquestra a geração automática de um simulado de reforço para um aluno
@@ -40,6 +48,12 @@ import java.util.List;
  * SimuladoService.lancar — que já recusa lançar um simulado com questões
  * não aprovadas. Nenhuma alteração foi necessária nesses arquivos: a trava
  * de revisão humana já existia e é reaproveitada aqui integralmente.
+ *
+ * `motivos` é opcional e só serve pra registrar, em SimuladoGeradoIA, por que
+ * a geração foi acionada (motivos da RecomendacaoDTO de origem, quando
+ * houver) — a tela de aprovação do professor usa isso pra mostrar aluno e
+ * motivo ao lado de cada simulado pendente, sem precisar adivinhar a partir
+ * do título.
  */
 @Service
 @RequiredArgsConstructor
@@ -53,9 +67,12 @@ public class GeracaoSimuladoIAService {
     private final ConteudoPlanoRepository conteudoPlanoRepository;
     private final AlunoRepository alunoRepository;
     private final GeracaoQuestaoIAService geracaoQuestaoIAService;
+    private final SimuladoGeradoIARepository simuladoGeradoIARepository;
+    private final RevisaoConteudoRepository revisaoConteudoRepository;
 
     @Transactional
-    public Simulado gerarParaAluno(Long alunoId, Long conteudoPlanoId, Integer quantidadeQuestoes, NivelDificuldade nivel) {
+    public Simulado gerarParaAluno(
+            Long alunoId, Long conteudoPlanoId, Integer quantidadeQuestoes, NivelDificuldade nivel, Set<MotivoRecomendacao> motivos) {
         Aluno aluno = alunoRepository.findById(alunoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Aluno não encontrado."));
         ConteudoPlano conteudo = conteudoPlanoRepository.findById(conteudoPlanoId)
@@ -80,6 +97,14 @@ public class GeracaoSimuladoIAService {
 
         simulado = simuladoRepository.save(simulado);
 
+        SimuladoGeradoIA vinculo = new SimuladoGeradoIA();
+        vinculo.setSimulado(simulado);
+        vinculo.setAluno(aluno);
+        vinculo.setConteudoPlano(conteudo);
+        vinculo.setMotivos(motivos != null ? motivos : new LinkedHashSet<>());
+        vinculo.setPrazoLancamento(calcularPrazoLancamento(alunoId, conteudoPlanoId));
+        simuladoGeradoIARepository.save(vinculo);
+
         List<Questao> questoes = geracaoQuestaoIAService.gerar(
                 conteudoPlanoId, nivelEfetivo, TipoQuestao.ALTERNATIVAS, quantidade, simulado);
 
@@ -99,5 +124,19 @@ public class GeracaoSimuladoIAService {
 
     private String descricaoAluno(Aluno aluno) {
         return aluno.getMatricula() != null ? "matrícula " + aluno.getMatricula() : "aluno #" + aluno.getId();
+    }
+
+    /**
+     * Prazo pra revisar/lançar o simulado gerado: a data em que a repetição
+     * espaçada deste aluno+conteúdo ficou devida, quando existe uma
+     * (RevisaoConteudo.dataProximoReforco — ainda não avançada por esta
+     * geração, que não chama RevisaoConteudoService.registrarReforco);
+     * senão, hoje (baixo aproveitamento não tem agenda própria).
+     */
+    private LocalDate calcularPrazoLancamento(Long alunoId, Long conteudoPlanoId) {
+        return revisaoConteudoRepository.findByAlunoIdAndConteudoPlanoId(alunoId, conteudoPlanoId)
+                .map(RevisaoConteudo::getDataProximoReforco)
+                .filter(data -> data != null && !data.isAfter(LocalDate.now()))
+                .orElse(LocalDate.now());
     }
 }

@@ -27,8 +27,15 @@ public class FinalizarSimuladoRequest {
     @Setter
     public static class Item {
         private Long questaoId;
-        /** Nula quando a questão foi deixada em branco. */
+        /** Nula quando a questão foi deixada em branco. Ignorado para questão VERDADEIRO_FALSO. */
         private Long alternativaId;
+        /**
+         * Só usado para questão VERDADEIRO_FALSO: ids das alternativas
+         * (afirmações) que o aluno marcou como Verdadeiras — as demais
+         * alternativas da questão contam como marcadas Falsas. Lista vazia
+         * ou nula = questão deixada em branco (todas contam como erradas).
+         */
+        private List<Long> alternativasVerdadeiras;
         private Integer tempoResposta;
     }
 }

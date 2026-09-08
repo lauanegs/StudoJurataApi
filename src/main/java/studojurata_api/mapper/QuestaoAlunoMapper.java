@@ -13,6 +13,8 @@ import studojurata_api.repository.AlternativaRepository;
 import studojurata_api.repository.QuestaoRepository;
 import studojurata_api.repository.SimuladoAlunoRepository;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 public class QuestaoAlunoMapper {
@@ -25,6 +27,7 @@ public class QuestaoAlunoMapper {
         if (dto == null) return null;
         QuestaoAluno questaoAluno = new QuestaoAluno();
         questaoAluno.setAcertou(dto.getAcertou());
+        questaoAluno.setRespondida(dto.getRespondida());
         questaoAluno.setTempoResposta(dto.getTempoResposta());
         if (dto.getSimuladoAlunoId() != null) {
             SimuladoAluno simuladoAluno = simuladoAlunoRepository.findById(dto.getSimuladoAlunoId())
@@ -41,6 +44,9 @@ public class QuestaoAlunoMapper {
                     .orElseThrow(() -> new RecursoNaoEncontradoException("Alternativa " + dto.getAlternativaId() + " não encontrada."));
             questaoAluno.setAlternativa(alternativa);
         }
+        if (dto.getAlternativasVerdadeirasIds() != null) {
+            questaoAluno.setAlternativasVerdadeiras(alternativaRepository.findAllById(dto.getAlternativasVerdadeirasIds()));
+        }
         return questaoAluno;
     }
 
@@ -51,6 +57,10 @@ public class QuestaoAlunoMapper {
         dto.setSimuladoAlunoId(questaoAluno.getSimuladoAluno() != null ? questaoAluno.getSimuladoAluno().getId() : null);
         dto.setQuestaoId(questaoAluno.getQuestao() != null ? questaoAluno.getQuestao().getId() : null);
         dto.setAlternativaId(questaoAluno.getAlternativa() != null ? questaoAluno.getAlternativa().getId() : null);
+        dto.setAlternativasVerdadeirasIds(questaoAluno.getAlternativasVerdadeiras() == null
+                ? List.of()
+                : questaoAluno.getAlternativasVerdadeiras().stream().map(Alternativa::getId).toList());
+        dto.setRespondida(questaoAluno.getRespondida());
         dto.setAcertou(questaoAluno.getAcertou());
         dto.setTempoResposta(questaoAluno.getTempoResposta());
         return dto;

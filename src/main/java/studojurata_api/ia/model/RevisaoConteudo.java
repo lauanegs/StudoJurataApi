@@ -19,10 +19,11 @@ import studojurata_api.model.ConteudoPlano;
  * A cada reforço realizado (RevisaoConteudoService.registrarReforco):
  * - quantidadeReforcos é incrementada;
  * - dataUltimoReforco passa a ser hoje;
- * - dataProximoReforco é recalculada como hoje + 2^quantidadeReforcos dias
- *   (intervalo dobra a cada repetição, conforme pedido explicitamente no
- *   item 1.5: "dataProximoReforço (calculada por 2ⁿ)");
- * - nivelDominio é reavaliado (ver NivelDominio).
+ * - dataProximoReforco é recalculada com intervalos fixos e crescentes —
+ *   7 dias após o 1º reforço, 14 após o 2º, 90 (3 meses) após o 3º;
+ * - a partir do 4º reforço, o conteúdo é considerado dominado:
+ *   dataProximoReforco fica null e nivelDominio vira ALTO — a repetição
+ *   espaçada para (confirmado pelo usuário).
  *
  * Existe no máximo um registro por par (aluno, conteudoPlano) — histórico de
  * reforços é resumido neste único registro (quantidadeReforcos acumula a

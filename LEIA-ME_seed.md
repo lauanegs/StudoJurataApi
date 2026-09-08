@@ -7,19 +7,26 @@ Arquivo: `src/main/java/studojurata_api/config/DevDataResetSeeder.java`
 1. **Apaga todos os registros de todas as tabelas** do banco configurado em
    `application.properties` (respeitando a ordem de dependência das FKs —
    não precisa rodar `DROP`/`TRUNCATE` manual em SQL).
-2. **Recria um conjunto mínimo de dados em todas as entidades**:
-   - 1 escola, 1 curso, 2 disciplinas (Matemática, Português)
-   - 2 turmas (com horários semanais)
-   - 2 professores + 1 administrador (com login/usuário)
-   - 4 alunos (2 por turma), cada um com login e matrícula ativa
+2. **Recria os dados reais da escola administrada** (cursos de tecnologia
+   infantojuvenil):
+   - 1 escola, 4 cursos (Geek Júnior, Robótica, Programação Gamificada,
+     Geek Teens), 2 disciplinas (Robótica, Programação Gamificada) — Robótica
+     e Programação Gamificada só têm a matéria correspondente; Geek Júnior e
+     Geek Teens têm as duas
+   - 4 turmas (1 por curso, 1 aula semanal de 1h30, capacidade 8 alunos cada)
+   - 2 professores titulares (1 por disciplina) + 1 administrador (com login/usuário)
+   - 16 alunos de 7 a 14 anos: 14 com matrícula **ATIVA**, 1 com matrícula
+     **CONCLUIDA** e 1 **CANCELADA** — cobrindo as situações de matrícula
    - 1 responsável por aluno (com aceite de termos)
    - Plano de ensino, conteúdos, planos de aula e aulas para cada disciplina/turma
    - Frequência (chamada) registrada nas aulas
-   - 1 simulado por turma, com **5 questões cada** (3 de múltipla escolha + 2
-     de verdadeiro/falso, cada uma com suas alternativas)
-   - Tentativas de simulado respondidas pelos alunos (nota, acertos, respostas)
-   - Notas por disciplina/período
-   - Eventos, log de auditoria
+   - 1 simulado por turma/disciplina (6 no total), com **5 questões cada**
+     (3 de múltipla escolha + 2 de verdadeiro/falso) — parte das tentativas já
+     respondida (CONCLUIDO), parte ainda **PENDENTE** ("a fazer" na tela do aluno)
+   - 4 questões de origem IA com status **PENDENTE**, reunidas em 2 simulados
+     RASCUNHO ("Revisão IA") — aparecem na tela de revisão do professor
+   - Notas por disciplina/turma
+   - Eventos de aula demonstrativa (1 por curso) + reunião de pais, log de auditoria
    - Gamificação (skins, pontuação e skin equipada por aluno)
    - Módulo de IA (revisão espaçada e histórico de geração)
 
@@ -52,15 +59,27 @@ seeder, então ele não duplica nada).
 
 ## Logins criados
 
-| Usuário       | Senha      | Papel          |
-|---------------|------------|----------------|
-| admin         | admin123   | ADMINISTRADOR  |
-| joao.silva    | senha123   | PROFESSOR      |
-| maria.souza   | senha123   | PROFESSOR      |
-| aluno.pedro   | senha123   | ALUNO (Turma A)|
-| aluno.beatriz | senha123   | ALUNO (Turma A)|
-| aluno.lucas   | senha123   | ALUNO (Turma B)|
-| aluno.camila  | senha123   | ALUNO (Turma B)|
+| Usuário          | Senha    | Papel         | Turma / Curso                     |
+|------------------|----------|---------------|------------------------------------|
+| admin            | admin123 | ADMINISTRADOR | —                                   |
+| rafael.mendes    | senha123 | PROFESSOR     | Titular de Robótica                 |
+| juliana.costa    | senha123 | PROFESSOR     | Titular de Programação Gamificada   |
+| aluno.enzo       | senha123 | ALUNO         | Geek Júnior (ativa)                 |
+| aluno.alice      | senha123 | ALUNO         | Geek Júnior (ativa)                 |
+| aluno.davi       | senha123 | ALUNO         | Geek Júnior (ativa)                 |
+| aluno.sophia     | senha123 | ALUNO         | Geek Júnior (ativa)                 |
+| aluno.miguel     | senha123 | ALUNO         | Robótica (ativa)                    |
+| aluno.laura      | senha123 | ALUNO         | Robótica (ativa)                    |
+| aluno.gabriel    | senha123 | ALUNO         | Robótica (ativa)                    |
+| aluno.isabela    | senha123 | ALUNO         | Robótica (ativa)                    |
+| aluno.bernardo   | senha123 | ALUNO         | Programação Gamificada (ativa)      |
+| aluno.manuela    | senha123 | ALUNO         | Programação Gamificada (ativa)      |
+| aluno.heitor     | senha123 | ALUNO         | Programação Gamificada (ativa)      |
+| aluno.yasmin     | senha123 | ALUNO         | Geek Teens (ativa)                  |
+| aluno.arthur     | senha123 | ALUNO         | Geek Teens (ativa)                  |
+| aluno.luiza      | senha123 | ALUNO         | Geek Teens (ativa)                  |
+| aluno.theo       | senha123 | ALUNO         | Robótica (matrícula **concluída**)  |
+| aluno.valentina  | senha123 | ALUNO         | Geek Teens (matrícula **cancelada**)|
 
 ## Atenção
 

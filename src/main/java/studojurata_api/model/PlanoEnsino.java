@@ -31,6 +31,19 @@ public class PlanoEnsino extends BaseEntity {
     @ManyToOne(optional = false)
     private Curso curso;
 
+    /**
+     * Professor responsável pelo plano de ensino (pedido explícito): antes
+     * só existia um vínculo indireto com o professor via turmaDisciplina —
+     * que é opcional (um plano genérico, reaproveitável por várias turmas
+     * do curso, nunca teve turma vinculada) e semanticamente é sobre
+     * "turma+disciplina", não sobre "quem escreveu/responde por este
+     * plano". Nullable pra não quebrar planos já existentes sem essa
+     * informação (a tela de cadastro passa a pedir, mas dados antigos
+     * continuam válidos).
+     */
+    @ManyToOne
+    private Professor professor;
+
     private Integer cargaHoraria;
 
     private String ementa;

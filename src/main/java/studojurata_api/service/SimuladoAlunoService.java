@@ -15,6 +15,7 @@ import studojurata_api.model.enums.AcaoAuditoria;
 import studojurata_api.model.enums.StatusSimulado;
 import studojurata_api.model.enums.StatusSimuladoAluno;
 import studojurata_api.model.enums.StatusSimuladoQuestao;
+import studojurata_api.model.enums.TipoQuestao;
 import studojurata_api.repository.AlternativaRepository;
 import studojurata_api.repository.QuestaoAlunoRepository;
 import studojurata_api.repository.SimuladoAlunoRepository;
@@ -112,6 +113,14 @@ public class SimuladoAlunoService {
             }
         }
 
+        // Item 4.2 (mantido, decisão revista com o usuário): questão em branco
+        // — incluindo VERDADEIRO_FALSO com alguma afirmação não julgada — não
+        // bloqueia a finalização nem reinicia a tentativa; ela só conta como
+        // erro na correção. Deixar o back reabrir a tentativa deixaria o aluno
+        // refazer o simulado já sabendo quais respostas confirmou como certas
+        // ou erradas antes do tempo acabar — pior do que simplesmente errar
+        // as questões que ficaram sem resposta.
+
         int acertos = 0;
         double pontuacaoObtida = 0d;
         double pontuacaoTotal = 0d;
@@ -122,33 +131,25 @@ public class SimuladoAlunoService {
             pontuacaoTotal += pontuacao;
 
             FinalizarSimuladoRequest.Item resposta = respostasPorQuestao.get(questao.getId());
-            Alternativa alternativaEscolhida = null;
-            Integer tempoResposta = null;
-            boolean acertou = false;
-
-            if (resposta != null && resposta.getAlternativaId() != null) {
-                alternativaEscolhida = alternativaRepository.findById(resposta.getAlternativaId())
-                        .orElseThrow(() -> new RecursoNaoEncontradoException(
-                                "Alternativa " + resposta.getAlternativaId() + " não encontrada."));
-                acertou = Boolean.TRUE.equals(alternativaEscolhida.getCorreta());
-                tempoResposta = resposta.getTempoResposta();
-            }
-            // resposta == null ou alternativaId == null => questão deixada em branco (item 4.2): acertou=false
-
-            if (acertou) {
-                acertos++;
-                pontuacaoObtida += pontuacao;
-            }
 
             QuestaoAluno questaoAluno = questaoAlunoRepository
                     .findFirstBySimuladoAlunoIdAndQuestaoId(simuladoAluno.getId(), questao.getId())
                     .orElseGet(QuestaoAluno::new);
             questaoAluno.setSimuladoAluno(simuladoAluno);
             questaoAluno.setQuestao(questao);
-            questaoAluno.setAlternativa(alternativaEscolhida);
+
+            boolean acertou = questao.getTipo() == TipoQuestao.VERDADEIRO_FALSO
+                    ? julgarVerdadeiroFalso(questao, resposta, questaoAluno)
+                    : julgarAlternativas(resposta, questaoAluno);
+
             questaoAluno.setAcertou(acertou);
-            questaoAluno.setTempoResposta(tempoResposta);
+            questaoAluno.setTempoResposta(resposta != null ? resposta.getTempoResposta() : null);
             questaoAlunoRepository.save(questaoAluno);
+
+            if (acertou) {
+                acertos++;
+                pontuacaoObtida += pontuacao;
+            }
         }
 
         Double notaMaxima = simuladoAluno.getSimulado().getNotaMaxima();
@@ -194,5 +195,58 @@ public class SimuladoAlunoService {
                 PontuacaoAlunoService.MOEDAS_POR_SIMULADO_CONCLUIDO);
 
         return salvo;
+    }
+
+    /** Escolha única (tipo ALTERNATIVAS): acerta quem escolheu a alternativa marcada correta=true. */
+    private boolean julgarAlternativas(FinalizarSimuladoRequest.Item resposta, QuestaoAluno questaoAluno) {
+        questaoAluno.setAlternativasVerdadeiras(List.of());
+
+        if (resposta == null || resposta.getAlternativaId() == null) {
+            // Questão deixada em branco (item 4.2): acertou=false.
+            questaoAluno.setAlternativa(null);
+            questaoAluno.setRespondida(false);
+            return false;
+        }
+
+        Alternativa alternativaEscolhida = alternativaRepository.findById(resposta.getAlternativaId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Alternativa " + resposta.getAlternativaId() + " não encontrada."));
+        questaoAluno.setAlternativa(alternativaEscolhida);
+        questaoAluno.setRespondida(true);
+        return Boolean.TRUE.equals(alternativaEscolhida.getCorreta());
+    }
+
+    /**
+     * VERDADEIRO_FALSO: cada alternativa da questão é uma afirmação julgada
+     * independentemente (correta=true/false é o gabarito — a afirmação É
+     * verdadeira ou falsa). O aluno acerta a questão inteira só se marcou
+     * TODAS as afirmações certas; uma só errada derruba a questão toda,
+     * igual a uma prova tradicional (decisão confirmada com o usuário).
+     *
+     * alternativasVerdadeiras == null no request é o sentinel de "em branco"
+     * — diferente de lista vazia, que é uma resposta legítima ("julguei
+     * todas as afirmações como Falsas").
+     */
+    private boolean julgarVerdadeiroFalso(Questao questao, FinalizarSimuladoRequest.Item resposta, QuestaoAluno questaoAluno) {
+        List<Alternativa> afirmacoes = alternativaRepository.findByQuestaoIdOrderByOrdem(questao.getId());
+        questaoAluno.setAlternativa(null);
+
+        List<Long> idsMarcadosVerdadeiros = resposta != null ? resposta.getAlternativasVerdadeiras() : null;
+
+        if (afirmacoes.isEmpty() || idsMarcadosVerdadeiros == null) {
+            // Sem afirmações cadastradas, ou questão deixada em branco (item 4.2).
+            questaoAluno.setAlternativasVerdadeiras(List.of());
+            questaoAluno.setRespondida(false);
+            return false;
+        }
+
+        List<Alternativa> marcadasVerdadeiras = afirmacoes.stream()
+                .filter(afirmacao -> idsMarcadosVerdadeiros.contains(afirmacao.getId()))
+                .toList();
+        questaoAluno.setAlternativasVerdadeiras(marcadasVerdadeiras);
+        questaoAluno.setRespondida(true);
+
+        return afirmacoes.stream().allMatch(afirmacao ->
+                Boolean.TRUE.equals(afirmacao.getCorreta()) == idsMarcadosVerdadeiros.contains(afirmacao.getId()));
     }
 }
