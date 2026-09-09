@@ -153,16 +153,16 @@ public class SecurityConfig {
                 // conteúdo (Professor/Admin). /horarios/** cobre o DELETE de
                 // HorarioTurma (rota própria, fora de /turmas/**).
                 .requestMatchers(HttpMethod.GET, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
-                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
-                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PUT, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
-                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
-                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
 
                 // Correção de auditoria: /aluno-turma/** (matricular, atualizar,
@@ -195,6 +195,12 @@ public class SecurityConfig {
                         .hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PUT, "/simulados/**", "/questoes/**", "/alternativas/**",
                         "/simulado-questao/**", "/questao-aluno/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                // Desvincular conteúdo (/questoes/{id}/conteudos/{conteudoPlanoId}) não é
+                // excluir a questão — mesma regra do DELETE de /questao-conteudo/** acima
+                // (PROFESSOR também pode) — por isso precisa vir ANTES do DELETE
+                // /questoes/** abaixo (mais restrito, ADMINISTRADOR-only, pensado pra
+                // excluir a questão em si).
+                .requestMatchers(HttpMethod.DELETE, "/questoes/*/conteudos/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/simulados/**", "/questoes/**", "/alternativas/**",
                         "/simulado-questao/**", "/simulado-aluno/**", "/questao-aluno/**").hasRole("ADMINISTRADOR")
 

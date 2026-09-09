@@ -22,6 +22,13 @@ import java.util.List;
  * Correção 3.4: atualizar() não aceita mais trocar a escola de um Curso já
  * existente — a escola enviada no corpo da requisição é ignorada,
  * preservando sempre a escola original do curso.
+ *
+ * Grade curricular (pedido explícito): cargaHorariaTotal deixou de ser
+ * digitado à parte no cadastro do curso — passa a ser sempre a soma das
+ * cargas horárias ativas de CursoDisciplina (ver CursoDisciplinaService),
+ * então salvar()/atualizar() ignoram o valor enviado no corpo da
+ * requisição para esse campo (0 num curso novo, sem grade ainda; o valor
+ * já existente é preservado numa edição).
  */
 @Service
 @RequiredArgsConstructor
@@ -44,6 +51,7 @@ public class CursoService {
     public Curso salvar(Curso obj) {
         validarNome(obj);
         if (obj.getStatus() == null) obj.setStatus(StatusAtivoInativo.ATIVO);
+        obj.setCargaHorariaTotal(0);
         return repository.save(obj);
     }
 
@@ -52,6 +60,7 @@ public class CursoService {
         Curso existente = buscar(id);
         obj.setId(id);
         obj.setEscola(existente.getEscola());
+        obj.setCargaHorariaTotal(existente.getCargaHorariaTotal());
         if (obj.getStatus() == null) obj.setStatus(existente.getStatus());
         return repository.save(obj);
     }

@@ -15,10 +15,17 @@ Arquivo: `src/main/java/studojurata_api/config/DevDataResetSeeder.java`
      Geek Teens têm as duas
    - 4 turmas (1 por curso, 1 aula semanal de 1h30, capacidade 8 alunos cada)
    - 2 professores titulares (1 por disciplina) + 1 administrador (com login/usuário)
-   - 16 alunos de 7 a 14 anos: 14 com matrícula **ATIVA**, 1 com matrícula
-     **CONCLUIDA** e 1 **CANCELADA** — cobrindo as situações de matrícula
+   - 17 alunos de 7 a 14 anos: 14 com matrícula **ATIVA**, 1 matriculado
+     **ATIVA em duas turmas de cursos diferentes ao mesmo tempo** (Geek
+     Júnior + Robótica), 1 com matrícula **CONCLUIDA** e 1 **CANCELADA** —
+     cobrindo as situações de matrícula
    - 1 responsável por aluno (com aceite de termos)
-   - Plano de ensino, conteúdos, planos de aula e aulas para cada disciplina/turma
+   - Plano de ensino, conteúdos, planos de aula e aulas para cada
+     disciplina/turma — cada plano de ensino sempre vinculado a um plano de
+     aula, e nenhuma turma fica sem um plano de ensino/plano de aula
+     **ATIVO** do ciclo corrente. A turma de Robótica acumula ainda um ciclo
+     anterior **CONCLUIDO** (2025, com seu próprio plano de aula concluído),
+     cobrindo o caso de plano de ensino já finalizado
    - Frequência (chamada) registrada nas aulas
    - 1 simulado por turma/disciplina (6 no total), com **5 questões cada**
      (3 de múltipla escolha + 2 de verdadeiro/falso) — parte das tentativas já
@@ -80,6 +87,7 @@ seeder, então ele não duplica nada).
 | aluno.luiza      | senha123 | ALUNO         | Geek Teens (ativa)                  |
 | aluno.theo       | senha123 | ALUNO         | Robótica (matrícula **concluída**)  |
 | aluno.valentina  | senha123 | ALUNO         | Geek Teens (matrícula **cancelada**)|
+| aluno.pedro      | senha123 | ALUNO         | Geek Júnior **+** Robótica (2 turmas/cursos ativos) |
 
 ## Atenção
 

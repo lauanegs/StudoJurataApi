@@ -22,6 +22,7 @@ import studojurata_api.ia.model.enums.NivelDominio;
 import studojurata_api.ia.model.enums.OrigemResultadoGeracao;
 import studojurata_api.ia.repository.HistoricoGeracaoIARepository;
 import studojurata_api.ia.repository.RevisaoConteudoRepository;
+import studojurata_api.ia.repository.SimuladoGeradoIARepository;
 
 import studojurata_api.model.*;
 import studojurata_api.model.enums.*;
@@ -45,12 +46,17 @@ import studojurata_api.repository.gamificacao.SkinRepository;
  * 2) Recria os dados reais da escola: 1 escola, 4 cursos, 2 disciplinas
  *    (Robótica e Programação Gamificada), 4 turmas (1 por curso, 1 aula
  *    semanal de 1h30, capacidade 8), 2 professores (1 titular por
- *    disciplina), 16 alunos de 7 a 14 anos (14 com matrícula ativa + 2 só no
- *    histórico — 1 concluída, 1 cancelada — cobrindo todas as situações de
- *    matrícula), responsáveis, planos de ensino/aula, aulas, frequência,
- *    simulados (alguns já respondidos, outros pendentes — "a fazer" — e
- *    questões de IA aguardando revisão do professor), notas, eventos de
- *    aula demonstrativa, gamificação e histórico do módulo de IA.
+ *    disciplina), 17 alunos de 7 a 14 anos (14 com matrícula ativa + 1 em
+ *    duas turmas/cursos ativos ao mesmo tempo + 2 só no histórico — 1
+ *    concluída, 1 cancelada — cobrindo todas as situações de matrícula),
+ *    responsáveis, planos de ensino/aula (cada TurmaDisciplina tem seu
+ *    plano ativo do ciclo atual; a turma de Robótica acumula também um
+ *    ciclo anterior CONCLUIDO, cada plano de ensino sempre vinculado a um
+ *    plano de aula — nenhuma turma fica sem plano ativo), aulas,
+ *    frequência, simulados (alguns já respondidos, outros pendentes —
+ *    "a fazer" — e questões de IA aguardando revisão do professor), notas,
+ *    eventos de aula demonstrativa, gamificação e histórico do módulo de
+ *    IA.
  *
  * COMO RODAR (NUNCA roda sozinho em produção — só com o profile "seed"):
  *   mvn spring-boot:run -Dspring-boot.run.profiles=seed
@@ -70,6 +76,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
     // --- núcleo acadêmico ---
     private final EscolaRepository escolaRepository;
     private final CursoRepository cursoRepository;
+    private final CursoDisciplinaRepository cursoDisciplinaRepository;
     private final DisciplinaRepository disciplinaRepository;
     private final TurmaRepository turmaRepository;
     private final HorarioTurmaRepository horarioTurmaRepository;
@@ -116,6 +123,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
     // --- IA ---
     private final RevisaoConteudoRepository revisaoConteudoRepository;
     private final HistoricoGeracaoIARepository historicoGeracaoIARepository;
+    private final SimuladoGeradoIARepository simuladoGeradoIARepository;
 
     @Override
     @Transactional
@@ -135,6 +143,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
         simuladoQuestaoRepository.deleteAllInBatch();
         historicoGeracaoIARepository.deleteAllInBatch();
         revisaoConteudoRepository.deleteAllInBatch();
+        simuladoGeradoIARepository.deleteAllInBatch();
         simuladoRepository.deleteAllInBatch();
         questaoConteudoRepository.deleteAllInBatch();
         alternativaRepository.deleteAllInBatch();
@@ -159,6 +168,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
         professorRepository.deleteAllInBatch();
         responsavelRepository.deleteAllInBatch();
         turmaRepository.deleteAllInBatch();
+        cursoDisciplinaRepository.deleteAllInBatch();
         disciplinaRepository.deleteAllInBatch();
         cursoRepository.deleteAllInBatch();
         pessoaRepository.deleteAllInBatch();
@@ -177,7 +187,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
     private void semear() {
 
         LocalDate inicioAnoLetivo = LocalDate.of(2026, 2, 2);
-        LocalDate fimAnoLetivo = LocalDate.of(2026, 12, 18);
 
         // ---- Escola ------------------------------------------------------------
         Escola escola = new Escola();
@@ -209,16 +218,23 @@ public class DevDataResetSeeder implements CommandLineRunner {
         discProgGamificada.setStatus(StatusAtivoInativo.ATIVO);
         discProgGamificada = disciplinaRepository.save(discProgGamificada);
 
+        // ---- Grade curricular (Curso ↔ Disciplina + carga horária) ----------------
+        // Mesma regra já confirmada pelo usuário: Robótica e Programação Gamificada
+        // só têm a matéria correspondente (60h); Geek Júnior e Geek Teens têm as
+        // duas (30h cada) — soma sempre 60h, batendo com Curso.cargaHorariaTotal.
+        criarCursoDisciplina(cursoGeekJunior, discRobotica, 30);
+        criarCursoDisciplina(cursoGeekJunior, discProgGamificada, 30);
+        criarCursoDisciplina(cursoRobotica, discRobotica, 60);
+        criarCursoDisciplina(cursoProgGamificada, discProgGamificada, 60);
+        criarCursoDisciplina(cursoGeekTeens, discRobotica, 30);
+        criarCursoDisciplina(cursoGeekTeens, discProgGamificada, 30);
+
         // ---- Turmas (1 por curso, 1 aula semanal de 1h30, capacidade 8) ------------
         // Confirmado pelo usuário: nome da turma = curso + dia da semana + horário de início.
-        Turma turmaGeekJunior = criarTurma(escola, cursoGeekJunior, DiaSemana.TERCA, 8, 0,
-                inicioAnoLetivo, fimAnoLetivo);
-        Turma turmaRobotica = criarTurma(escola, cursoRobotica, DiaSemana.QUARTA, 14, 0,
-                inicioAnoLetivo, fimAnoLetivo);
-        Turma turmaProgGamificada = criarTurma(escola, cursoProgGamificada, DiaSemana.QUINTA, 14, 0,
-                inicioAnoLetivo, fimAnoLetivo);
-        Turma turmaGeekTeens = criarTurma(escola, cursoGeekTeens, DiaSemana.SABADO, 9, 0,
-                inicioAnoLetivo, fimAnoLetivo);
+        Turma turmaGeekJunior = criarTurma(escola, cursoGeekJunior, DiaSemana.TERCA, 8, 0, inicioAnoLetivo);
+        Turma turmaRobotica = criarTurma(escola, cursoRobotica, DiaSemana.QUARTA, 14, 0, inicioAnoLetivo);
+        Turma turmaProgGamificada = criarTurma(escola, cursoProgGamificada, DiaSemana.QUINTA, 14, 0, inicioAnoLetivo);
+        Turma turmaGeekTeens = criarTurma(escola, cursoGeekTeens, DiaSemana.SABADO, 9, 0, inicioAnoLetivo);
 
         // ---- Professores (1 titular por disciplina) --------------------------------
         Pessoa pessoaProfRobotica = criarPessoa("Rafael Torres Mendes", "800.000.000-01",
@@ -315,6 +331,13 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarMatricula(alunoCancelado, turmaGeekTeens, StatusMatricula.CANCELADA,
                 inicioAnoLetivo, LocalDate.of(2026, 5, 16));
 
+        // ---- Aluno matriculado em dois cursos ativos simultaneamente ---------------
+        Aluno alunoDoisCursos = criarAlunos(escola, List.of(
+                new AlunoSeed("Pedro Augusto Lima", "700.000.000-17", "2016-11-22", "aluno.pedro",
+                        Sexo.MASCULINO, "Fernanda Augusto Lima (mãe)", Parentesco.MAE))).get(0);
+        criarMatricula(alunoDoisCursos, turmaGeekJunior, StatusMatricula.ATIVA, inicioAnoLetivo, null);
+        criarMatricula(alunoDoisCursos, turmaRobotica, StatusMatricula.ATIVA, inicioAnoLetivo, null);
+
         // ---- Plano de Ensino + Conteúdo + Plano de Aula + Aulas --------------------
         PlanoEnsino peGeekJuniorRobotica = criarPlanoEnsino(tdGeekJuniorRobotica, cursoGeekJunior,
                 "Robótica - Geek Júnior");
@@ -348,11 +371,29 @@ public class DevDataResetSeeder implements CommandLineRunner {
         vincularAulaConteudo(aulasGeekTeensRobotica, conteudosGeekTeensRobotica);
         vincularAulaConteudo(aulasGeekTeensProgGamificada, conteudosGeekTeensProgGamificada);
 
+        // ---- Ciclo anterior CONCLUIDO (Robótica) -----------------------------------
+        // Cobre o caso "plano de ensino já concluído, vinculado a um plano de aula":
+        // a mesma TurmaDisciplina (Robótica) acumula o ciclo 2025 (CONCLUIDO) além
+        // do ciclo 2026 ativo criado acima — nenhuma turma fica sem plano de ensino
+        // e plano de aula ATIVO. É o mesmo ciclo em que aluno.theo (matrícula
+        // concluída) cursou a turma.
+        PlanoEnsino peRoboticaAnterior = criarPlanoEnsino(tdRobotica, cursoRobotica, "Robótica (2025)",
+                StatusPlano.CONCLUIDO, LocalDate.of(2025, 2, 3), LocalDate.of(2025, 12, 12));
+        List<ConteudoPlano> conteudosRoboticaAnterior = criarConteudos(peRoboticaAnterior, "Sensores e Atuadores", "Montagem de Circuitos");
+        List<Aula> aulasRoboticaAnterior = criarPlanoAulaComAulas(tdRobotica, peRoboticaAnterior, "Aula de Robótica",
+                StatusPlano.CONCLUIDO, LocalDate.of(2025, 3, 3));
+        vincularAulaConteudo(aulasRoboticaAnterior, conteudosRoboticaAnterior);
+
         // ---- Frequência: alunos ativos de cada turma, nas aulas daquela turma -----
         marcarFrequenciaTurma(alunosGeekJunior, concat(aulasGeekJuniorRobotica, aulasGeekJuniorProgGamificada));
         marcarFrequenciaTurma(alunosRobotica, aulasRobotica);
         marcarFrequenciaTurma(alunosProgGamificada, aulasProgGamificada);
         marcarFrequenciaTurma(alunosGeekTeens, concat(aulasGeekTeensRobotica, aulasGeekTeensProgGamificada));
+
+        // Aluno em dois cursos ativos: frequência marcada nas aulas das duas turmas.
+        for (Aula aula : concat(aulasGeekJuniorRobotica, aulasGeekJuniorProgGamificada, aulasRobotica)) {
+            criarFrequencia(alunoDoisCursos, aula, true, null);
+        }
 
         // ---- Questões (5 por turma-disciplina) + Simulados -------------------------
         List<Questao> questoesGeekJuniorRobotica = criarQuestoes(discRobotica, conteudosGeekJuniorRobotica, "Geek Júnior");
@@ -488,9 +529,23 @@ public class DevDataResetSeeder implements CommandLineRunner {
         return cursoRepository.save(curso);
     }
 
-    /** Nome da turma = curso + dia da semana + horário de início (confirmado pelo usuário). */
+    private void criarCursoDisciplina(Curso curso, Disciplina disciplina, int cargaHoraria) {
+        CursoDisciplina cd = new CursoDisciplina();
+        cd.setCurso(curso);
+        cd.setDisciplina(disciplina);
+        cd.setCargaHoraria(cargaHoraria);
+        cd.setStatus(StatusAtivoInativo.ATIVO);
+        cursoDisciplinaRepository.save(cd);
+    }
+
+    /**
+     * Nome da turma = curso + dia da semana + horário de início (confirmado
+     * pelo usuário). Sem dataFim: matrícula cíclica (pedido explícito) —
+     * uma turma ATIVA continua indefinidamente, sem data de término
+     * definida; só ganha uma ao ser encerrada (ver TurmaFormulario no front).
+     */
     private Turma criarTurma(Escola escola, Curso curso, DiaSemana dia, int horaInicio, int minutoInicio,
-                              LocalDate dataInicio, LocalDate dataFim) {
+                              LocalDate dataInicio) {
         LocalTime inicio = LocalTime.of(horaInicio, minutoInicio);
         LocalTime fim = inicio.plusMinutes(90);
 
@@ -501,7 +556,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         turma.setCapacidadeMaxima(8);
         turma.setStatus(StatusTurma.ATIVA);
         turma.setDataInicio(dataInicio);
-        turma.setDataFim(dataFim);
         turma = turmaRepository.save(turma);
 
         criarHorario(turma, dia, inicio, fim);
@@ -615,6 +669,18 @@ public class DevDataResetSeeder implements CommandLineRunner {
     }
 
     private PlanoEnsino criarPlanoEnsino(TurmaDisciplina td, Curso curso, String titulo) {
+        return criarPlanoEnsino(td, curso, titulo, StatusPlano.ATIVO,
+                LocalDate.of(2026, 2, 2), LocalDate.of(2026, 12, 18));
+    }
+
+    /**
+     * Overload que permite semear um plano de ensino de um ciclo já
+     * CONCLUIDO (ex.: ano letivo anterior) — cobre o caso "nenhuma turma
+     * fica sem plano de ensino ativo": a mesma TurmaDisciplina acumula um
+     * plano concluído (histórico) e o plano ativo do ciclo atual.
+     */
+    private PlanoEnsino criarPlanoEnsino(TurmaDisciplina td, Curso curso, String titulo, StatusPlano status,
+                                          LocalDate dataInicio, LocalDate dataFim) {
         PlanoEnsino pe = new PlanoEnsino();
         pe.setTurmaDisciplina(td);
         pe.setProfessor(td.getProfessor());
@@ -624,9 +690,9 @@ public class DevDataResetSeeder implements CommandLineRunner {
         pe.setEmenta("Ementa de " + titulo);
         pe.setObjetivoGeral("Desenvolver o raciocínio lógico e as habilidades práticas do curso " + curso.getNome() + ".");
         pe.setMetodologia("Aulas práticas com kits e desafios em grupo.");
-        pe.setDataInicio(LocalDate.of(2026, 2, 2));
-        pe.setDataFim(LocalDate.of(2026, 12, 18));
-        pe.setStatus(StatusPlano.ATIVO);
+        pe.setDataInicio(dataInicio);
+        pe.setDataFim(dataFim);
+        pe.setStatus(status);
         return planoEnsinoRepository.save(pe);
     }
 
@@ -646,21 +712,32 @@ public class DevDataResetSeeder implements CommandLineRunner {
     }
 
     private List<Aula> criarPlanoAulaComAulas(TurmaDisciplina td, PlanoEnsino pe, String tituloBase) {
+        return criarPlanoAulaComAulas(td, pe, tituloBase, StatusPlano.ATIVO, LocalDate.of(2026, 3, 1));
+    }
+
+    /**
+     * Overload que permite semear um plano de aula de um ciclo já
+     * CONCLUIDO, vinculado ao plano de ensino concluído correspondente —
+     * "cada plano de ensino concluído é vinculado a um plano de aula".
+     */
+    private List<Aula> criarPlanoAulaComAulas(TurmaDisciplina td, PlanoEnsino pe, String tituloBase, StatusPlano status,
+                                               LocalDate dataBase) {
         PlanoAula pa = new PlanoAula();
         pa.setTurmaDisciplina(td);
         pa.setPlanoEnsino(pe);
-        pa.setStatus(StatusPlano.ATIVO);
+        pa.setStatus(status);
         pa = planoAulaRepository.save(pa);
 
         List<Aula> aulas = new ArrayList<>();
         for (int i = 1; i <= 2; i++) {
+            LocalDate data = dataBase.plusDays(i - 1);
             Aula aula = new Aula();
             aula.setPlanoAula(pa);
             aula.setCargaHoraria(2);
-            aula.setDataPrevista(LocalDate.of(2026, 3, i));
+            aula.setDataPrevista(data);
             aula.setOrdem(i);
             aula.setTitulo(tituloBase + " " + i);
-            aula.setDataPublicacao(LocalDate.of(2026, 3, i));
+            aula.setDataPublicacao(data);
             aula.setObservacoes("Aula ministrada normalmente.");
             aula.setStatus(StatusAtivoInativo.ATIVO);
             aulas.add(aulaRepository.save(aula));

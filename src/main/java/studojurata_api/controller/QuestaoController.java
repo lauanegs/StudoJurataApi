@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.*;
 import studojurata_api.dto.QuestaoRequestDTO;
 import studojurata_api.dto.QuestaoResponseDTO;
 import studojurata_api.mapper.QuestaoMapper;
+import studojurata_api.model.QuestaoConteudo;
+import studojurata_api.service.QuestaoConteudoService;
 import studojurata_api.service.QuestaoService;
 
 import java.util.List;
@@ -17,6 +19,7 @@ public class QuestaoController {
 
     private final QuestaoService service;
     private final QuestaoMapper mapper;
+    private final QuestaoConteudoService questaoConteudoService;
 
     @GetMapping
     public List<QuestaoResponseDTO> listar() {
@@ -55,5 +58,25 @@ public class QuestaoController {
     @PostMapping("/{id}/rejeitar")
     public QuestaoResponseDTO rejeitar(@PathVariable Long id) {
         return mapper.toResponseDTO(service.rejeitar(id));
+    }
+
+    // ---- Conteúdos vinculados à questão (aba "Conteúdo" do QuestaoEditor) ----
+    // Sem esse vínculo a questão fica fora do cálculo de desempenho por
+    // conteúdo (ver RecomendacaoService) — só questões geradas pela IA
+    // ganham isso automaticamente hoje.
+
+    @GetMapping("/{id}/conteudos")
+    public List<QuestaoConteudo> listarConteudos(@PathVariable Long id) {
+        return questaoConteudoService.listarPorQuestao(id);
+    }
+
+    @PostMapping("/{id}/conteudos/{conteudoPlanoId}")
+    public QuestaoConteudo vincularConteudo(@PathVariable Long id, @PathVariable Long conteudoPlanoId) {
+        return questaoConteudoService.vincular(id, conteudoPlanoId);
+    }
+
+    @DeleteMapping("/{id}/conteudos/{conteudoPlanoId}")
+    public void desvincularConteudo(@PathVariable Long id, @PathVariable Long conteudoPlanoId) {
+        questaoConteudoService.desvincular(id, conteudoPlanoId);
     }
 }

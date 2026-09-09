@@ -69,6 +69,7 @@ public class GeracaoSimuladoIAService {
     private final GeracaoQuestaoIAService geracaoQuestaoIAService;
     private final SimuladoGeradoIARepository simuladoGeradoIARepository;
     private final RevisaoConteudoRepository revisaoConteudoRepository;
+    private final RecomendacaoService recomendacaoService;
 
     @Transactional
     public Simulado gerarParaAluno(
@@ -79,7 +80,13 @@ public class GeracaoSimuladoIAService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Conteúdo não encontrado."));
 
         int quantidade = quantidadeQuestoes != null && quantidadeQuestoes > 0 ? quantidadeQuestoes : QUANTIDADE_QUESTOES_PADRAO;
-        NivelDificuldade nivelEfetivo = nivel != null ? nivel : NIVEL_PADRAO;
+        // Sem nível forçado explicitamente: usa o nível mais baixo em que o
+        // aluno está fraco NESTE conteúdo (RecomendacaoService — ex.: erra
+        // fácil mas acerta difícil → reforça fácil; acerta fácil mas erra
+        // difícil → reforça difícil). Sem dado suficiente pra decidir (aluno
+        // novo, questões sem nível registrado), cai no nível padrão.
+        NivelDificuldade nivelSugerido = nivel == null ? recomendacaoService.sugerirNivelReforco(alunoId, conteudoPlanoId) : null;
+        NivelDificuldade nivelEfetivo = nivel != null ? nivel : nivelSugerido != null ? nivelSugerido : NIVEL_PADRAO;
 
         Simulado simulado = new Simulado();
         simulado.setTitulo("Reforço automático — " + conteudo.getTitulo() + " — " + descricaoAluno(aluno));

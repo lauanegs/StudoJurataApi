@@ -14,4 +14,11 @@ public interface QuestaoConteudoRepository extends JpaRepository<QuestaoConteudo
     List<QuestaoConteudo> findByConteudoPlano_Id(Long conteudoPlanoId);
 
     List<QuestaoConteudo> findByQuestao_IdIn(List<Long> questaoIds);
+
+    /** Conteúdos vinculados a UMA questão — tela "Vincular conteúdo" do QuestaoEditor. */
+    List<QuestaoConteudo> findByQuestao_Id(Long questaoId);
+
+    boolean existsByQuestao_IdAndConteudoPlano_Id(Long questaoId, Long conteudoPlanoId);
+
+    void deleteByQuestao_IdAndConteudoPlano_Id(Long questaoId, Long conteudoPlanoId);
 }

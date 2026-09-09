@@ -33,7 +33,11 @@ public class Curso extends BaseEntity {
 
     private String descricao;
 
-    /** Carga horária total do curso (soma informativa das disciplinas/planos de ensino vinculados). */
+    /**
+     * Carga horária total do curso — calculada por CursoDisciplinaService
+     * como a soma das cargas horárias ativas da grade curricular
+     * (CursoDisciplina), não editável diretamente (ver CursoService).
+     */
     private Integer cargaHorariaTotal;
 
     @Enumerated(EnumType.STRING)
