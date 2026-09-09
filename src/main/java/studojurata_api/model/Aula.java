@@ -35,8 +35,23 @@ public class Aula extends BaseEntity {
     @ManyToOne(optional = false)
     private PlanoAula planoAula;
 
-    /** Quantidade de horários (carga horária) daquela aula específica. */
-    private Integer cargaHoraria;
+    /**
+     * Horário semanal da turma (HorarioTurma) a que esta aula corresponde —
+     * opcional, mas quando informado é a partir dele que cargaHoraria abaixo
+     * é CALCULADA (hora fim - hora início), não mais digitada à mão (ver
+     * AulaService.validar). Sem isso, o cadastro de horários da turma
+     * (TurmaFormulario, aba "Horários") não tinha nenhum consumidor.
+     */
+    @ManyToOne
+    private HorarioTurma horarioTurma;
+
+    /**
+     * Carga horária (em horas, aceita fração — ex.: 1.5 para 1h30) daquela
+     * aula específica. Calculada a partir de horarioTurma quando ele está
+     * preenchido; digitada manualmente só quando a aula não corresponde a
+     * um horário fixo da turma (reposição, aula extra etc.).
+     */
+    private Double cargaHoraria;
 
     private LocalDate dataPrevista;
 

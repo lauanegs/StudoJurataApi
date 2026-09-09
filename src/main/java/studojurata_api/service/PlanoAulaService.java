@@ -62,19 +62,26 @@ public class PlanoAulaService {
 
     /**
      * Estatísticas exibidas na tela "Aulas" do plano de aula: quantidade de
-     * aulas realizadas em relação ao total previsto e carga horária
-     * realizada (soma da carga horária das aulas já publicadas).
+     * aulas realizadas em relação ao total previsto, carga horária
+     * realizada (soma da carga horária das aulas já publicadas) e carga
+     * horária prevista (PlanoEnsino.cargaHoraria) — sem essa segunda,
+     * "carga horária realizada" era um número solto, sem "de quanto".
      */
     public Map<String, Object> estatisticas(Long planoAulaId) {
-        buscar(planoAulaId);
+        PlanoAula planoAula = buscar(planoAulaId);
         long totalPrevisto = aulaRepository.countByPlanoAula_Id(planoAulaId);
         long realizadas = aulaRepository.countByPlanoAula_IdAndDataPublicacaoIsNotNull(planoAulaId);
-        long cargaHorariaRealizada = aulaRepository.somarCargaHorariaRealizada(planoAulaId);
-        return Map.of(
-                "aulasRealizadas", realizadas,
-                "totalAulasPrevistas", totalPrevisto,
-                "cargaHorariaRealizada", cargaHorariaRealizada
-        );
+        double cargaHorariaRealizada = aulaRepository.somarCargaHorariaRealizada(planoAulaId);
+        Integer cargaHorariaPrevista = planoAula.getPlanoEnsino() != null
+                ? planoAula.getPlanoEnsino().getCargaHoraria()
+                : null;
+
+        Map<String, Object> resultado = new java.util.HashMap<>();
+        resultado.put("aulasRealizadas", realizadas);
+        resultado.put("totalAulasPrevistas", totalPrevisto);
+        resultado.put("cargaHorariaRealizada", cargaHorariaRealizada);
+        resultado.put("cargaHorariaPrevista", cargaHorariaPrevista);
+        return resultado;
     }
 
     private void validar(PlanoAula obj) {

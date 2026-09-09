@@ -733,7 +733,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
             LocalDate data = dataBase.plusDays(i - 1);
             Aula aula = new Aula();
             aula.setPlanoAula(pa);
-            aula.setCargaHoraria(2);
+            aula.setCargaHoraria(2.0);
             aula.setDataPrevista(data);
             aula.setOrdem(i);
             aula.setTitulo(tituloBase + " " + i);

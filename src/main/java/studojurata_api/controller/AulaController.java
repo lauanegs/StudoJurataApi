@@ -7,6 +7,7 @@ import studojurata_api.model.Aula;
 import studojurata_api.model.AulaConteudo;
 import studojurata_api.model.Frequencia;
 import studojurata_api.dto.ChamadaRequest;
+import studojurata_api.dto.GerarAulasLoteRequest;
 import studojurata_api.service.AulaConteudoService;
 import studojurata_api.service.AulaService;
 import studojurata_api.service.FrequenciaService;
@@ -37,6 +38,16 @@ public class AulaController {
 
     @PostMapping
     public Aula salvar(@RequestBody Aula o) { return service.salvar(o); }
+
+    /**
+     * Geração em lote — pedido explícito: gerar de uma vez as aulas do
+     * início do plano, seguindo os horários já cadastrados na turma, em vez
+     * de cadastrar uma de cada vez.
+     */
+    @PostMapping("/plano-aula/{planoAulaId}/gerar-lote")
+    public List<Aula> gerarLote(@PathVariable Long planoAulaId, @RequestBody GerarAulasLoteRequest pedido) {
+        return service.gerarLote(planoAulaId, pedido);
+    }
 
     @PutMapping("/{id}")
     public Aula atualizar(@PathVariable Long id, @RequestBody Aula o) { return service.atualizar(id, o); }
