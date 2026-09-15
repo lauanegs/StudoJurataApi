@@ -35,7 +35,6 @@ public class GeracaoIAController {
         return simuladoMapper.toResponseDTO(service.gerarParaAluno(
                 request.getAlunoId(),
                 request.getConteudoPlanoId(),
-                request.getQuantidadeQuestoes(),
                 request.getNivelDificuldade(),
                 request.getMotivos()));
     }

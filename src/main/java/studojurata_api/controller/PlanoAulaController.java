@@ -31,8 +31,8 @@ public class PlanoAulaController {
     @GetMapping("/{id}/estatisticas")
     public Map<String, Object> estatisticas(@PathVariable Long id) { return service.estatisticas(id); }
 
-    @PostMapping
-    public PlanoAula salvar(@RequestBody PlanoAula o) { return service.salvar(o); }
+    // Sem POST: pedido explícito — plano de aula não é mais criado na mão,
+    // nasce sozinho junto com o plano de ensino (ver PlanoEnsinoService).
 
     @PutMapping("/{id}")
     public PlanoAula atualizar(@PathVariable Long id, @RequestBody PlanoAula o) { return service.atualizar(id, o); }

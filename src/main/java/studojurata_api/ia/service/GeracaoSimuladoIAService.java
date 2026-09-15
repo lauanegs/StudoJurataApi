@@ -26,6 +26,7 @@ import studojurata_api.repository.SimuladoQuestaoRepository;
 import studojurata_api.repository.SimuladoRepository;
 
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -59,7 +60,13 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class GeracaoSimuladoIAService {
 
-    private static final int QUANTIDADE_QUESTOES_PADRAO = 5;
+    /**
+     * Confirmado pelo usuário: todo simulado gerado por IA é padronizado
+     * nessa quantidade — não existe (nem existiu no front) um jeito de pedir
+     * um valor diferente, então isso deixou de ser parâmetro do método.
+     */
+    public static final int QUANTIDADE_QUESTOES = 5;
+
     private static final NivelDificuldade NIVEL_PADRAO = NivelDificuldade.MEDIA;
 
     private final SimuladoRepository simuladoRepository;
@@ -73,13 +80,12 @@ public class GeracaoSimuladoIAService {
 
     @Transactional
     public Simulado gerarParaAluno(
-            Long alunoId, Long conteudoPlanoId, Integer quantidadeQuestoes, NivelDificuldade nivel, Set<MotivoRecomendacao> motivos) {
+            Long alunoId, Long conteudoPlanoId, NivelDificuldade nivel, Set<MotivoRecomendacao> motivos) {
         Aluno aluno = alunoRepository.findById(alunoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Aluno não encontrado."));
         ConteudoPlano conteudo = conteudoPlanoRepository.findById(conteudoPlanoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Conteúdo não encontrado."));
 
-        int quantidade = quantidadeQuestoes != null && quantidadeQuestoes > 0 ? quantidadeQuestoes : QUANTIDADE_QUESTOES_PADRAO;
         // Sem nível forçado explicitamente: usa o nível mais baixo em que o
         // aluno está fraco NESTE conteúdo (RecomendacaoService — ex.: erra
         // fácil mas acerta difícil → reforça fácil; acerta fácil mas erra
@@ -91,7 +97,7 @@ public class GeracaoSimuladoIAService {
         Simulado simulado = new Simulado();
         simulado.setTitulo("Reforço automático — " + conteudo.getTitulo() + " — " + descricaoAluno(aluno));
         simulado.setTipoDestinacao(TipoDestinacaoSimulado.ESPECIFICO);
-        simulado.setQuantidadeQuestoes(quantidade);
+        simulado.setQuantidadeQuestoes(QUANTIDADE_QUESTOES);
         // Nasce em RASCUNHO: só é lançado ao aluno após revisão humana das questões (ver item 1.4).
         simulado.setStatus(StatusSimulado.RASCUNHO);
 
@@ -113,7 +119,7 @@ public class GeracaoSimuladoIAService {
         simuladoGeradoIARepository.save(vinculo);
 
         List<Questao> questoes = geracaoQuestaoIAService.gerar(
-                conteudoPlanoId, nivelEfetivo, TipoQuestao.ALTERNATIVAS, quantidade, simulado);
+                conteudoPlanoId, nivelEfetivo, TipoQuestao.ALTERNATIVAS, QUANTIDADE_QUESTOES, simulado, calcularIdade(aluno));
 
         int ordem = 1;
         for (Questao questao : questoes) {
@@ -131,6 +137,19 @@ public class GeracaoSimuladoIAService {
 
     private String descricaoAluno(Aluno aluno) {
         return aluno.getMatricula() != null ? "matrícula " + aluno.getMatricula() : "aluno #" + aluno.getId();
+    }
+
+    /**
+     * Idade do aluno em anos, pra GeracaoQuestaoIAService adequar a linguagem
+     * do enunciado no prompt do Gemini (confirmado pelo usuário — questões
+     * genéricas de "ensino médio" hardcoded não fazem sentido pro público
+     * infantil/teen dos cursos daqui). Null quando o aluno não tem data de
+     * nascimento cadastrada — GeracaoQuestaoIAService cai num texto genérico
+     * nesse caso, sem travar a geração por causa de um cadastro incompleto.
+     */
+    private Integer calcularIdade(Aluno aluno) {
+        LocalDate nascimento = aluno.getPessoa() != null ? aluno.getPessoa().getDataNascimento() : null;
+        return nascimento != null ? Period.between(nascimento, LocalDate.now()).getYears() : null;
     }
 
     /**

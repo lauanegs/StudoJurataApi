@@ -68,7 +68,8 @@ public class GeracaoQuestaoIAService {
     private final GeminiQuestaoClient geminiQuestaoClient;
 
     @Transactional
-    public List<Questao> gerar(Long conteudoPlanoId, NivelDificuldade nivel, TipoQuestao tipo, int quantidade, Simulado simuladoVinculado) {
+    public List<Questao> gerar(Long conteudoPlanoId, NivelDificuldade nivel, TipoQuestao tipo, int quantidade,
+                                Simulado simuladoVinculado, Integer idadeAluno) {
         if (quantidade <= 0) {
             throw new RequisicaoInvalidaException("quantidade deve ser maior que zero.");
         }
@@ -103,8 +104,8 @@ public class GeracaoQuestaoIAService {
         if (faltanteAntesGemini > 0) {
             try {
                 long inicio = System.currentTimeMillis();
-                String textoConteudo = montarTextoConteudo(conteudo);
-                List<GeminiQuestaoGeradaDTO> geradas = geminiQuestaoClient.gerarQuestoes(textoConteudo, nivel, tipo, faltanteAntesGemini);
+                String textoConteudo = montarTextoConteudo(conteudo, disciplina);
+                List<GeminiQuestaoGeradaDTO> geradas = geminiQuestaoClient.gerarQuestoes(textoConteudo, nivel, tipo, faltanteAntesGemini, idadeAluno);
                 tempoRespostaMs = System.currentTimeMillis() - inicio;
 
                 for (GeminiQuestaoGeradaDTO dto : geradas) {
@@ -155,9 +156,22 @@ public class GeracaoQuestaoIAService {
         return null;
     }
 
-    private String montarTextoConteudo(ConteudoPlano conteudo) {
+    /**
+     * Confirmado pelo usuário: título+descrição isolados do conteúdo não
+     * davam contexto suficiente pra IA evitar perguntas genéricas/sobre o
+     * material em si — disciplina e curso ajudam a IA a entender o domínio
+     * e o tom (ex.: "Robótica" no curso "Geek Júnior" pede uma abordagem bem
+     * diferente do mesmo assunto num curso técnico adulto).
+     */
+    private String montarTextoConteudo(ConteudoPlano conteudo, Disciplina disciplina) {
         StringBuilder sb = new StringBuilder();
-        if (conteudo.getTitulo() != null) sb.append(conteudo.getTitulo()).append("\n");
+        if (disciplina != null && disciplina.getTitulo() != null) {
+            sb.append("Disciplina: ").append(disciplina.getTitulo()).append("\n");
+        }
+        String curso = conteudo.getPlanoEnsino() != null && conteudo.getPlanoEnsino().getCurso() != null
+                ? conteudo.getPlanoEnsino().getCurso().getNome() : null;
+        if (curso != null) sb.append("Curso: ").append(curso).append("\n");
+        if (conteudo.getTitulo() != null) sb.append("Tema: ").append(conteudo.getTitulo()).append("\n");
         if (conteudo.getDescricao() != null) sb.append(conteudo.getDescricao());
         return sb.toString().trim();
     }

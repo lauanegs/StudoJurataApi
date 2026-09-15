@@ -4,10 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.Evento;
-import studojurata_api.model.ResponsavelAluno;
-import studojurata_api.model.enums.TipoNotificacao;
 import studojurata_api.repository.EventoRepository;
-import studojurata_api.repository.ResponsavelAlunoRepository;
 
 import java.util.List;
 
@@ -20,8 +17,6 @@ import java.util.List;
 public class EventoService {
 
     private final EventoRepository repository;
-    private final ResponsavelAlunoRepository responsavelAlunoRepository;
-    private final NotificacaoService notificacaoService;
 
     public List<Evento> listar() { return repository.findAllByOrderByDataHorarioAsc(); }
 
@@ -36,17 +31,7 @@ public class EventoService {
 
     public Evento salvar(Evento obj) {
         if (obj.getConcluido() == null) obj.setConcluido(false);
-        Evento salvo = repository.save(obj);
-
-        // Item 9.8: evento é da escola toda, não de um aluno específico — notifica
-        // (registro em banco, opt-in) todo responsável que marcou receberNotificacoes.
-        List<ResponsavelAluno> destinatarios = responsavelAlunoRepository.findByReceberNotificacoesTrue();
-        for (ResponsavelAluno destinatario : destinatarios) {
-            notificacaoService.registrar(destinatario, TipoNotificacao.NOVO_EVENTO,
-                    "Novo evento: " + salvo.getTitulo() + ".");
-        }
-
-        return salvo;
+        return repository.save(obj);
     }
 
     public Evento atualizar(Long id, Evento obj) {

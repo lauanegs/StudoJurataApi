@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.PlanoAula;
+import studojurata_api.model.PlanoEnsino;
 import studojurata_api.model.enums.StatusPlano;
 import studojurata_api.repository.AulaRepository;
 import studojurata_api.repository.PlanoAulaRepository;
@@ -46,6 +47,26 @@ public class PlanoAulaService {
         obj.setId(id);
         validar(obj);
         return repository.save(obj);
+    }
+
+    /**
+     * Pedido explícito: não existe mais tela pra criar plano de aula na mão
+     * — nasce sozinho junto com o plano de ensino (ver
+     * PlanoEnsinoService.salvar/atualizar), sempre que ele já tiver
+     * turma/disciplina definida. Reaproveita salvar() (mesma validação e
+     * status padrão) só que sem stack trace pro professor: não gera de
+     * novo se um plano de aula pra este plano de ensino já existir, e não
+     * gera nada pra plano de ensino genérico (sem turma).
+     */
+    @Transactional
+    public void gerarSeNecessario(PlanoEnsino planoEnsino) {
+        if (planoEnsino.getTurmaDisciplina() == null) return;
+        if (!repository.findByPlanoEnsino_Id(planoEnsino.getId()).isEmpty()) return;
+
+        PlanoAula planoAula = new PlanoAula();
+        planoAula.setPlanoEnsino(planoEnsino);
+        planoAula.setTurmaDisciplina(planoEnsino.getTurmaDisciplina());
+        salvar(planoAula);
     }
 
     /**
@@ -90,6 +111,32 @@ public class PlanoAulaService {
         }
         if (obj.getPlanoEnsino() == null || obj.getPlanoEnsino().getId() == null) {
             throw new RequisicaoInvalidaException("Plano de ensino é obrigatório para o plano de aula.");
+        }
+
+        // Pedido explícito: relação 1-para-1 entre PlanoEnsino e PlanoAula —
+        // cada plano de ensino tem no máximo um plano de aula (e vice-versa,
+        // já garantido estruturalmente pelo FK único em PlanoAula).
+        boolean jaExistePlanoParaEsseEnsino = repository.findByPlanoEnsino_Id(obj.getPlanoEnsino().getId()).stream()
+                .anyMatch(existente -> !existente.getId().equals(obj.getId()));
+        if (jaExistePlanoParaEsseEnsino) {
+            throw new RequisicaoInvalidaException(
+                    "Este plano de ensino já tem um plano de aula vinculado.");
+        }
+
+        // Pedido explícito: uma turma só pode ter um plano de aula ATIVO por
+        // disciplina — evita dois ciclos "correndo" ao mesmo tempo pra mesma
+        // combinação turma+disciplina. Planos CONCLUIDO não contam (matrícula
+        // cíclica: o histórico fica, só não pode haver dois ativos juntos).
+        StatusPlano statusFinal = obj.getStatus() != null ? obj.getStatus() : StatusPlano.ATIVO;
+        if (statusFinal == StatusPlano.ATIVO) {
+            boolean jaTemAtivoNaTurmaDisciplina = repository
+                    .findByTurmaDisciplina_Id(obj.getTurmaDisciplina().getId()).stream()
+                    .anyMatch(existente -> !existente.getId().equals(obj.getId())
+                            && existente.getStatus() == StatusPlano.ATIVO);
+            if (jaTemAtivoNaTurmaDisciplina) {
+                throw new RequisicaoInvalidaException(
+                        "Esta turma já tem um plano de aula ativo para esta disciplina.");
+            }
         }
     }
 }

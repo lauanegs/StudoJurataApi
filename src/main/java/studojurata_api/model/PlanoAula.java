@@ -27,7 +27,15 @@ public class PlanoAula extends BaseEntity {
     @ManyToOne(optional = false)
     private TurmaDisciplina turmaDisciplina;
 
+    /**
+     * Relação 1-para-1 com PlanoEnsino (pedido explícito): um plano de
+     * ensino tem no máximo um plano de aula, e um plano de aula pertence a
+     * exatamente um plano de ensino (já garantido pelo próprio campo). A
+     * constraint unique no FK trava isso também no banco, além da
+     * verificação em PlanoAulaService.validar().
+     */
     @ManyToOne(optional = false)
+    @JoinColumn(unique = true)
     private PlanoEnsino planoEnsino;
 
     /**

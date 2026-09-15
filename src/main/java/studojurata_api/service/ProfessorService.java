@@ -5,14 +5,11 @@ import org.springframework.stereotype.Service;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.Professor;
 import studojurata_api.model.TurmaDisciplina;
-import studojurata_api.model.TurmaDisciplinaSubstituto;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.repository.ProfessorRepository;
 import studojurata_api.repository.TurmaDisciplinaRepository;
-import studojurata_api.repository.TurmaDisciplinaSubstitutoRepository;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  * Correção 5.1 + caso extremo "Professor deixa a escola" (Segunda Análise
@@ -29,7 +26,6 @@ public class ProfessorService {
 
     private final ProfessorRepository repository;
     private final TurmaDisciplinaRepository turmaDisciplinaRepository;
-    private final TurmaDisciplinaSubstitutoRepository turmaDisciplinaSubstitutoRepository;
 
     public List<Professor> listar() { return repository.findAll(); }
 
@@ -48,23 +44,9 @@ public class ProfessorService {
         return repository.save(obj);
     }
 
-    /**
-     * Lista as turmas/disciplinas em que este professor pode registrar aula:
-     * como titular ou como substituto — os dois compartilham o mesmo
-     * Plano de Ensino/Plano de Aula da TurmaDisciplina.
-     */
+    /** Turmas/disciplinas em que este professor é titular. */
     public List<TurmaDisciplina> turmasLecionadas(Long professorId) {
-        List<TurmaDisciplina> comoTitular = turmaDisciplinaRepository.findByProfessorId(professorId);
-
-        List<TurmaDisciplina> comoSubstituto = turmaDisciplinaSubstitutoRepository
-                .findByProfessor_Id(professorId).stream()
-                .filter(vinculo -> vinculo.getStatus() != StatusAtivoInativo.INATIVO)
-                .map(TurmaDisciplinaSubstituto::getTurmaDisciplina)
-                .toList();
-
-        return Stream.concat(comoTitular.stream(), comoSubstituto.stream())
-                .distinct()
-                .toList();
+        return turmaDisciplinaRepository.findByProfessorId(professorId);
     }
 
     public void deletar(Long id) {

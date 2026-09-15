@@ -17,7 +17,10 @@ public class PlanoEnsino extends BaseEntity {
     @ManyToOne
     private TurmaDisciplina turmaDisciplina;
 
-    private String titulo;
+    // Correção "título não usado" (pedido explícito): título era texto
+    // livre e não aparecia em nenhuma listagem — foi removido. A
+    // identificação do plano de ensino é o próprio id (BaseEntity), sem
+    // campo extra pra isso.
 
     /**
      * Vínculo pedido explicitamente: cada Curso pode ter vários Planos de

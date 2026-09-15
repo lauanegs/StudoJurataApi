@@ -81,7 +81,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
     private final TurmaRepository turmaRepository;
     private final HorarioTurmaRepository horarioTurmaRepository;
     private final TurmaDisciplinaRepository turmaDisciplinaRepository;
-    private final TurmaDisciplinaSubstitutoRepository turmaDisciplinaSubstitutoRepository;
 
     // --- pessoas / perfis ---
     private final PessoaRepository pessoaRepository;
@@ -89,7 +88,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
     private final AlunoRepository alunoRepository;
     private final ResponsavelRepository responsavelRepository;
     private final ResponsavelAlunoRepository responsavelAlunoRepository;
-    private final NotificacaoEnviadaRepository notificacaoEnviadaRepository;
     private final UsuarioRepository usuarioRepository;
     private final AlunoTurmaRepository alunoTurmaRepository;
 
@@ -157,11 +155,9 @@ public class DevDataResetSeeder implements CommandLineRunner {
         notaRepository.deleteAllInBatch();
         auditLogRepository.deleteAllInBatch();
         eventoRepository.deleteAllInBatch();
-        notificacaoEnviadaRepository.deleteAllInBatch();
         responsavelAlunoRepository.deleteAllInBatch();
         alunoTurmaRepository.deleteAllInBatch();
         horarioTurmaRepository.deleteAllInBatch();
-        turmaDisciplinaSubstitutoRepository.deleteAllInBatch();
         turmaDisciplinaRepository.deleteAllInBatch();
         usuarioRepository.deleteAllInBatch();
         alunoRepository.deleteAllInBatch();
@@ -396,12 +392,12 @@ public class DevDataResetSeeder implements CommandLineRunner {
         }
 
         // ---- Questões (5 por turma-disciplina) + Simulados -------------------------
-        List<Questao> questoesGeekJuniorRobotica = criarQuestoes(discRobotica, conteudosGeekJuniorRobotica, "Geek Júnior");
-        List<Questao> questoesGeekJuniorProgGamificada = criarQuestoes(discProgGamificada, conteudosGeekJuniorProgGamificada, "Geek Júnior");
-        List<Questao> questoesRobotica = criarQuestoes(discRobotica, conteudosRobotica, "Robótica");
-        List<Questao> questoesProgGamificada = criarQuestoes(discProgGamificada, conteudosProgGamificada, "Programação Gamificada");
-        List<Questao> questoesGeekTeensRobotica = criarQuestoes(discRobotica, conteudosGeekTeensRobotica, "Geek Teens");
-        List<Questao> questoesGeekTeensProgGamificada = criarQuestoes(discProgGamificada, conteudosGeekTeensProgGamificada, "Geek Teens");
+        List<Questao> questoesGeekJuniorRobotica = criarQuestoes(discRobotica, conteudosGeekJuniorRobotica);
+        List<Questao> questoesGeekJuniorProgGamificada = criarQuestoes(discProgGamificada, conteudosGeekJuniorProgGamificada);
+        List<Questao> questoesRobotica = criarQuestoes(discRobotica, conteudosRobotica);
+        List<Questao> questoesProgGamificada = criarQuestoes(discProgGamificada, conteudosProgGamificada);
+        List<Questao> questoesGeekTeensRobotica = criarQuestoes(discRobotica, conteudosGeekTeensRobotica);
+        List<Questao> questoesGeekTeensProgGamificada = criarQuestoes(discProgGamificada, conteudosGeekTeensProgGamificada);
 
         Simulado simuladoGeekJuniorRobotica = criarSimulado("Simulado de Robótica - Geek Júnior", discRobotica, peGeekJuniorRobotica, turmaGeekJunior, questoesGeekJuniorRobotica);
         Simulado simuladoGeekJuniorProgGamificada = criarSimulado("Simulado de Programação Gamificada - Geek Júnior", discProgGamificada, peGeekJuniorProgGamificada, turmaGeekJunior, questoesGeekJuniorProgGamificada);
@@ -423,10 +419,15 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarSimuladoAlunoPendente(simuladoGeekJuniorProgGamificada, alunosGeekJunior.get(1));
         criarSimuladoAlunoPendente(simuladoGeekJuniorProgGamificada, alunosGeekJunior.get(3));
 
+        // Exemplo do alerta "pede reforço manual" (AlertaDesempenhoCard, ver
+        // LIMIAR_DESEMPENHO no front): 3 dos 5 alunos concluídos (60%) ficam
+        // abaixo de 60% de aproveitamento — visível em Desempenho > Por
+        // simulado > Detalhar no Simulado de Robótica da turma de Robótica.
         responderSimulado(simuladoRobotica, alunosRobotica.get(0), questoesRobotica, 5);
         responderSimulado(simuladoRobotica, alunosRobotica.get(1), questoesRobotica, 2);
-        criarSimuladoAlunoPendente(simuladoRobotica, alunosRobotica.get(2));
-        criarSimuladoAlunoPendente(simuladoRobotica, alunosRobotica.get(3));
+        responderSimulado(simuladoRobotica, alunosRobotica.get(2), questoesRobotica, 2);
+        responderSimulado(simuladoRobotica, alunosRobotica.get(3), questoesRobotica, 1);
+        responderSimulado(simuladoRobotica, alunoDoisCursos, questoesRobotica, 3);
 
         responderSimulado(simuladoProgGamificada, alunosProgGamificada.get(0), questoesProgGamificada, 3);
         criarSimuladoAlunoPendente(simuladoProgGamificada, alunosProgGamificada.get(1));
@@ -513,6 +514,17 @@ public class DevDataResetSeeder implements CommandLineRunner {
         // ---- Módulo de IA (revisão espaçada) ---------------------------------------
         criarRevisao(alunosGeekJunior.get(3), conteudosGeekJuniorRobotica.get(0), 1, NivelDominio.BAIXO);
         criarRevisao(alunosProgGamificada.get(1), conteudosProgGamificada.get(0), 3, NivelDominio.MEDIO);
+
+        // Revisão já DEVIDA hoje (ao contrário das duas acima, sempre no
+        // futuro) — só pra dar algo imediatamente testável sem esperar o
+        // cron: aparece em GET /ia/revisao-conteudo/devidos e no job
+        // GeracaoAutomaticaSimuladoJob assim que o backend sobe de novo (não
+        // precisa esperar 5h da manhã pra rodar o teste manual via
+        // POST /ia/geracao/simulado). Conteúdo escolhido de propósito com
+        // pouco banco aprovado (1 questão por nível, ver criarQuestoes) —
+        // pedir 5 questões de nível MEDIA obriga pelo menos 2 delas a vir do
+        // Gemini de verdade, não só do cache.
+        criarRevisaoDevidaHoje(alunosRobotica.get(0), conteudosRobotica.get(0), NivelDominio.BAIXO);
     }
 
     // =========================================================================
@@ -685,7 +697,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
         pe.setTurmaDisciplina(td);
         pe.setProfessor(td.getProfessor());
         pe.setCurso(curso);
-        pe.setTitulo(titulo);
+        // titulo não existe mais — identificação do plano é o próprio id, gerado ao salvar.
         pe.setCargaHoraria(60);
         pe.setEmenta("Ementa de " + titulo);
         pe.setObjetivoGeral("Desenvolver o raciocínio lógico e as habilidades práticas do curso " + curso.getNome() + ".");
@@ -791,7 +803,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
      * 3 alternativas por questão (MAXIMO_ALTERNATIVAS do front) e V/F com
      * afirmações cujo gabarito bate de fato com a resposta certa.
      */
-    private List<Questao> criarQuestoes(Disciplina disciplina, List<ConteudoPlano> conteudos, String rotulo) {
+    private List<Questao> criarQuestoes(Disciplina disciplina, List<ConteudoPlano> conteudos) {
         boolean robotica = disciplina.getTitulo().equals("Robótica");
 
         List<QuestaoAlternativasSeed> bancoAlternativas = robotica
@@ -838,18 +850,18 @@ public class DevDataResetSeeder implements CommandLineRunner {
 
         List<Questao> questoes = new ArrayList<>();
         for (QuestaoAlternativasSeed seed : bancoAlternativas) {
-            questoes.add(criarQuestaoAlternativas(disciplina, conteudos, rotulo, seed));
+            questoes.add(criarQuestaoAlternativas(disciplina, conteudos, seed));
         }
         for (QuestaoVFSeed seed : bancoVF) {
-            questoes.add(criarQuestaoVF(disciplina, conteudos, rotulo, seed));
+            questoes.add(criarQuestaoVF(disciplina, conteudos, seed));
         }
         return questoes;
     }
 
-    private Questao criarQuestaoAlternativas(Disciplina disciplina, List<ConteudoPlano> conteudos, String rotulo,
+    private Questao criarQuestaoAlternativas(Disciplina disciplina, List<ConteudoPlano> conteudos,
                                               QuestaoAlternativasSeed seed) {
         Questao q = new Questao();
-        q.setEnunciado("[" + rotulo + "] " + seed.enunciado());
+        q.setEnunciado(seed.enunciado());
         q.setTipo(TipoQuestao.ALTERNATIVAS);
         q.setDisciplina(disciplina);
         q.setNivelDificuldade(seed.nivel());
@@ -870,9 +882,9 @@ public class DevDataResetSeeder implements CommandLineRunner {
         return q;
     }
 
-    private Questao criarQuestaoVF(Disciplina disciplina, List<ConteudoPlano> conteudos, String rotulo, QuestaoVFSeed seed) {
+    private Questao criarQuestaoVF(Disciplina disciplina, List<ConteudoPlano> conteudos, QuestaoVFSeed seed) {
         Questao q = new Questao();
-        q.setEnunciado("[" + rotulo + "] " + seed.enunciado());
+        q.setEnunciado(seed.enunciado());
         q.setTipo(TipoQuestao.VERDADEIRO_FALSO);
         q.setDisciplina(disciplina);
         q.setNivelDificuldade(NivelDificuldade.MEDIA);
@@ -1096,6 +1108,24 @@ public class DevDataResetSeeder implements CommandLineRunner {
         r.setQuantidadeReforcos(quantidadeReforcos);
         r.setDataUltimoReforco(LocalDate.now());
         r.setDataProximoReforco(LocalDate.now().plusDays((long) Math.pow(2, quantidadeReforcos)));
+        r.setNivelDominio(nivel);
+        revisaoConteudoRepository.save(r);
+    }
+
+    /**
+     * Variante de criarRevisao com dataProximoReforco = hoje, em vez da
+     * fórmula sempre-futura acima — só pra dar um cenário pronto de teste da
+     * integração real com o Gemini (GeracaoAutomaticaSimuladoJob e
+     * POST /ia/geracao/simulado), sem precisar esperar o job de repetição
+     * espaçada natural do sistema.
+     */
+    private void criarRevisaoDevidaHoje(Aluno aluno, ConteudoPlano conteudo, NivelDominio nivel) {
+        RevisaoConteudo r = new RevisaoConteudo();
+        r.setAluno(aluno);
+        r.setConteudoPlano(conteudo);
+        r.setQuantidadeReforcos(1);
+        r.setDataUltimoReforco(LocalDate.now().minusDays(7));
+        r.setDataProximoReforco(LocalDate.now());
         r.setNivelDominio(nivel);
         revisaoConteudoRepository.save(r);
     }

@@ -46,7 +46,7 @@ PostgreSQL (schema gerenciado por ddl-auto=update)
 
 ### Service
 - `@Service` concreto, **sem interface** (`XxxService`, nunca `XxxServiceImpl implements XxxService`). Isso é uma convenção deliberada do projeto — não introduzir interfaces de serviço sem uma razão concreta (múltiplas implementações reais, mock em teste que precise disso, etc.).
-- Contém toda a regra de negócio: transições de status (`Simulado.status: RASCUNHO → PUBLICADO → ENCERRADO`), validações que dependem de estado do banco, orquestração entre múltiplos repositórios, disparo de notificações/auditoria.
+- Contém toda a regra de negócio: transições de status (`Simulado.status: RASCUNHO → PUBLICADO → ENCERRADO`), validações que dependem de estado do banco, orquestração entre múltiplos repositórios, registro de auditoria.
 - `@Transactional` é usado pontualmente (19 ocorrências) nos métodos que fazem múltiplas escritas relacionadas (ex.: `SimuladoService.lancar()` cria N `SimuladoAluno` e atualiza o `Simulado`) ou que precisam de atomicidade por regra de negócio (`NotaService.recalcular()`). Métodos de leitura e CRUD simples não são anotados — o projeto não usa `@Transactional` "por padrão" na classe inteira.
 - Exceções de negócio são customizadas e sem relação com HTTP (`RecursoNaoEncontradoException`, `RegraNegocioException`, `RequisicaoInvalidaException`) — a tradução para status HTTP acontece só no `GlobalExceptionHandler`. Isso mantém os services livres de `import org.springframework.http.*`.
 
@@ -117,7 +117,7 @@ Estes são registrados para orientar revisões futuras — **não devem ser corr
 6. **`ddl-auto=update` em vez de ferramenta de migration (Flyway/Liquibase).** Já causou um incidente documentado (remoção de coluna `NOT NULL` que ficou órfã no Postgres e quebrou o seeder — ver histórico do projeto). `update` nunca remove/relaxa colunas quando um campo sai da entidade. Continua sendo a estratégia do projeto; ao remover/alterar um campo `@Column`, é preciso draftar o `ALTER TABLE` manual junto (ver `docs/spring-boot-guidelines.md`).
 7. **`DevDataResetSeeder` tem ~730 linhas.** É um script de seed sequencial e declarativo (não tem branches/lógica complexa), então o tamanho por si só não é necessariamente um problema de Clean Code — mas é candidato a revisão se crescer mais, ou se passar a ter lógica condicional real.
 8. **Pacotes de teste e produção com nomes diferentes.** O código de produção usa o pacote `studojurata_api` (raiz `src/main/java/studojurata_api`), enquanto o único teste existente usa `br.com.studojurata.studojurata_api` (`src/test/java/br/com/studojurata/studojurata_api`). Não é um bug funcional (Maven/Spring não exigem que coincidam), mas é uma inconsistência a alinhar quando novos testes forem adicionados — usar `studojurata_api` como pacote-raiz dos testes, espelhando a produção.
-9. **Logs de execução (`backend_run*.log`) e `target/` foram versionados/deixados na raiz do repositório.** `target/` está no `.gitignore`; os `backend_run*.log` (dezenas de arquivos) não estão listados — verificar se foram commitados por engano.
+9. ~~Logs de execução (`backend_run*.log`) e `target/` foram versionados/deixados na raiz do repositório.~~ **Resolvido.** Nenhum dos logs estava de fato commitado (`git ls-files` não lista nenhum); o `.gitignore` só não cobria as variações `backend_restart*.log`/`backend_seed*.log` além de `backend_run*.log` — padrão ampliado para `backend_*.log`.
 
 ## 7. Onde colocar cada tipo de lógica (regra para novas features)
 
@@ -126,7 +126,7 @@ Estes são registrados para orientar revisões futuras — **não devem ser corr
 - **Resolução de relacionamento a partir de um ID recebido no DTO** → Mapper (`toEntity`), lançando `RecursoNaoEncontradoException` se o ID não existir.
 - **Autorização por papel** → `SecurityConfig` (`requestMatchers`).
 - **Autorização por dono do recurso** → `AlunoAccessGuard` (ou guard equivalente, se um padrão parecido for necessário para Professor/Responsável no futuro).
-- **Efeitos colaterais de negócio** (notificar responsável, registrar auditoria, recalcular nota) → dentro do Service dono da operação, chamando o service do efeito colateral (`NotificacaoService`, `AuditLogService`) — nunca disparado do controller.
+- **Efeitos colaterais de negócio** (registrar auditoria, recalcular nota) → dentro do Service dono da operação, chamando o service do efeito colateral (`AuditLogService`) — nunca disparado do controller.
 - **Chamada a serviço externo** (ex.: Gemini) → cliente dedicado atrás de uma interface pequena (`GeminiQuestaoClient`), com exceção própria (`GeminiIndisponivelException`) e fallback tratado no service que o consome. Esse é o único lugar do projeto com interface de "porta" — justificado porque existe (ou é esperado) mais de uma implementação/necessidade de fallback, não por preferência estilística.
 
 ## 8. Dependências entre camadas (regra de sentido)

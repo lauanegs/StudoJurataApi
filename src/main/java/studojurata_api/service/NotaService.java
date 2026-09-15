@@ -8,17 +8,14 @@ import studojurata_api.model.AlunoTurma;
 import studojurata_api.model.Aluno;
 import studojurata_api.model.Disciplina;
 import studojurata_api.model.Nota;
-import studojurata_api.model.ResponsavelAluno;
 import studojurata_api.model.SimuladoAluno;
 import studojurata_api.model.Turma;
 import studojurata_api.model.enums.AcaoAuditoria;
 import studojurata_api.model.enums.StatusSimuladoAluno;
-import studojurata_api.model.enums.TipoNotificacao;
 import studojurata_api.repository.AlunoRepository;
 import studojurata_api.repository.AlunoTurmaRepository;
 import studojurata_api.repository.DisciplinaRepository;
 import studojurata_api.repository.NotaRepository;
-import studojurata_api.repository.ResponsavelAlunoRepository;
 import studojurata_api.repository.SimuladoAlunoRepository;
 import studojurata_api.repository.TurmaRepository;
 
@@ -51,8 +48,6 @@ public class NotaService {
     private final AlunoTurmaRepository alunoTurmaRepository;
     private final SimuladoAlunoRepository simuladoAlunoRepository;
     private final AuditLogService auditLogService;
-    private final ResponsavelAlunoRepository responsavelAlunoRepository;
-    private final NotificacaoService notificacaoService;
 
     public List<Nota> listar() { return repository.findAll(); }
 
@@ -121,13 +116,6 @@ public class NotaService {
                 totalAnterior == null ? AcaoAuditoria.CRIACAO : AcaoAuditoria.ATUALIZACAO,
                 "total: " + totalAnterior + " -> " + salva.getTotal()
                         + " (turma " + turmaId + ", " + concluidos.size() + " simulado(s) concluído(s))");
-
-        // Item 9.8: notifica (registro em banco, opt-in) os responsáveis do aluno que marcaram receberNotificacoes.
-        List<ResponsavelAluno> destinatarios = responsavelAlunoRepository.findByAlunoIdAndReceberNotificacoesTrue(alunoId);
-        for (ResponsavelAluno destinatario : destinatarios) {
-            notificacaoService.registrar(destinatario, TipoNotificacao.NOVA_NOTA,
-                    "Nova nota registrada em " + salva.getDisciplina().getTitulo() + ".");
-        }
 
         return salva;
     }

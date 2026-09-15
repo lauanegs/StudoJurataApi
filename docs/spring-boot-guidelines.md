@@ -15,7 +15,7 @@ Spring Boot 3.3.4, Java 21, Maven. Stack: `spring-boot-starter-web`, `-data-jpa`
 O projeto **não tem uma camada de Use Case separada do Service** (não há pacote `usecase/` nem uma convenção `XxxUseCase`). `@Service` concreto por entidade/agregado é o nível de granularidade real. Não introduzir uma camada de Use Case adicional entre Controller e Service sem uma razão concreta (ex.: uma orquestração que hoje não tem dono claro e passou a ser chamada de 3+ controllers diferentes) — para o tamanho e a maturidade atuais do projeto, isso seria uma camada extra sem ganho.
 
 - `@Transactional` só nos métodos que precisam de atomicidade (múltiplas escritas relacionadas ou leitura+escrita que não pode ficar inconsistente). Não anotar a classe inteira nem métodos de leitura simples.
-- Um service pode depender de outro service como colaborador (`NotaService` depende de `NotificacaoService` e `AuditLogService`) — isso é aceito e é o mecanismo do projeto para orquestrar efeitos colaterais. Evitar dependência circular entre services (A depende de B que depende de A) — nenhuma existe hoje; ao adicionar uma nova dependência entre services, checar isso.
+- Um service pode depender de outro service como colaborador (`NotaService` depende de `AuditLogService`) — isso é aceito e é o mecanismo do projeto para orquestrar efeitos colaterais. Evitar dependência circular entre services (A depende de B que depende de A) — nenhuma existe hoje; ao adicionar uma nova dependência entre services, checar isso.
 
 ## Repositories
 

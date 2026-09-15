@@ -100,8 +100,6 @@ public class SecurityConfig {
                 .requestMatchers("/usuarios/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/escolas/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/audit-log/**").hasRole("ADMINISTRADOR")
-                // Notificações (item 9.8): só estrutura + log, consulta restrita ao Administrador.
-                .requestMatchers("/notificacoes/**").hasRole("ADMINISTRADOR")
 
                 // Cadastro/edição/exclusão de perfis é restrita ao Administrador;
                 // consulta (GET) fica liberada para qualquer usuário autenticado.
@@ -153,16 +151,16 @@ public class SecurityConfig {
                 // conteúdo (Professor/Admin). /horarios/** cobre o DELETE de
                 // HorarioTurma (rota própria, fora de /turmas/**).
                 .requestMatchers(HttpMethod.GET, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
-                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/turma-disciplina/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
-                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/turma-disciplina/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PUT, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
-                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/turma-disciplina/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
-                        "/turma-disciplina/**", "/turma-disciplina-substituto/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
+                        "/turma-disciplina/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
 
                 // Correção de auditoria: /aluno-turma/** (matricular, atualizar,

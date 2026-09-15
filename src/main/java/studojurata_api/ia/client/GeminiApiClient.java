@@ -28,7 +28,7 @@ import java.util.List;
  *
  * Configuração (application.properties — ver README do módulo de IA):
  *   studojurata.ia.gemini.api-key=...
- *   studojurata.ia.gemini.model=gemini-1.5-flash
+ *   studojurata.ia.gemini.model=gemini-flash-lite-latest
  *   studojurata.ia.gemini.base-url=https://generativelanguage.googleapis.com/v1beta/models
  *   studojurata.ia.gemini.timeout-ms=8000
  *
@@ -48,7 +48,12 @@ public class GeminiApiClient implements GeminiQuestaoClient {
     @Value("${studojurata.ia.gemini.api-key:}")
     private String apiKey;
 
-    @Value("${studojurata.ia.gemini.model:gemini-1.5-flash}")
+    // Histórico de tentativas (ver git log): várias versões fixas do
+    // gemini-flash foram descontinuadas em sequência (Google gira modelos
+    // rápido demais pra acompanhar aqui) — usa o alias "latest" em vez de
+    // pinar uma versão. Ver studojurata.ia.gemini.model em
+    // application.properties pra trocar sem mexer no código.
+    @Value("${studojurata.ia.gemini.model:gemini-flash-lite-latest}")
     private String modelo;
 
     @Value("${studojurata.ia.gemini.base-url:https://generativelanguage.googleapis.com/v1beta/models}")
@@ -80,7 +85,7 @@ public class GeminiApiClient implements GeminiQuestaoClient {
     }
 
     @Override
-    public List<GeminiQuestaoGeradaDTO> gerarQuestoes(String conteudoTexto, NivelDificuldade nivel, TipoQuestao tipo, int quantidade) {
+    public List<GeminiQuestaoGeradaDTO> gerarQuestoes(String conteudoTexto, NivelDificuldade nivel, TipoQuestao tipo, int quantidade, Integer idadeAluno) {
         if (apiKey == null || apiKey.isBlank()) {
             throw new GeminiIndisponivelException("Chave de API do Gemini não configurada (studojurata.ia.gemini.api-key).");
         }
@@ -89,7 +94,7 @@ public class GeminiApiClient implements GeminiQuestaoClient {
         }
 
         try {
-            String prompt = montarPrompt(conteudoTexto, nivel, tipo, quantidade);
+            String prompt = montarPrompt(conteudoTexto, nivel, tipo, quantidade, idadeAluno);
             String corpoRequisicao = montarCorpoRequisicao(prompt);
 
             URI uri = URI.create(baseUrl + "/" + modelo + ":generateContent?key=" + apiKey);
@@ -115,15 +120,32 @@ public class GeminiApiClient implements GeminiQuestaoClient {
         }
     }
 
-    private String montarPrompt(String conteudoTexto, NivelDificuldade nivel, TipoQuestao tipo, int quantidade) {
+    /**
+     * Confirmado pelo usuário: o prompt anterior tinha "ensino médio" fixo
+     * (sem relação com o público real, majoritariamente infantil/teen aqui),
+     * não pedia contextualização (situação prática/cotidiana) e, ao exigir
+     * ficar "estritamente" preso ao texto curto do plano de ensino, empurrava
+     * a IA pra perguntas sobre o MATERIAL (o texto do plano em si) em vez de
+     * sobre o ASSUNTO/tema de conhecimento — os três pontos abaixo corrigem
+     * isso.
+     */
+    private String montarPrompt(String conteudoTexto, NivelDificuldade nivel, TipoQuestao tipo, int quantidade, Integer idadeAluno) {
         String instrucaoTipo = tipo == TipoQuestao.VERDADEIRO_FALSO
                 ? "Cada questão deve ter exatamente 2 alternativas, com os textos \"Verdadeiro\" e \"Falso\", e apenas uma marcada como correta."
                 : "Cada questão deve ter exatamente 3 alternativas (curtas, plausíveis e mutuamente exclusivas), com apenas uma marcada como correta.";
         String nivelTexto = nivel != null ? nivel.name() : "MEDIA";
+        String publicoTexto = idadeAluno != null
+                ? "um aluno de " + idadeAluno + " anos"
+                : "um aluno do ensino fundamental ou médio (idade não informada — use uma linguagem acessível e neutra quanto à faixa etária exata)";
 
-        return "Você é um assistente pedagógico especializado em elaborar questões de avaliação para o ensino médio. "
+        return "Você é um assistente pedagógico especializado em elaborar questões de avaliação para " + publicoTexto + ". "
                 + "Gere " + quantidade + " questões de múltipla escolha em português do Brasil, nível de dificuldade "
-                + nivelTexto + ", estritamente baseadas no conteúdo abaixo, sem inventar informações fora dele. "
+                + nivelTexto + ", sobre o TEMA/assunto de conhecimento indicado abaixo (disciplina, curso e tema) — "
+                + "avaliando a compreensão do aluno sobre esse assunto em si, nunca uma pergunta sobre o texto do "
+                + "plano de ensino, sobre \"o conteúdo descrito\", sobre o material didático ou sobre a aula em si. "
+                + "Contextualize cada questão numa situação prática, cotidiana ou num exemplo concreto relacionado "
+                + "ao tema — evite perguntas de definição pura/decoreba, e adeque a linguagem e a complexidade à "
+                + "idade do aluno indicada acima. "
                 + instrucaoTipo + " "
                 + "Responda APENAS com um array JSON válido, sem markdown, sem comentários e sem texto adicional, "
                 + "no formato exato: "

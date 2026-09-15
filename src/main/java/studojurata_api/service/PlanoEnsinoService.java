@@ -38,6 +38,7 @@ public class PlanoEnsinoService {
 
     private final PlanoEnsinoRepository repository;
     private final CursoRepository cursoRepository;
+    private final PlanoAulaService planoAulaService;
     private final EscolaContext escolaContext;
 
     /**
@@ -65,13 +66,22 @@ public class PlanoEnsinoService {
     public PlanoEnsino salvar(PlanoEnsino obj) {
         validarCurso(obj);
         if (obj.getStatus() == null) obj.setStatus(StatusPlano.ATIVO);
-        return repository.save(obj);
+        PlanoEnsino salvo = repository.save(obj);
+        // Pedido explícito: plano de aula nasce junto, sem tela separada pra
+        // criar isso na mão — só quando já há turma/disciplina definida (ver
+        // PlanoAulaService.gerarSeNecessario).
+        planoAulaService.gerarSeNecessario(salvo);
+        return salvo;
     }
 
     public PlanoEnsino atualizar(Long id, PlanoEnsino obj) {
         validarCurso(obj);
         obj.setId(id);
-        return repository.save(obj);
+        PlanoEnsino salvo = repository.save(obj);
+        // Cobre o caso de um plano de ensino genérico (sem turma) que passou
+        // a ter turma/disciplina definida numa edição posterior.
+        planoAulaService.gerarSeNecessario(salvo);
+        return salvo;
     }
 
     private void validarCurso(PlanoEnsino obj) {
