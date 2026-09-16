@@ -164,12 +164,12 @@ public class SecurityConfig {
                         "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
 
                 // Correção de auditoria: /aluno-turma/** (matricular, atualizar,
-                // cancelar, concluir, transferir, deletar) e /questao-conteudo/**
+                // cancelar, concluir, deletar) e /questao-conteudo/**
                 // (vínculo questão-conteúdo) não tinham nenhuma regra própria e
                 // caíam em anyRequest().authenticated() — a mesma lacuna que a
                 // correção 2.5 já havia fechado para cursos/turmas/disciplinas/
                 // planos, mas que ficou de fora para estas duas rotas. Sem isso,
-                // um Aluno logado podia se automatricular, transferir/cancelar a
+                // um Aluno logado podia se automatricular, cancelar a
                 // matrícula de outro aluno, ou alterar vínculos questão-conteúdo,
                 // via API. Consulta (GET) continua liberada a qualquer
                 // autenticado; escrita fica restrita a quem gerencia matrícula/
@@ -193,6 +193,9 @@ public class SecurityConfig {
                         .hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PUT, "/simulados/**", "/questoes/**", "/alternativas/**",
                         "/simulado-questao/**", "/questao-aluno/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                // PATCH /simulados/{id}/disponibilidade — estender "disponível até"
+                // de um simulado já PUBLICADO (único campo editável pós-lançamento).
+                .requestMatchers(HttpMethod.PATCH, "/simulados/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 // Desvincular conteúdo (/questoes/{id}/conteudos/{conteudoPlanoId}) não é
                 // excluir a questão — mesma regra do DELETE de /questao-conteudo/** acima
                 // (PROFESSOR também pode) — por isso precisa vir ANTES do DELETE

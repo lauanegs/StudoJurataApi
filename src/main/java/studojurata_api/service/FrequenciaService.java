@@ -10,12 +10,15 @@ import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.Aluno;
 import studojurata_api.model.Aula;
 import studojurata_api.model.Frequencia;
+import studojurata_api.model.Turma;
 import studojurata_api.model.enums.StatusMatricula;
 import studojurata_api.repository.AlunoRepository;
 import studojurata_api.repository.AlunoTurmaRepository;
 import studojurata_api.repository.AulaRepository;
 import studojurata_api.repository.FrequenciaRepository;
+import studojurata_api.repository.TurmaRepository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -31,6 +34,8 @@ public class FrequenciaService {
     private final AulaRepository aulaRepository;
     private final AlunoRepository alunoRepository;
     private final AlunoTurmaRepository alunoTurmaRepository;
+    private final TurmaRepository turmaRepository;
+    private final AlunoTurmaService alunoTurmaService;
 
     public List<Frequencia> listarPorAula(Long aulaId) { return repository.findByAula_Id(aulaId); }
 
@@ -80,7 +85,43 @@ public class FrequenciaService {
         frequencia.setAula(aula);
         frequencia.setPresente(item.getPresente());
         frequencia.setJustificativa(item.getJustificativa());
-        return repository.save(frequencia);
+        Frequencia salva = repository.save(frequencia);
+
+        if (Boolean.TRUE.equals(item.getPresente())) {
+            concluirSeAtingiuCargaHoraria(aluno.getId(), turmaId);
+        }
+
+        return salva;
+    }
+
+    /**
+     * Conclusão automática da matrícula (pedido do usuário): assim que a
+     * soma da carga horária das aulas presentes do aluno nesta turma atinge
+     * (ou ultrapassa) a carga horária total do curso, a matrícula ATIVA é
+     * marcada como CONCLUIDA automaticamente, com data de conclusão de hoje.
+     * A organização pode reativá-la depois (editar a matrícula), se decidir
+     * que o aluno deve cursar carga horária adicional.
+     */
+    private void concluirSeAtingiuCargaHoraria(Long alunoId, Long turmaId) {
+        Turma turma = turmaRepository.findById(turmaId).orElse(null);
+        Integer cargaHorariaTotal = turma != null && turma.getCurso() != null
+                ? turma.getCurso().getCargaHorariaTotal()
+                : null;
+        if (cargaHorariaTotal == null) return;
+
+        double cargaHorariaCursada = repository
+                .findByAluno_IdAndAula_PlanoAula_TurmaDisciplina_Turma_IdAndPresenteTrue(alunoId, turmaId)
+                .stream()
+                .mapToDouble(frequencia -> frequencia.getAula().getCargaHoraria() != null
+                        ? frequencia.getAula().getCargaHoraria()
+                        : 0)
+                .sum();
+
+        if (cargaHorariaCursada < cargaHorariaTotal) return;
+
+        alunoTurmaRepository
+                .findFirstByAluno_IdAndTurma_IdAndStatus(alunoId, turmaId, StatusMatricula.ATIVA)
+                .ifPresent(matricula -> alunoTurmaService.concluir(matricula.getId(), LocalDate.now()));
     }
 
     @Transactional

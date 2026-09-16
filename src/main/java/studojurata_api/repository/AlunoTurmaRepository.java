@@ -21,6 +21,11 @@ public interface AlunoTurmaRepository extends JpaRepository<AlunoTurma, Long> {
 
     List<AlunoTurma> findByAlunoIdOrderByDataInicioDesc(Long alunoId);
 
+    /** Usado para impedir excluir turma/aluno com qualquer matrícula vinculada (ativa ou histórico). */
+    boolean existsByTurma_Id(Long turmaId);
+
+    boolean existsByAluno_Id(Long alunoId);
+
     /**
      * Usado por NotaService.recalcular para achar a data de matrícula do
      * aluno na turma (qualquer status — a nota permanece histórica mesmo

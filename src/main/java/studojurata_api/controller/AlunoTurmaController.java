@@ -21,7 +21,7 @@ public class AlunoTurmaController {
     @GetMapping("/{id}")
     public AlunoTurma buscar(@PathVariable Long id) { return service.buscar(id); }
 
-    /** Histórico completo de matrículas de uma turma (ativas, concluídas, canceladas, transferidas). */
+    /** Histórico completo de matrículas de uma turma (ativas, concluídas, canceladas). */
     @GetMapping("/turma/{turmaId}/historico")
     public List<AlunoTurma> historicoPorTurma(@PathVariable Long turmaId) { return service.historicoPorTurma(turmaId); }
 
@@ -55,14 +55,6 @@ public class AlunoTurmaController {
     public AlunoTurma concluir(@PathVariable Long id,
                                 @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate dataFim) {
         return service.concluir(id, dataFim);
-    }
-
-    /** Transfere o aluno da matrícula informada para outra turma. */
-    @PostMapping("/{id}/transferir")
-    public AlunoTurma transferir(@PathVariable Long id,
-                                  @RequestParam Long turmaDestinoId,
-                                  @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate dataTransferencia) {
-        return service.transferir(id, turmaDestinoId, dataTransferencia);
     }
 
     /**

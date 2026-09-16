@@ -19,4 +19,7 @@ public interface FrequenciaRepository extends JpaRepository<Frequencia, Long> {
     long countByAula_IdAndPresenteTrue(Long aulaId);
 
     long countByAluno_IdAndPresenteFalse(Long alunoId);
+
+    /** Usado para somar a carga horária já cursada pelo aluno na turma (ver FrequenciaService). */
+    List<Frequencia> findByAluno_IdAndAula_PlanoAula_TurmaDisciplina_Turma_IdAndPresenteTrue(Long alunoId, Long turmaId);
 }

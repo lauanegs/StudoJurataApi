@@ -9,12 +9,15 @@ import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.Aula;
 import studojurata_api.model.HorarioTurma;
 import studojurata_api.model.PlanoAula;
+import studojurata_api.model.PlanoEnsino;
 import studojurata_api.model.enums.AcaoAuditoria;
 import studojurata_api.model.enums.DiaSemana;
 import studojurata_api.model.enums.StatusAtivoInativo;
+import studojurata_api.model.enums.StatusPlano;
 import studojurata_api.repository.AulaRepository;
 import studojurata_api.repository.HorarioTurmaRepository;
 import studojurata_api.repository.PlanoAulaRepository;
+import studojurata_api.repository.PlanoEnsinoRepository;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -27,8 +30,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AulaService {
 
+    /** Tolerância pra evitar falso positivo por arredondamento de double (ex.: 7.999999999 vs 8). */
+    private static final double TOLERANCIA_CARGA_HORARIA = 0.01;
+
     private final AulaRepository repository;
     private final PlanoAulaRepository planoAulaRepository;
+    private final PlanoEnsinoRepository planoEnsinoRepository;
     private final HorarioTurmaRepository horarioTurmaRepository;
     private final AuditLogService auditLogService;
 
@@ -76,7 +83,34 @@ public class AulaService {
     public Aula publicar(Long id, LocalDate dataPublicacao) {
         Aula aula = buscar(id);
         aula.setDataPublicacao(dataPublicacao != null ? dataPublicacao : LocalDate.now());
-        return repository.save(aula);
+        Aula salva = repository.save(aula);
+
+        concluirPlanoSeUltimaAula(salva.getPlanoAula());
+
+        return salva;
+    }
+
+    /**
+     * Item pedido pelo usuário: assim que a última aula ATIVA do plano de
+     * aula for publicada (todas com data de publicação preenchida), o plano
+     * de aula e o plano de ensino são concluídos automaticamente — sem ação
+     * manual do professor. Não reabre um plano já concluído (ex.: reeditar a
+     * data de uma aula antiga não deveria mexer em nada aqui).
+     */
+    private void concluirPlanoSeUltimaAula(PlanoAula planoAula) {
+        if (planoAula == null || planoAula.getStatus() == StatusPlano.CONCLUIDO) return;
+
+        List<Aula> aulasAtivas = repository.findByPlanoAula_IdAndStatus(planoAula.getId(), StatusAtivoInativo.ATIVO);
+        if (aulasAtivas.isEmpty() || aulasAtivas.stream().anyMatch(a -> a.getDataPublicacao() == null)) return;
+
+        planoAula.setStatus(StatusPlano.CONCLUIDO);
+        planoAulaRepository.save(planoAula);
+
+        PlanoEnsino planoEnsino = planoAula.getPlanoEnsino();
+        if (planoEnsino != null && planoEnsino.getStatus() != StatusPlano.CONCLUIDO) {
+            planoEnsino.setStatus(StatusPlano.CONCLUIDO);
+            planoEnsinoRepository.save(planoEnsino);
+        }
     }
 
     /**
@@ -122,6 +156,16 @@ public class AulaService {
                 ? pedido.getTituloBase().trim()
                 : "Aula";
 
+        // Limite herdado do Plano de Ensino (item pedido pelo usuário: o
+        // plano de aula não pode ter mais aulas do que a carga horária total
+        // administrada permite) — null significa sem limite definido.
+        Integer limiteCargaHoraria = planoAula.getPlanoEnsino() != null
+                ? planoAula.getPlanoEnsino().getCargaHoraria()
+                : null;
+        double cargaHorariaAcumulada = limiteCargaHoraria != null
+                ? somarCargaHorariaAtiva(planoAulaId, null)
+                : 0;
+
         List<Aula> geradas = new ArrayList<>();
         LocalDate data = pedido.getDataInicio() != null ? pedido.getDataInicio() : LocalDate.now();
         // Limite defensivo: no pior caso (1 horário cadastrado), 1 aula por
@@ -129,13 +173,21 @@ public class AulaService {
         // quantidade pedida, então serve só de trava contra loop infinito.
         int diasVarridosNoMaximo = pedido.getQuantidade() * 7 * horarios.size();
         int diasVarridos = 0;
+        boolean limiteAtingido = false;
 
-        while (geradas.size() < pedido.getQuantidade() && diasVarridos < diasVarridosNoMaximo) {
+        while (geradas.size() < pedido.getQuantidade() && diasVarridos < diasVarridosNoMaximo && !limiteAtingido) {
             DiaSemana diaDaData = DiaSemana.values()[data.getDayOfWeek().ordinal()];
 
             for (HorarioTurma horario : horarios) {
                 if (geradas.size() >= pedido.getQuantidade()) break;
                 if (horario.getDiaSemana() != diaDaData) continue;
+
+                double horasDoHorario = Duration.between(horario.getHoraInicio(), horario.getHoraFim()).toMinutes() / 60.0;
+                if (limiteCargaHoraria != null
+                        && cargaHorariaAcumulada + horasDoHorario > limiteCargaHoraria + TOLERANCIA_CARGA_HORARIA) {
+                    limiteAtingido = true;
+                    break;
+                }
 
                 Aula aula = new Aula();
                 aula.setPlanoAula(planoAula);
@@ -146,10 +198,17 @@ public class AulaService {
                 aula.setStatus(StatusAtivoInativo.ATIVO);
                 validar(aula);
                 geradas.add(repository.save(aula));
+                cargaHorariaAcumulada += horasDoHorario;
             }
 
             data = data.plusDays(1);
             diasVarridos++;
+        }
+
+        if (limiteAtingido && geradas.isEmpty()) {
+            throw new RequisicaoInvalidaException(
+                    "A carga horária prevista no plano de ensino (" + limiteCargaHoraria
+                            + "h) já está totalmente coberta pelas aulas existentes deste plano.");
         }
 
         auditLogService.registrar("Aula", planoAulaId, AcaoAuditoria.CRIACAO,
@@ -207,5 +266,31 @@ public class AulaService {
                 throw new RequisicaoInvalidaException("Informe a carga horária da aula, ou selecione um horário da turma.");
             }
         }
+
+        // Item pedido pelo usuário: o total de aulas do plano não pode
+        // ultrapassar a carga horária herdada do Plano de Ensino (que por
+        // sua vez vem da grade curricular do curso) — essa carga horária
+        // não é alterável por aqui, só reflete o que já foi administrado.
+        Integer limiteCargaHoraria = planoAula.getPlanoEnsino() != null
+                ? planoAula.getPlanoEnsino().getCargaHoraria()
+                : null;
+        if (limiteCargaHoraria != null) {
+            double jaUsada = somarCargaHorariaAtiva(planoAula.getId(), obj.getId());
+            double total = jaUsada + obj.getCargaHoraria();
+            if (total > limiteCargaHoraria + TOLERANCIA_CARGA_HORARIA) {
+                double restante = Math.max(0, limiteCargaHoraria - jaUsada);
+                throw new RequisicaoInvalidaException(
+                        "Esta aula excede a carga horária prevista no plano de ensino (" + limiteCargaHoraria
+                                + "h). Restam " + restante + "h disponíveis para este plano.");
+            }
+        }
+    }
+
+    /** Soma a carga horária das aulas ATIVAS do plano, opcionalmente excluindo uma (edição de aula existente). */
+    private double somarCargaHorariaAtiva(Long planoAulaId, Long excluirAulaId) {
+        return repository.findByPlanoAula_IdAndStatus(planoAulaId, StatusAtivoInativo.ATIVO).stream()
+                .filter(aula -> excluirAulaId == null || !aula.getId().equals(excluirAulaId))
+                .mapToDouble(Aula::getCargaHoraria)
+                .sum();
     }
 }

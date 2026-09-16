@@ -27,6 +27,12 @@ public class PlanoAulaController {
         return service.listarPorTurmaDisciplina(turmaDisciplinaId);
     }
 
+    /** Plano(s) de aula gerado(s) a partir de um Plano de Ensino específico. */
+    @GetMapping("/plano-ensino/{planoEnsinoId}")
+    public List<PlanoAula> listarPorPlanoEnsino(@PathVariable Long planoEnsinoId) {
+        return service.listarPorPlanoEnsino(planoEnsinoId);
+    }
+
     /** Estatísticas exibidas na tela "Aulas": aulas realizadas / total previsto e carga horária realizada. */
     @GetMapping("/{id}/estatisticas")
     public Map<String, Object> estatisticas(@PathVariable Long id) { return service.estatisticas(id); }

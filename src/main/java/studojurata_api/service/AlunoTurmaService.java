@@ -9,6 +9,7 @@ import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.AlunoTurma;
 import studojurata_api.model.Turma;
 import studojurata_api.model.enums.StatusMatricula;
+import studojurata_api.model.enums.StatusTurma;
 import studojurata_api.repository.AlunoTurmaRepository;
 import studojurata_api.repository.TurmaRepository;
 
@@ -71,6 +72,7 @@ public class AlunoTurmaService {
         }
 
         if (obj.getStatus() == StatusMatricula.ATIVA) {
+            validarTurmaAtiva(obj.getTurma().getId());
             validarMatriculaAtivaUnica(obj.getAluno().getId(), obj.getTurma().getId(), null);
             validarCapacidade(obj.getTurma().getId());
         }
@@ -90,6 +92,7 @@ public class AlunoTurmaService {
         if (obj.getStatus() == StatusMatricula.ATIVA) {
             Long alunoId = obj.getAluno() != null ? obj.getAluno().getId() : existente.getAluno().getId();
             Long turmaId = obj.getTurma() != null ? obj.getTurma().getId() : existente.getTurma().getId();
+            validarTurmaAtiva(turmaId);
             validarMatriculaAtivaUnica(alunoId, turmaId, id);
             // só valida capacidade se a matrícula não já estava ativa nessa mesma turma
             boolean jaEstavaAtivaNaMesmaTurma = existente.getStatus() == StatusMatricula.ATIVA
@@ -127,55 +130,6 @@ public class AlunoTurmaService {
     }
 
     /**
-     * Transfere um aluno de uma turma para outra: encerra a matrícula de
-     * origem como TRANSFERIDA (não CANCELADA, para não confundir com
-     * desistência) e cria uma nova matrícula ATIVA na turma de destino,
-     * respeitando a capacidade máxima do destino.
-     *
-     * Importante: isso NÃO impede que o aluno mantenha outra matrícula ATIVA
-     * em uma turma diferente — um aluno pode estar matriculado em duas ou
-     * mais turmas ao mesmo tempo normalmente. A regra de unicidade é sempre
-     * por par (aluno, turma), nunca "1 turma ativa por aluno no sistema
-     * todo". Para o caso de transferência real (o aluno sai definitivamente
-     * da turma de origem), chame este método passando a matrícula de origem;
-     * se o objetivo for apenas adicionar o aluno a uma turma extra sem
-     * encerrar a original, use matricular() diretamente.
-     */
-    @Transactional
-    public AlunoTurma transferir(Long matriculaOrigemId, Long turmaDestinoId, LocalDate dataTransferencia) {
-        AlunoTurma origem = buscar(matriculaOrigemId);
-
-        if (origem.getStatus() != StatusMatricula.ATIVA) {
-            throw new RegraNegocioException("Só é possível transferir uma matrícula que esteja ATIVA.");
-        }
-        if (origem.getTurma().getId().equals(turmaDestinoId)) {
-            throw new RequisicaoInvalidaException("Turma de destino deve ser diferente da turma de origem.");
-        }
-
-        Turma destino = turmaRepository.findById(turmaDestinoId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Turma de destino " + turmaDestinoId + " não encontrada."));
-
-        LocalDate data = dataTransferencia != null ? dataTransferencia : LocalDate.now();
-
-        validarMatriculaAtivaUnica(origem.getAluno().getId(), turmaDestinoId, null);
-        validarCapacidade(turmaDestinoId);
-
-        AlunoTurma novaMatricula = new AlunoTurma();
-        novaMatricula.setAluno(origem.getAluno());
-        novaMatricula.setTurma(destino);
-        novaMatricula.setDataInicio(data);
-        novaMatricula.setStatus(StatusMatricula.ATIVA);
-        AlunoTurma salva = repository.save(novaMatricula);
-
-        origem.setStatus(StatusMatricula.TRANSFERIDA);
-        origem.setDataFim(data);
-        origem.setMatriculaDestinoTransferencia(salva);
-        repository.save(origem);
-
-        return salva;
-    }
-
-    /**
      * Exclusão física: mantida apenas para compatibilidade/uso administrativo
      * pontual. Preferir sempre cancelar()/concluir() para preservar
      * histórico pedagógico.
@@ -188,6 +142,15 @@ public class AlunoTurmaService {
                 .isPresent();
         if (jaAtiva) {
             throw new RegraNegocioException("Este aluno já possui uma matrícula ativa nesta turma.");
+        }
+    }
+
+    /** Não é permitido matricular (ou reativar matrícula) em turma que não esteja ATIVA. */
+    private void validarTurmaAtiva(Long turmaId) {
+        Turma turma = turmaRepository.findById(turmaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Turma " + turmaId + " não encontrada."));
+        if (turma.getStatus() != StatusTurma.ATIVA) {
+            throw new RegraNegocioException("A turma \"" + turma.getTitulo() + "\" está inativa e não pode receber novas matrículas.");
         }
     }
 

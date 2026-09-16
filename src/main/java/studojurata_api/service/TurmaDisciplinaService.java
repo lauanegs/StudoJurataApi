@@ -3,12 +3,16 @@ package studojurata_api.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.CursoDisciplina;
 import studojurata_api.model.Turma;
 import studojurata_api.model.TurmaDisciplina;
 import studojurata_api.model.enums.StatusAtivoInativo;
+import studojurata_api.model.enums.StatusPlano;
 import studojurata_api.repository.CursoDisciplinaRepository;
+import studojurata_api.repository.PlanoAulaRepository;
+import studojurata_api.repository.PlanoEnsinoRepository;
 import studojurata_api.repository.TurmaDisciplinaRepository;
 import studojurata_api.repository.TurmaRepository;
 
@@ -30,6 +34,8 @@ public class TurmaDisciplinaService {
     private final TurmaDisciplinaRepository repository;
     private final TurmaRepository turmaRepository;
     private final CursoDisciplinaRepository cursoDisciplinaRepository;
+    private final PlanoEnsinoRepository planoEnsinoRepository;
+    private final PlanoAulaRepository planoAulaRepository;
 
     public List<TurmaDisciplina> listar() { return repository.findAll(); }
 
@@ -50,9 +56,28 @@ public class TurmaDisciplinaService {
         return repository.save(obj);
     }
 
-    /** Soft-delete (item 4.3/5.1): existem PlanoEnsino/Aula/Simulado pendurados via esta associação. */
+    /**
+     * Soft-delete (item 4.3/5.1): existem PlanoEnsino/Aula/Simulado pendurados via esta associação.
+     *
+     * Recusa (409) desvincular a disciplina enquanto houver plano de ensino
+     * ou plano de aula ATIVO usando este vínculo (pedido do usuário) — o
+     * professor perderia o rastro do que já vinha planejando/ministrando.
+     * Primeiro é preciso concluir (ou excluir) esses planos.
+     */
     public void deletar(Long id) {
         TurmaDisciplina turmaDisciplina = buscar(id);
+
+        boolean temPlanoEnsinoAtivo = planoEnsinoRepository.findByTurmaDisciplina_Id(id).stream()
+                .anyMatch(plano -> plano.getStatus() == StatusPlano.ATIVO);
+        boolean temPlanoAulaAtivo = planoAulaRepository.findByTurmaDisciplina_Id(id).stream()
+                .anyMatch(plano -> plano.getStatus() == StatusPlano.ATIVO);
+
+        if (temPlanoEnsinoAtivo || temPlanoAulaAtivo) {
+            throw new RegraNegocioException(
+                    "Esta disciplina tem plano de ensino ou plano de aula ativo nesta turma e não pode ser "
+                            + "desvinculada — conclua (ou exclua) o(s) plano(s) primeiro.");
+        }
+
         turmaDisciplina.setStatus(StatusAtivoInativo.INATIVO);
         repository.save(turmaDisciplina);
     }

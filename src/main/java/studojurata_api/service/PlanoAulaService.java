@@ -32,6 +32,11 @@ public class PlanoAulaService {
         return repository.findByTurmaDisciplina_Id(turmaDisciplinaId);
     }
 
+    /** Usado pelo botão "Plano de aula" dentro do Plano de Ensino (ver PlanoEnsinoFormulario no front). */
+    public List<PlanoAula> listarPorPlanoEnsino(Long planoEnsinoId) {
+        return repository.findByPlanoEnsino_Id(planoEnsinoId);
+    }
+
     @Transactional
     public PlanoAula salvar(PlanoAula obj) {
         validar(obj);

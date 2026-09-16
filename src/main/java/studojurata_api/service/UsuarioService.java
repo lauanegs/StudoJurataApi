@@ -70,4 +70,11 @@ public class UsuarioService {
         usuario.setStatus(StatusAtivoInativo.INATIVO);
         repository.save(usuario);
     }
+
+    /** Reativa um usuário inativado (volta a ATIVO) — contraparte de deletar(). */
+    public Usuario ativar(Long id) {
+        Usuario usuario = buscar(id);
+        usuario.setStatus(StatusAtivoInativo.ATIVO);
+        return repository.save(usuario);
+    }
 }

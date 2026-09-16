@@ -6,6 +6,8 @@ import org.springframework.transaction.annotation.Transactional;
 import studojurata_api.dto.FinalizarSimuladoRequest;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
+import studojurata_api.ia.model.enums.NivelDominio;
+import studojurata_api.ia.service.RevisaoConteudoService;
 import studojurata_api.model.Alternativa;
 import studojurata_api.model.Questao;
 import studojurata_api.model.QuestaoAluno;
@@ -18,13 +20,17 @@ import studojurata_api.model.enums.StatusSimuladoQuestao;
 import studojurata_api.model.enums.TipoQuestao;
 import studojurata_api.repository.AlternativaRepository;
 import studojurata_api.repository.QuestaoAlunoRepository;
+import studojurata_api.repository.QuestaoConteudoRepository;
 import studojurata_api.repository.SimuladoAlunoRepository;
 import studojurata_api.repository.SimuladoQuestaoRepository;
 import studojurata_api.service.gamificacao.PontuacaoAlunoService;
 
+import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -34,9 +40,11 @@ public class SimuladoAlunoService {
     private final SimuladoQuestaoRepository simuladoQuestaoRepository;
     private final QuestaoAlunoRepository questaoAlunoRepository;
     private final AlternativaRepository alternativaRepository;
+    private final QuestaoConteudoRepository questaoConteudoRepository;
     private final NotaService notaService;
     private final AuditLogService auditLogService;
     private final PontuacaoAlunoService pontuacaoAlunoService;
+    private final RevisaoConteudoService revisaoConteudoService;
 
     public List<SimuladoAluno> listar() { return repository.findAll(); }
 
@@ -90,8 +98,10 @@ public class SimuladoAlunoService {
      *   o modal informando que as respostas foram enviadas.</li>
      * </ul>
      */
+    public record ResultadoFinalizacao(SimuladoAluno simuladoAluno, LocalDate proximaRevisao) {}
+
     @Transactional
-    public SimuladoAluno finalizar(Long simuladoAlunoId, FinalizarSimuladoRequest request) {
+    public ResultadoFinalizacao finalizar(Long simuladoAlunoId, FinalizarSimuladoRequest request) {
         SimuladoAluno simuladoAluno = buscar(simuladoAlunoId);
 
         if (simuladoAluno.getStatus() == StatusSimuladoAluno.CONCLUIDO) {
@@ -194,7 +204,55 @@ public class SimuladoAlunoService {
         pontuacaoAlunoService.concederMoedas(salvo.getAluno().getId(),
                 PontuacaoAlunoService.MOEDAS_POR_SIMULADO_CONCLUIDO);
 
-        return salvo;
+        // Item pedido pelo usuário: finalizar QUALQUER simulado (não só uma
+        // revisão manual do professor) agora alimenta de verdade o motor de
+        // repetição espaçada — a tela de finalização (front) passa a mostrar
+        // a data real da próxima revisão em vez de um texto fixo, e o job
+        // diário (GeracaoAutomaticaSimuladoJob) passa a gerar reforço
+        // automaticamente a partir daqui.
+        double percentualAcerto = pontuacaoTotal > 0 ? (pontuacaoObtida / pontuacaoTotal) * 100 : 0;
+        LocalDate proximaRevisao = registrarReforcoNosConteudos(salvo.getAluno().getId(), questoes, percentualAcerto);
+
+        return new ResultadoFinalizacao(salvo, proximaRevisao);
+    }
+
+    /** Heurística MVP (mesmos limiares do front — ver utils/desempenho.ts nivelDesempenho). */
+    private static NivelDominio nivelDominioPeloPercentual(double percentual) {
+        if (percentual < 40) return NivelDominio.BAIXO;
+        if (percentual < 70) return NivelDominio.MEDIO;
+        return NivelDominio.ALTO;
+    }
+
+    /**
+     * Um simulado pode cobrir vários conteúdos (um por questão) — cada
+     * conteúdo distinto ganha seu próprio ciclo de repetição espaçada,
+     * avançado uma vez por finalização (não uma vez por questão). Retorna a
+     * data mais próxima entre os conteúdos tocados (ou null se nenhum tinha
+     * conteúdo vinculado, ou se todos já estão "dominados" — sem próxima
+     * data agendada), pra a tela de finalização mostrar em quantos dias o
+     * conteúdo volta.
+     */
+    private LocalDate registrarReforcoNosConteudos(Long alunoId, List<SimuladoQuestao> questoes, double percentualAcerto) {
+        List<Long> questaoIds = questoes.stream().map(sq -> sq.getQuestao().getId()).toList();
+        if (questaoIds.isEmpty()) return null;
+
+        Set<Long> conteudoPlanoIds = new HashSet<>();
+        for (var vinculo : questaoConteudoRepository.findByQuestao_IdIn(questaoIds)) {
+            if (vinculo.getConteudoPlano() != null) {
+                conteudoPlanoIds.add(vinculo.getConteudoPlano().getId());
+            }
+        }
+
+        NivelDominio nivel = nivelDominioPeloPercentual(percentualAcerto);
+        LocalDate maisProxima = null;
+        for (Long conteudoPlanoId : conteudoPlanoIds) {
+            var revisao = revisaoConteudoService.registrarReforco(alunoId, conteudoPlanoId, nivel);
+            LocalDate data = revisao.getDataProximoReforco();
+            if (data != null && (maisProxima == null || data.isBefore(maisProxima))) {
+                maisProxima = data;
+            }
+        }
+        return maisProxima;
     }
 
     /** Escolha única (tipo ALTERNATIVAS): acerta quem escolheu a alternativa marcada correta=true. */

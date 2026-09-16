@@ -93,11 +93,29 @@ public class TurmaService {
         return alunoTurmaRepository.countByTurmaIdAndStatus(turmaId, StatusMatricula.ATIVA);
     }
 
-    /** Soft-delete (correção 2.3): preserva o histórico de matrículas/disciplinas vinculadas à turma. */
+    /**
+     * Soft-delete (correção 2.3): preserva o histórico de matrículas/disciplinas
+     * vinculadas à turma. Recusa (409) excluir uma turma que já teve qualquer
+     * matrícula (ativa ou histórica) — essa exclusão existe só para o caso da
+     * secretaria ter criado a turma por engano, nunca para descartar turma com
+     * histórico pedagógico real (usar "Situação: Inativa" para encerrar).
+     */
     public void deletar(Long id) {
         Turma turma = buscar(id);
+        if (alunoTurmaRepository.existsByTurma_Id(id)) {
+            throw new RegraNegocioException(
+                    "Esta turma já teve aluno(s) matriculado(s) e não pode ser inativada por aqui — "
+                            + "use a Situação em \"Dados da turma\" para inativar preservando o histórico.");
+        }
         turma.setStatus(StatusTurma.INATIVA);
         repository.save(turma);
+    }
+
+    /** Reativa uma turma inativada (volta pra ATIVA) — contraparte de deletar(). */
+    public Turma ativar(Long id) {
+        Turma turma = buscar(id);
+        turma.setStatus(StatusTurma.ATIVA);
+        return repository.save(turma);
     }
 
     private void validarCapacidadeMaxima(Turma obj) {

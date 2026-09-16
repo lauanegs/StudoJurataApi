@@ -18,6 +18,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SimuladoQuestaoService {
 
+    /** Regra de negócio: um simulado nunca pode ter mais que 10 questões. */
+    private static final int MAXIMO_QUESTOES_POR_SIMULADO = 10;
+
     private final SimuladoQuestaoRepository repository;
     private final QuestaoConteudoRepository questaoConteudoRepository;
 
@@ -45,6 +48,7 @@ public class SimuladoQuestaoService {
     @Transactional
     public SimuladoQuestao salvar(SimuladoQuestao obj) {
         validarQuestaoVinculadaAoConteudo(obj);
+        validarLimiteDeQuestoes(obj);
         if (obj.getStatus() == null) {
             obj.setStatus(StatusSimuladoQuestao.ATIVA);
         }
@@ -81,6 +85,16 @@ public class SimuladoQuestaoService {
      * pontual. Preferir sempre remover() para preservar histórico.
      */
     public void deletar(Long id) { repository.deleteById(id); }
+
+    private void validarLimiteDeQuestoes(SimuladoQuestao obj) {
+        if (obj.getSimulado() == null || obj.getSimulado().getId() == null) return;
+
+        long ativas = repository.countBySimuladoIdAndStatus(obj.getSimulado().getId(), StatusSimuladoQuestao.ATIVA);
+        if (ativas >= MAXIMO_QUESTOES_POR_SIMULADO) {
+            throw new RegraNegocioException(
+                    "Este simulado já tem o máximo de " + MAXIMO_QUESTOES_POR_SIMULADO + " questões.");
+        }
+    }
 
     private void validarQuestaoVinculadaAoConteudo(SimuladoQuestao obj) {
         if (obj.getQuestao() == null || obj.getQuestao().getId() == null) {

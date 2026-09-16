@@ -34,17 +34,9 @@ public class AlunoTurma extends BaseEntity {
 
     private LocalDate dataInicio;
 
-    /** Preenchida quando a matrícula deixa de estar ATIVA (conclusão, cancelamento ou transferência). */
+    /** Preenchida quando a matrícula deixa de estar ATIVA (conclusão ou cancelamento). */
     private LocalDate dataFim;
 
     @Enumerated(EnumType.STRING)
     private StatusMatricula status;
-
-    /**
-     * Quando esta matrícula é encerrada por transferência (status = TRANSFERIDA),
-     * aponta para a nova matrícula criada na turma de destino, permitindo
-     * reconstruir a trilha completa do aluno entre turmas.
-     */
-    @ManyToOne
-    private AlunoTurma matriculaDestinoTransferencia;
 }

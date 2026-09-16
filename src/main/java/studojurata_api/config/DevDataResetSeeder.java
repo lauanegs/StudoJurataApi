@@ -172,8 +172,15 @@ public class DevDataResetSeeder implements CommandLineRunner {
         escolaRepository.deleteAllInBatch();
     }
 
-    /** Um aluno a matricular numa turma — usado só para reduzir repetição no semear(). */
-    private record AlunoSeed(String nome, String cpf, String nascimentoIso, String username,
+    /**
+     * Um aluno a matricular numa turma — usado só para reduzir repetição no
+     * semear(). `codigo` é um sufixo de 2 dígitos único (ex.: "01") — vira a
+     * base do CPF gerado (com dígito verificador real, ver gerarCpfValido) e
+     * do telefone, em vez de ser extraído por substring de um CPF já
+     * formatado (isso produzia telefone com traço sobrando, tipo
+     * "(11) 930--0000").
+     */
+    private record AlunoSeed(String nome, String codigo, String nascimentoIso, String username,
                               Sexo sexo, String nomeResponsavel, Parentesco parentesco) {
     }
 
@@ -233,9 +240,9 @@ public class DevDataResetSeeder implements CommandLineRunner {
         Turma turmaGeekTeens = criarTurma(escola, cursoGeekTeens, DiaSemana.SABADO, 9, 0, inicioAnoLetivo);
 
         // ---- Professores (1 titular por disciplina) --------------------------------
-        Pessoa pessoaProfRobotica = criarPessoa("Rafael Torres Mendes", "800.000.000-01",
+        Pessoa pessoaProfRobotica = criarPessoa("Rafael Torres Mendes", gerarCpfValido("800000001"),
                 LocalDate.of(1990, 4, 18), "(11) 98100-0001", "rafael.mendes@studojurata.com", Sexo.MASCULINO);
-        Pessoa pessoaProfProgGamificada = criarPessoa("Juliana Prado Costa", "800.000.000-02",
+        Pessoa pessoaProfProgGamificada = criarPessoa("Juliana Prado Costa", gerarCpfValido("800000002"),
                 LocalDate.of(1992, 9, 7), "(11) 98100-0002", "juliana.costa@studojurata.com", Sexo.FEMININO);
 
         Professor profRobotica = new Professor();
@@ -252,7 +259,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarUsuario(escola, pessoaProfProgGamificada, "juliana.costa", "senha123", TipoUsuario.PROFESSOR, null, profProgGamificada);
 
         // ---- Administrador (necessário para Evento.criadoPor) -----------------
-        Pessoa pessoaAdmin = criarPessoa("Ana Paula Admin", "000.000.000-00",
+        Pessoa pessoaAdmin = criarPessoa("Ana Paula Admin", gerarCpfValido("900000001"),
                 LocalDate.of(1980, 1, 1), "(11) 90000-0000", "admin@studojurata.com", Sexo.FEMININO);
         Usuario usuarioAdmin = criarUsuario(escola, pessoaAdmin, "admin", "admin123", TipoUsuario.ADMINISTRADOR, null, null);
 
@@ -269,39 +276,39 @@ public class DevDataResetSeeder implements CommandLineRunner {
 
         // ---- Alunos (7 a 14 anos) + Responsáveis + Matrículas ativas ---------------
         List<AlunoSeed> seedsGeekJunior = List.of(
-                new AlunoSeed("Enzo Ferreira Lima", "700.000.000-01", "2019-03-14", "aluno.enzo",
+                new AlunoSeed("Enzo Ferreira Lima", "01", "2019-03-14", "aluno.enzo",
                         Sexo.MASCULINO, "Marcelo Ferreira Lima (pai)", Parentesco.PAI),
-                new AlunoSeed("Alice Martins Souza", "700.000.000-02", "2019-06-02", "aluno.alice",
+                new AlunoSeed("Alice Martins Souza", "02", "2019-06-02", "aluno.alice",
                         Sexo.FEMININO, "Patrícia Martins Souza (mãe)", Parentesco.MAE),
-                new AlunoSeed("Davi Rodrigues Alves", "700.000.000-03", "2018-04-20", "aluno.davi",
+                new AlunoSeed("Davi Rodrigues Alves", "03", "2018-04-20", "aluno.davi",
                         Sexo.MASCULINO, "Renata Rodrigues Alves (mãe)", Parentesco.MAE),
-                new AlunoSeed("Sophia Cardoso Pinto", "700.000.000-04", "2017-02-11", "aluno.sophia",
+                new AlunoSeed("Sophia Cardoso Pinto", "04", "2017-02-11", "aluno.sophia",
                         Sexo.FEMININO, "Eduardo Cardoso Pinto (pai)", Parentesco.PAI));
 
         List<AlunoSeed> seedsRobotica = List.of(
-                new AlunoSeed("Miguel Santos Barbosa", "700.000.000-05", "2017-05-30", "aluno.miguel",
+                new AlunoSeed("Miguel Santos Barbosa", "05", "2017-05-30", "aluno.miguel",
                         Sexo.MASCULINO, "Vanessa Santos Barbosa (mãe)", Parentesco.MAE),
-                new AlunoSeed("Laura Nascimento Dias", "700.000.000-06", "2016-01-18", "aluno.laura",
+                new AlunoSeed("Laura Nascimento Dias", "06", "2016-01-18", "aluno.laura",
                         Sexo.FEMININO, "Ricardo Nascimento Dias (pai)", Parentesco.PAI),
-                new AlunoSeed("Gabriel Almeida Rocha", "700.000.000-07", "2015-07-09", "aluno.gabriel",
+                new AlunoSeed("Gabriel Almeida Rocha", "07", "2015-07-09", "aluno.gabriel",
                         Sexo.MASCULINO, "Cláudia Almeida Rocha (avó)", Parentesco.AVO),
-                new AlunoSeed("Isabela Correia Teixeira", "700.000.000-08", "2014-03-25", "aluno.isabela",
+                new AlunoSeed("Isabela Correia Teixeira", "08", "2014-03-25", "aluno.isabela",
                         Sexo.FEMININO, "Fábio Correia Teixeira (pai)", Parentesco.PAI));
 
         List<AlunoSeed> seedsProgGamificada = List.of(
-                new AlunoSeed("Bernardo Vieira Castro", "700.000.000-09", "2016-06-12", "aluno.bernardo",
+                new AlunoSeed("Bernardo Vieira Castro", "09", "2016-06-12", "aluno.bernardo",
                         Sexo.MASCULINO, "Adriana Vieira Castro (mãe)", Parentesco.MAE),
-                new AlunoSeed("Manuela Ribeiro Duarte", "700.000.000-10", "2015-02-28", "aluno.manuela",
+                new AlunoSeed("Manuela Ribeiro Duarte", "10", "2015-02-28", "aluno.manuela",
                         Sexo.FEMININO, "Marcos Ribeiro Duarte (pai)", Parentesco.PAI),
-                new AlunoSeed("Heitor Monteiro Farias", "700.000.000-11", "2014-07-04", "aluno.heitor",
+                new AlunoSeed("Heitor Monteiro Farias", "11", "2014-07-04", "aluno.heitor",
                         Sexo.MASCULINO, "Simone Monteiro Farias (mãe)", Parentesco.MAE));
 
         List<AlunoSeed> seedsGeekTeens = List.of(
-                new AlunoSeed("Yasmin Cunha Moreira", "700.000.000-12", "2014-01-09", "aluno.yasmin",
+                new AlunoSeed("Yasmin Cunha Moreira", "12", "2014-01-09", "aluno.yasmin",
                         Sexo.FEMININO, "Tiago Cunha Moreira (pai)", Parentesco.PAI),
-                new AlunoSeed("Arthur Pereira Nogueira", "700.000.000-13", "2013-05-17", "aluno.arthur",
+                new AlunoSeed("Arthur Pereira Nogueira", "13", "2013-05-17", "aluno.arthur",
                         Sexo.MASCULINO, "Letícia Pereira Nogueira (mãe)", Parentesco.MAE),
-                new AlunoSeed("Luiza Batista Gonçalves", "700.000.000-14", "2012-03-03", "aluno.luiza",
+                new AlunoSeed("Luiza Batista Gonçalves", "14", "2012-03-03", "aluno.luiza",
                         Sexo.FEMININO, "Otávio Batista Gonçalves (pai)", Parentesco.PAI));
 
         List<Aluno> alunosGeekJunior = criarAlunos(escola, seedsGeekJunior);
@@ -316,10 +323,10 @@ public class DevDataResetSeeder implements CommandLineRunner {
 
         // ---- Alunos só no histórico (cobrem CONCLUIDA e CANCELADA) -----------------
         Aluno alunoConcluido = criarAlunos(escola, List.of(
-                new AlunoSeed("Théo Azevedo Ramos", "700.000.000-15", "2016-04-08", "aluno.theo",
+                new AlunoSeed("Théo Azevedo Ramos", "15", "2016-04-08", "aluno.theo",
                         Sexo.MASCULINO, "Camila Azevedo Ramos (mãe)", Parentesco.MAE))).get(0);
         Aluno alunoCancelado = criarAlunos(escola, List.of(
-                new AlunoSeed("Valentina Moraes Lopes", "700.000.000-16", "2013-08-01", "aluno.valentina",
+                new AlunoSeed("Valentina Moraes Lopes", "16", "2013-08-01", "aluno.valentina",
                         Sexo.FEMININO, "Bruno Moraes Lopes (pai)", Parentesco.PAI))).get(0);
 
         criarMatricula(alunoConcluido, turmaRobotica, StatusMatricula.CONCLUIDA,
@@ -329,7 +336,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
 
         // ---- Aluno matriculado em dois cursos ativos simultaneamente ---------------
         Aluno alunoDoisCursos = criarAlunos(escola, List.of(
-                new AlunoSeed("Pedro Augusto Lima", "700.000.000-17", "2016-11-22", "aluno.pedro",
+                new AlunoSeed("Pedro Augusto Lima", "17", "2016-11-22", "aluno.pedro",
                         Sexo.MASCULINO, "Fernanda Augusto Lima (mãe)", Parentesco.MAE))).get(0);
         criarMatricula(alunoDoisCursos, turmaGeekJunior, StatusMatricula.ATIVA, inicioAnoLetivo, null);
         criarMatricula(alunoDoisCursos, turmaRobotica, StatusMatricula.ATIVA, inicioAnoLetivo, null);
@@ -455,8 +462,8 @@ public class DevDataResetSeeder implements CommandLineRunner {
         // ---- Questões de IA pendentes de revisão ("simulados a revisar") -----------
         // Vinculadas a um simulado ainda em RASCUNHO por disciplina, cobrindo a tela
         // de revisão de questões geradas por IA antes de irem para um simulado real.
-        Simulado revisaoRobotica = criarSimuladoRascunho("Revisão IA — Robótica", discRobotica, turmaRobotica);
-        Simulado revisaoProgGamificada = criarSimuladoRascunho("Revisão IA — Programação Gamificada", discProgGamificada, turmaProgGamificada);
+        Simulado revisaoRobotica = criarSimuladoRascunho("Revisão IA — Robótica", discRobotica, turmaRobotica, 2);
+        Simulado revisaoProgGamificada = criarSimuladoRascunho("Revisão IA — Programação Gamificada", discProgGamificada, turmaProgGamificada, 2);
 
         Questao questaoIaRobotica1 = criarQuestaoIaPendente(discRobotica, conteudosRobotica.get(0),
                 "Qual componente converte energia elétrica em movimento no robô?", NivelDificuldade.FACIL,
@@ -604,7 +611,81 @@ public class DevDataResetSeeder implements CommandLineRunner {
         p.setEmail(email);
         p.setSexo(sexo);
         p.setStatus(StatusAtivoInativo.ATIVO);
+        // Coerência (pedido explícito): nenhuma Pessoa tinha endereço — a aba
+        // "Endereço" (e o preenchimento automático por CEP) sempre aparecia
+        // vazia em qualquer tela de teste. Gerado a partir do CPF, então é
+        // sempre o mesmo endereço pra mesma pessoa entre resets do seed.
+        p.setEndereco(gerarEndereco(cpf));
         return pessoaRepository.save(p);
+    }
+
+    private static final String[][] ENDERECOS_SP = {
+            {"01310-100", "Avenida Paulista", "Bela Vista"},
+            {"04538-133", "Avenida Brigadeiro Faria Lima", "Itaim Bibi"},
+            {"05407-002", "Rua Doutor Fernandes Coelho", "Pinheiros"},
+            {"03310-000", "Rua Bresser", "Brás"},
+            {"02011-000", "Avenida Engenheiro Caetano Álvares", "Casa Verde"},
+            {"04094-050", "Rua Vergueiro", "Vila Mariana"},
+            {"05422-030", "Rua Cardeal Arcoverde", "Pinheiros"},
+            {"03102-002", "Rua da Mooca", "Mooca"},
+            {"02925-060", "Avenida Deputado Emílio Carlos", "Jardim São Paulo"},
+            {"04711-130", "Avenida Santo Amaro", "Brooklin"},
+            {"08210-260", "Avenida Aricanduva", "Vila Matilde"},
+            {"05836-000", "Avenida Giovanni Gronchi", "Morumbi"},
+    };
+
+    /**
+     * Endereço plausível de São Paulo/SP, determinístico a partir do CPF
+     * (mesma pessoa sempre recebe o mesmo endereço entre resets do seed) —
+     * escolhido de uma lista de logradouros reais em vez de texto genérico
+     * tipo "Rua 1".
+     */
+    /**
+     * Gera um CPF com dígitos verificadores REAIS a partir de uma base de 9
+     * dígitos — mesmo algoritmo de `cpfValido` no front
+     * (utils/validacao.ts). Sem isso, os CPFs fixos que o seed usava (ex.:
+     * "700.000.000-01") não passavam na validação de verdade: abrir um
+     * cadastro existente e salvar sem mexer no CPF já falhava com "CPF
+     * inválido", porque o dígito verificador nunca batia.
+     */
+    private String gerarCpfValido(String base9) {
+        int[] d = new int[11];
+        for (int i = 0; i < 9; i++) d[i] = base9.charAt(i) - '0';
+
+        int soma1 = 0;
+        for (int i = 0; i < 9; i++) soma1 += d[i] * (10 - i);
+        int resto1 = (soma1 * 10) % 11;
+        d[9] = resto1 == 10 ? 0 : resto1;
+
+        int soma2 = 0;
+        for (int i = 0; i < 10; i++) soma2 += d[i] * (11 - i);
+        int resto2 = (soma2 * 10) % 11;
+        d[10] = resto2 == 10 ? 0 : resto2;
+
+        StringBuilder sb = new StringBuilder(14);
+        for (int i = 0; i < 11; i++) {
+            if (i == 3 || i == 6) sb.append('.');
+            if (i == 9) sb.append('-');
+            sb.append(d[i]);
+        }
+        return sb.toString();
+    }
+
+    private Endereco gerarEndereco(String cpf) {
+        String digitos = cpf.replaceAll("\\D", "");
+        int indice = Math.abs(digitos.hashCode()) % ENDERECOS_SP.length;
+        String[] base = ENDERECOS_SP[indice];
+        int numero = 100 + (Math.abs(digitos.hashCode()) % 900);
+
+        Endereco endereco = new Endereco();
+        endereco.setCep(base[0]);
+        endereco.setLogradouro(base[1]);
+        endereco.setNumero(String.valueOf(numero));
+        endereco.setComplemento(numero % 3 == 0 ? "Apto " + (numero % 100) : null);
+        endereco.setBairro(base[2]);
+        endereco.setCidade("São Paulo");
+        endereco.setEstado("SP");
+        return endereco;
     }
 
     private Usuario criarUsuario(Escola escola, Pessoa pessoa, String username, String senhaPlana,
@@ -639,8 +720,9 @@ public class DevDataResetSeeder implements CommandLineRunner {
     }
 
     private Aluno criarAlunoComResponsavel(Escola escola, AlunoSeed seed) {
-        Pessoa pessoaAluno = criarPessoa(seed.nome(), seed.cpf(), LocalDate.parse(seed.nascimentoIso()),
-                "(11) 93" + seed.cpf().substring(10, 12) + "-0000",
+        Pessoa pessoaAluno = criarPessoa(seed.nome(), gerarCpfValido("7000000" + seed.codigo()),
+                LocalDate.parse(seed.nascimentoIso()),
+                "(11) 93" + seed.codigo() + "-0000",
                 seed.username().replace(".", "_") + "@studojurata.com", seed.sexo());
 
         Aluno aluno = new Aluno();
@@ -650,8 +732,11 @@ public class DevDataResetSeeder implements CommandLineRunner {
 
         criarUsuario(escola, pessoaAluno, seed.username(), "senha123", TipoUsuario.ALUNO, aluno, null);
 
-        Pessoa pessoaResp = criarPessoa(seed.nomeResponsavel(), "RESP-" + pessoaAluno.getId(),
-                LocalDate.of(1980, 1, 1), "(11) 94" + seed.cpf().substring(10, 12) + "-0000",
+        // Responsável tinha CPF placeholder inválido ("RESP-<id>") — vira um
+        // CPF de verdade, com prefixo diferente do aluno (6 em vez de 7)
+        // pra nunca colidir, mas ainda derivado do mesmo código.
+        Pessoa pessoaResp = criarPessoa(seed.nomeResponsavel(), gerarCpfValido("6000000" + seed.codigo()),
+                LocalDate.of(1980, 1, 1), "(11) 94" + seed.codigo() + "-0000",
                 "resp." + seed.username() + "@studojurata.com",
                 seed.parentesco() == Parentesco.PAI || seed.parentesco() == Parentesco.TIO ? Sexo.MASCULINO : Sexo.FEMININO);
         Responsavel responsavel = new Responsavel();
@@ -740,12 +825,25 @@ public class DevDataResetSeeder implements CommandLineRunner {
         pa.setStatus(status);
         pa = planoAulaRepository.save(pa);
 
+        // Coerência: a carga horária da aula precisa bater com o horário
+        // semanal real da turma (ver AulaService.validar — no uso normal
+        // pela tela "Registrar aula", cargaHoraria é sempre CALCULADA a
+        // partir do horarioTurma escolhido, nunca digitada à mão quando
+        // existe um horário cadastrado). Sem isso, o seed tinha aulas de
+        // "2h" numa turma cujo único horário cadastrado dura 1h30.
+        List<HorarioTurma> horarios = horarioTurmaRepository.findByTurma_Id(td.getTurma().getId());
+        HorarioTurma horario = horarios.isEmpty() ? null : horarios.get(0);
+        double cargaHorariaAula = horario != null
+                ? java.time.Duration.between(horario.getHoraInicio(), horario.getHoraFim()).toMinutes() / 60.0
+                : 1.5;
+
         List<Aula> aulas = new ArrayList<>();
         for (int i = 1; i <= 2; i++) {
             LocalDate data = dataBase.plusDays(i - 1);
             Aula aula = new Aula();
             aula.setPlanoAula(pa);
-            aula.setCargaHoraria(2.0);
+            aula.setHorarioTurma(horario);
+            aula.setCargaHoraria(cargaHorariaAula);
             aula.setDataPrevista(data);
             aula.setOrdem(i);
             aula.setTitulo(tituloBase + " " + i);
@@ -968,15 +1066,21 @@ public class DevDataResetSeeder implements CommandLineRunner {
         return s;
     }
 
-    /** Simulado ainda em RASCUNHO — reúne as questões de IA aguardando aprovação. */
-    private Simulado criarSimuladoRascunho(String titulo, Disciplina disciplina, Turma turma) {
+    /**
+     * Simulado ainda em RASCUNHO — reúne as questões de IA aguardando
+     * aprovação. `quantidadeQuestoes` reflete de verdade quantas o chamador
+     * vai vincular em seguida (sempre 2, nos dois usos deste seed) — deixar
+     * 0 fixo aqui, com 2 questões de fato vinculadas logo depois, é a
+     * inconsistência que o campo existe justamente para evitar.
+     */
+    private Simulado criarSimuladoRascunho(String titulo, Disciplina disciplina, Turma turma, int quantidadeQuestoes) {
         Simulado s = new Simulado();
         s.setTitulo(titulo);
         s.setDisciplina(disciplina);
         s.setTurma(turma);
         s.setTipoDestinacao(TipoDestinacaoSimulado.TODOS);
         s.setNotaMaxima(10.0);
-        s.setQuantidadeQuestoes(0);
+        s.setQuantidadeQuestoes(quantidadeQuestoes);
         s.setStatus(StatusSimulado.RASCUNHO);
         return simuladoRepository.save(s);
     }

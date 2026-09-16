@@ -4,9 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.model.Aluno;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.repository.AlunoRepository;
+import studojurata_api.repository.AlunoTurmaRepository;
 
 import java.util.List;
 
@@ -16,6 +18,7 @@ import java.util.List;
 public class AlunoService {
 
     private final AlunoRepository repository;
+    private final AlunoTurmaRepository alunoTurmaRepository;
 
     public List<Aluno> listar() { return repository.findAll(); }
 
@@ -36,12 +39,30 @@ public class AlunoService {
      * Pessoa, ver correção 2.1) — "excluir" um aluno com histórico
      * pedagógico (notas, matrículas, simulados) marca a Pessoa vinculada
      * como INATIVA, preservando a linha física e todas as FKs históricas.
+     *
+     * Recusa (409) excluir um aluno que já teve qualquer matrícula (ativa ou
+     * histórica) — essa exclusão existe só para descartar cadastro feito por
+     * engano, nunca para apagar aluno com histórico pedagógico real.
      */
     @Transactional
     public void deletar(Long id) {
         Aluno aluno = buscar(id);
+        if (alunoTurmaRepository.existsByAluno_Id(id)) {
+            throw new RegraNegocioException(
+                    "Este aluno já teve matrícula em turma e não pode ser inativado.");
+        }
         if (aluno.getPessoa() != null) {
             aluno.getPessoa().setStatus(StatusAtivoInativo.INATIVO);
         }
+    }
+
+    /** Reativa um aluno inativado (volta a Pessoa pra ATIVO) — contraparte de deletar(). */
+    @Transactional
+    public Aluno ativar(Long id) {
+        Aluno aluno = buscar(id);
+        if (aluno.getPessoa() != null) {
+            aluno.getPessoa().setStatus(StatusAtivoInativo.ATIVO);
+        }
+        return aluno;
     }
 }

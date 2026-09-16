@@ -20,4 +20,5 @@ public class ResponsavelController {
     @PostMapping public Responsavel salvar(@RequestBody Responsavel o){ return service.salvar(o); }
     @PutMapping("/{id}") public Responsavel atualizar(@PathVariable Long id,@RequestBody Responsavel o){ return service.atualizar(id, o); }
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
+    @PostMapping("/{id}/ativar") public Responsavel ativar(@PathVariable Long id){ return service.ativar(id); }
 }

@@ -15,4 +15,6 @@ public class SimuladoAlunoResponseDTO {
     private Integer tempoGasto;
     private Boolean finalizadoPorTempo;
     private StatusSimuladoAluno status;
+    /** Só preenchido na resposta de POST /{id}/finalizar — dias até a próxima revisão por repetição espaçada (null se o simulado não cobre nenhum conteúdo rastreado, ou se já está dominado). */
+    private Integer diasProximaRevisao;
 }

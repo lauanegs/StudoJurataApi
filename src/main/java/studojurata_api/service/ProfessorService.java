@@ -60,4 +60,11 @@ public class ProfessorService {
             turmaDisciplinaRepository.save(td);
         }
     }
+
+    /** Reativa um professor inativado (volta a ATIVO) — contraparte de deletar(). */
+    public Professor ativar(Long id) {
+        Professor professor = buscar(id);
+        professor.setStatus(StatusAtivoInativo.ATIVO);
+        return repository.save(professor);
+    }
 }

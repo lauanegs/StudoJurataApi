@@ -77,4 +77,11 @@ public class CursoService {
         curso.setStatus(StatusAtivoInativo.INATIVO);
         repository.save(curso);
     }
+
+    /** Reativa um curso inativado (volta a ATIVO) — contraparte de deletar(). */
+    public Curso ativar(Long id) {
+        Curso curso = buscar(id);
+        curso.setStatus(StatusAtivoInativo.ATIVO);
+        return repository.save(curso);
+    }
 }

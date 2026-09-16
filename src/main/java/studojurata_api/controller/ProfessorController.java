@@ -22,4 +22,5 @@ public class ProfessorController {
     @PostMapping public Professor salvar(@RequestBody Professor o){ return service.salvar(o); }
     @PutMapping("/{id}") public Professor atualizar(@PathVariable Long id,@RequestBody Professor o){ return service.atualizar(id, o); }
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
+    @PostMapping("/{id}/ativar") public Professor ativar(@PathVariable Long id){ return service.ativar(id); }
 }

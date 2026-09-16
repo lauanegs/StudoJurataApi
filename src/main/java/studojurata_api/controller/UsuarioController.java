@@ -25,4 +25,5 @@ public class UsuarioController {
     @PostMapping public Usuario salvar(@RequestBody Usuario o){ return service.salvar(o); }
     @PutMapping("/{id}") public Usuario atualizar(@PathVariable Long id,@RequestBody Usuario o){ return service.atualizar(id, o); }
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
+    @PostMapping("/{id}/ativar") public Usuario ativar(@PathVariable Long id){ return service.ativar(id); }
 }

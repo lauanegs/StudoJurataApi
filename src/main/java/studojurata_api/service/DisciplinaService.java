@@ -49,4 +49,11 @@ public class DisciplinaService {
         disciplina.setStatus(StatusAtivoInativo.INATIVO);
         repository.save(disciplina);
     }
+
+    /** Reativa uma disciplina inativada (volta a ATIVO) — contraparte de deletar(). */
+    public Disciplina ativar(Long id) {
+        Disciplina disciplina = buscar(id);
+        disciplina.setStatus(StatusAtivoInativo.ATIVO);
+        return repository.save(disciplina);
+    }
 }

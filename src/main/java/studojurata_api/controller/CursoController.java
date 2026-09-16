@@ -26,6 +26,7 @@ public class CursoController {
     @PostMapping public Curso salvar(@RequestBody Curso o){ return service.salvar(o); }
     @PutMapping("/{id}") public Curso atualizar(@PathVariable Long id, @RequestBody Curso o){ return service.atualizar(id, o); }
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
+    @PostMapping("/{id}/ativar") public Curso ativar(@PathVariable Long id){ return service.ativar(id); }
 
     /** Planos de ensino (um por disciplina do currículo) vinculados a este curso. */
     @GetMapping("/{id}/planos-ensino")

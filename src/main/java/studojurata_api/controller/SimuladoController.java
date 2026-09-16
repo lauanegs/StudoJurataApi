@@ -3,6 +3,7 @@ package studojurata_api.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import studojurata_api.dto.EstenderDisponibilidadeRequest;
 import studojurata_api.dto.LancarSimuladoRequest;
 import studojurata_api.dto.SimuladoRequestDTO;
 import studojurata_api.dto.SimuladoResponseDTO;
@@ -55,5 +56,12 @@ public class SimuladoController {
     @PostMapping("/{id}/encerrar")
     public SimuladoResponseDTO encerrar(@PathVariable Long id) {
         return mapper.toResponseDTO(service.encerrar(id));
+    }
+
+    /** Estende a data "disponível até" de um simulado já PUBLICADO — único campo editável depois do lançamento. */
+    @PatchMapping("/{id}/disponibilidade")
+    public SimuladoResponseDTO estenderDisponibilidade(
+            @PathVariable Long id, @RequestBody EstenderDisponibilidadeRequest request) {
+        return mapper.toResponseDTO(service.estenderDisponibilidade(id, request.getDataFim()));
     }
 }

@@ -19,6 +19,7 @@ public class TurmaController {
     @PostMapping public Turma salvar(@RequestBody Turma o){ return service.salvar(o); }
     @PutMapping("/{id}") public Turma atualizar(@PathVariable Long id,@RequestBody Turma o){ return service.atualizar(id, o); }
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
+    @PostMapping("/{id}/ativar") public Turma ativar(@PathVariable Long id){ return service.ativar(id); }
 
     /** Quantidade de alunos com matrícula ativa nesta turma (derivada, nunca um campo persistido). */
     @GetMapping("/{id}/alunos-ativos")

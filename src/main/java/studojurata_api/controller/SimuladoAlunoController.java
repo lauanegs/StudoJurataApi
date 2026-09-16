@@ -9,6 +9,8 @@ import studojurata_api.dto.SimuladoAlunoResponseDTO;
 import studojurata_api.mapper.SimuladoAlunoMapper;
 import studojurata_api.service.SimuladoAlunoService;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @RestController
@@ -47,9 +49,20 @@ public class SimuladoAlunoController {
     @DeleteMapping("/{id}")
     public void deletar(@PathVariable Long id) { service.deletar(id); }
 
-    /** Finaliza a tentativa do aluno, calculando nota/acertos/tempoGasto (itens 1.3, 2.4, 4.2). */
+    /**
+     * Finaliza a tentativa do aluno, calculando nota/acertos/tempoGasto
+     * (itens 1.3, 2.4, 4.2) — e, a partir daí, também a data real da
+     * próxima revisão por repetição espaçada (diasProximaRevisao no DTO),
+     * pra tela de finalização (front) mostrar um número real em vez de um
+     * texto fixo.
+     */
     @PostMapping("/{id}/finalizar")
     public SimuladoAlunoResponseDTO finalizar(@PathVariable Long id, @RequestBody FinalizarSimuladoRequest request) {
-        return mapper.toResponseDTO(service.finalizar(id, request));
+        SimuladoAlunoService.ResultadoFinalizacao resultado = service.finalizar(id, request);
+        SimuladoAlunoResponseDTO dto = mapper.toResponseDTO(resultado.simuladoAluno());
+        if (resultado.proximaRevisao() != null) {
+            dto.setDiasProximaRevisao((int) ChronoUnit.DAYS.between(LocalDate.now(), resultado.proximaRevisao()));
+        }
+        return dto;
     }
 }

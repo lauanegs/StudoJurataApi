@@ -15,4 +15,7 @@ public interface PlanoEnsinoRepository extends JpaRepository<PlanoEnsino, Long> 
      * padrão de CursoService/DisciplinaService/TurmaService/UsuarioService).
      */
     List<PlanoEnsino> findByCurso_Escola_Id(Long escolaId);
+
+    /** Usado para impedir desvincular uma disciplina da turma enquanto há plano de ensino ativo (ver TurmaDisciplinaService). */
+    List<PlanoEnsino> findByTurmaDisciplina_Id(Long turmaDisciplinaId);
 }

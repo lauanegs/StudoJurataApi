@@ -20,4 +20,5 @@ public class AlunoController {
     @PostMapping public Aluno salvar(@RequestBody Aluno o){ return service.salvar(o); }
     @PutMapping("/{id}") public Aluno atualizar(@PathVariable Long id,@RequestBody Aluno o){ return service.atualizar(id, o); }
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
+    @PostMapping("/{id}/ativar") public Aluno ativar(@PathVariable Long id){ return service.ativar(id); }
 }

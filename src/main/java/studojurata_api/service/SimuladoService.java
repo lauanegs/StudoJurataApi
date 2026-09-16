@@ -71,6 +71,26 @@ public class SimuladoService {
     public void deletar(Long id) { repository.deleteById(id); }
 
     /**
+     * Item pedido pelo usuário: mesmo depois de PUBLICADO (edição geral
+     * travada por atualizar() acima), o professor ainda precisa poder
+     * "disponibilizar por mais tempo" — único campo que continua editável
+     * depois do lançamento.
+     */
+    @Transactional
+    public Simulado estenderDisponibilidade(Long id, LocalDateTime novaDataFim) {
+        Simulado simulado = buscar(id);
+        if (simulado.getStatus() != StatusSimulado.PUBLICADO) {
+            throw new RegraNegocioException(
+                    "Só é possível estender a disponibilidade de um simulado PUBLICADO.");
+        }
+        if (novaDataFim != null && simulado.getDataInicio() != null && !novaDataFim.isAfter(simulado.getDataInicio())) {
+            throw new RequisicaoInvalidaException("A nova data final deve ser posterior à data de início.");
+        }
+        simulado.setDataFim(novaDataFim);
+        return repository.save(simulado);
+    }
+
+    /**
      * Lança o simulado (item 1.3 da Análise Crítica).
      *
      * Valida que existem questões ativas vinculadas e que todas já foram

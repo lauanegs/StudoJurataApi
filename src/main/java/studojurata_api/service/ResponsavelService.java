@@ -39,4 +39,14 @@ public class ResponsavelService {
             responsavel.getPessoa().setStatus(StatusAtivoInativo.INATIVO);
         }
     }
+
+    /** Reativa um responsável inativado (volta a Pessoa pra ATIVO) — contraparte de deletar(). */
+    @Transactional
+    public Responsavel ativar(Long id) {
+        Responsavel responsavel = buscar(id);
+        if (responsavel.getPessoa() != null) {
+            responsavel.getPessoa().setStatus(StatusAtivoInativo.ATIVO);
+        }
+        return responsavel;
+    }
 }
