@@ -7,10 +7,8 @@ import lombok.Setter;
 import studojurata_api.model.enums.StatusAtivoInativo;
 
 /**
- * Correção 9.1 da Segunda Análise Crítica ("Escola/tenant — decisão
- * confirmada"): mesmo havendo hoje uma única escola (Hero Geek), introduzir
- * o tenant desde já evita uma migração ordens de magnitude mais cara depois.
- * Referenciada por Turma, Usuario e Disciplina (ver esses modelos).
+ * Tenant. Existe mesmo com uma única escola hoje porque introduzi-lo depois
+ * exigiria uma migração muito mais cara.
  */
 @Entity
 @Getter

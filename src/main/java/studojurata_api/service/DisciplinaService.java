@@ -10,11 +10,6 @@ import studojurata_api.security.EscolaContext;
 
 import java.util.List;
 
-/**
- * Correção 5.1: controller passa a usar este service, não mais o Repository.
- * Correção 2.2 da Terceira Análise Crítica (isolamento multi-tenant):
- * listar() filtra pela escola do usuário autenticado.
- */
 @Service
 @RequiredArgsConstructor
 public class DisciplinaService {
@@ -22,7 +17,7 @@ public class DisciplinaService {
     private final DisciplinaRepository repository;
     private final EscolaContext escolaContext;
 
-    /** Filtra pela escola do usuário autenticado; se não houver escola resolvível, devolve tudo (bootstrapping). */
+    /** Sem escola resolvível (antes do cadastro inicial da escola), não filtra. */
     public List<Disciplina> listar() {
         Long escolaId = escolaContext.escolaAtualId();
         return escolaId != null ? repository.findByEscola_Id(escolaId) : repository.findAll();
@@ -43,14 +38,13 @@ public class DisciplinaService {
         return repository.save(obj);
     }
 
-    /** Soft-delete (item 4.3/5.1): Disciplina pode ter Questao/Nota/PlanoEnsino vinculados. */
+    /** Soft-delete: disciplina pode ter questões, notas e planos de ensino vinculados. */
     public void deletar(Long id) {
         Disciplina disciplina = buscar(id);
         disciplina.setStatus(StatusAtivoInativo.INATIVO);
         repository.save(disciplina);
     }
 
-    /** Reativa uma disciplina inativada (volta a ATIVO) — contraparte de deletar(). */
     public Disciplina ativar(Long id) {
         Disciplina disciplina = buscar(id);
         disciplina.setStatus(StatusAtivoInativo.ATIVO);

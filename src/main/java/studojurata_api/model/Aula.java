@@ -9,22 +9,9 @@ import lombok.Setter;
 import studojurata_api.model.enums.StatusAtivoInativo;
 
 /**
- * Aula: registro de execução de uma sessão de ensino, sempre vinculada a um
- * PlanoAula (que por sua vez amarra TurmaDisciplina + PlanoEnsino).
- *
- * Correção 2.5 da Análise Crítica: a interface leva do PlanoAula para a tela
- * "Aulas" (estatísticas de aulas realizadas daquele plano específico), mas
- * antes não existia FK de Aula para PlanoAula. Adicionada aqui.
- *
- * Correção 3.2: a cadeia curricular passa a ter dono único
- * (PlanoEnsino → ConteudoPlano → Aula/Questao); por isso os campos
- * turmaDisciplina e planoEnsino, que duplicavam o caminho já obtido via
- * planoAula.getTurmaDisciplina() / planoAula.getPlanoEnsino(), foram
- * removidos daqui.
- *
- * Correção 4.3: exclusões de registros com histórico pedagógico devem ser
- * soft-delete. O campo status permite marcar a aula como INATIVA em vez de
- * apagá-la fisicamente (ver AulaService.deletar).
+ * Turma, disciplina e plano de ensino vêm sempre por planoAula, para a cadeia
+ * curricular ter um único dono. status permite soft-delete, preservando o
+ * histórico pedagógico.
  */
 @Entity
 @Getter
@@ -35,21 +22,13 @@ public class Aula extends BaseEntity {
     @ManyToOne(optional = false)
     private PlanoAula planoAula;
 
-    /**
-     * Horário semanal da turma (HorarioTurma) a que esta aula corresponde —
-     * opcional, mas quando informado é a partir dele que cargaHoraria abaixo
-     * é CALCULADA (hora fim - hora início), não mais digitada à mão (ver
-     * AulaService.validar). Sem isso, o cadastro de horários da turma
-     * (TurmaFormulario, aba "Horários") não tinha nenhum consumidor.
-     */
+    /** Quando informado, cargaHoraria é calculada a partir dele (ver AulaService.validar). */
     @ManyToOne
     private HorarioTurma horarioTurma;
 
     /**
-     * Carga horária (em horas, aceita fração — ex.: 1.5 para 1h30) daquela
-     * aula específica. Calculada a partir de horarioTurma quando ele está
-     * preenchido; digitada manualmente só quando a aula não corresponde a
-     * um horário fixo da turma (reposição, aula extra etc.).
+     * Em horas, aceita fração (1.5 = 1h30). Digitada só quando a aula não
+     * corresponde a um horário fixo da turma (reposição, aula extra).
      */
     private Double cargaHoraria;
 
@@ -63,7 +42,6 @@ public class Aula extends BaseEntity {
     /** Data em que a aula realmente foi ministrada (preenchida = aula realizada). */
     private LocalDate dataPublicacao;
 
-    /** Anotações do professor sobre a aula. */
     @Column(length = 2000)
     private String observacoes;
 

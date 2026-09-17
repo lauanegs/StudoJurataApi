@@ -32,7 +32,6 @@ public class PlanoAulaService {
         return repository.findByTurmaDisciplina_Id(turmaDisciplinaId);
     }
 
-    /** Usado pelo botão "Plano de aula" dentro do Plano de Ensino (ver PlanoEnsinoFormulario no front). */
     public List<PlanoAula> listarPorPlanoEnsino(Long planoEnsinoId) {
         return repository.findByPlanoEnsino_Id(planoEnsinoId);
     }
@@ -55,13 +54,8 @@ public class PlanoAulaService {
     }
 
     /**
-     * Pedido explícito: não existe mais tela pra criar plano de aula na mão
-     * — nasce sozinho junto com o plano de ensino (ver
-     * PlanoEnsinoService.salvar/atualizar), sempre que ele já tiver
-     * turma/disciplina definida. Reaproveita salvar() (mesma validação e
-     * status padrão) só que sem stack trace pro professor: não gera de
-     * novo se um plano de aula pra este plano de ensino já existir, e não
-     * gera nada pra plano de ensino genérico (sem turma).
+     * O plano de aula nasce junto com o plano de ensino que já tem turma. Não
+     * gera de novo se já existir, nem para plano de ensino genérico.
      */
     @Transactional
     public void gerarSeNecessario(PlanoEnsino planoEnsino) {
@@ -74,11 +68,7 @@ public class PlanoAulaService {
         salvar(planoAula);
     }
 
-    /**
-     * Soft delete (correção 4.3): mantém o registro para preservar o
-     * histórico de aulas/conteúdos vinculados, marcando o plano como
-     * CONCLUIDO (matrícula cíclica: a turma pode receber um novo plano).
-     */
+    /** Soft delete: vira CONCLUIDO, preservando aulas e conteúdos vinculados. */
     @Transactional
     public void deletar(Long id) {
         PlanoAula obj = buscar(id);
@@ -86,13 +76,6 @@ public class PlanoAulaService {
         repository.save(obj);
     }
 
-    /**
-     * Estatísticas exibidas na tela "Aulas" do plano de aula: quantidade de
-     * aulas realizadas em relação ao total previsto, carga horária
-     * realizada (soma da carga horária das aulas já publicadas) e carga
-     * horária prevista (PlanoEnsino.cargaHoraria) — sem essa segunda,
-     * "carga horária realizada" era um número solto, sem "de quanto".
-     */
     public Map<String, Object> estatisticas(Long planoAulaId) {
         PlanoAula planoAula = buscar(planoAulaId);
         long totalPrevisto = aulaRepository.countByPlanoAula_Id(planoAulaId);
@@ -118,9 +101,7 @@ public class PlanoAulaService {
             throw new RequisicaoInvalidaException("Plano de ensino é obrigatório para o plano de aula.");
         }
 
-        // Pedido explícito: relação 1-para-1 entre PlanoEnsino e PlanoAula —
-        // cada plano de ensino tem no máximo um plano de aula (e vice-versa,
-        // já garantido estruturalmente pelo FK único em PlanoAula).
+        // 1:1 entre PlanoEnsino e PlanoAula.
         boolean jaExistePlanoParaEsseEnsino = repository.findByPlanoEnsino_Id(obj.getPlanoEnsino().getId()).stream()
                 .anyMatch(existente -> !existente.getId().equals(obj.getId()));
         if (jaExistePlanoParaEsseEnsino) {
@@ -128,10 +109,8 @@ public class PlanoAulaService {
                     "Este plano de ensino já tem um plano de aula vinculado.");
         }
 
-        // Pedido explícito: uma turma só pode ter um plano de aula ATIVO por
-        // disciplina — evita dois ciclos "correndo" ao mesmo tempo pra mesma
-        // combinação turma+disciplina. Planos CONCLUIDO não contam (matrícula
-        // cíclica: o histórico fica, só não pode haver dois ativos juntos).
+        // Um único plano ATIVO por turma+disciplina, para não haver dois ciclos
+        // simultâneos; planos CONCLUIDO ficam como histórico.
         StatusPlano statusFinal = obj.getStatus() != null ? obj.getStatus() : StatusPlano.ATIVO;
         if (statusFinal == StatusPlano.ATIVO) {
             boolean jaTemAtivoNaTurmaDisciplina = repository

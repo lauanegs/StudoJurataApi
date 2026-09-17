@@ -6,14 +6,9 @@ import lombok.Setter;
 import java.util.List;
 
 /**
- * Corpo de requisição para finalizar a tentativa de um aluno em um simulado
- * (SimuladoAluno). Ver itens 2.4 e 4.2 da Análise Crítica:
- * - respostas traz uma entrada por questão respondida; questões do simulado
- *   que não aparecerem na lista são tratadas como deixadas em branco (ver
- *   item 4.2 — não bloqueiam a finalização, contam como erro);
- * - tempoGastoTotal é o tempo total da tentativa, em segundos, preenchido
- *   tanto na finalização voluntária quanto na finalização automática por
- *   esgotamento do tempo limite (finalizadoPorTempo = true nesse caso).
+ * Questões do simulado ausentes em respostas contam como deixadas em branco
+ * (erro), sem bloquear a finalização. tempoGastoTotal é em segundos e vem
+ * preenchido também na finalização automática por tempo esgotado.
  */
 @Getter
 @Setter

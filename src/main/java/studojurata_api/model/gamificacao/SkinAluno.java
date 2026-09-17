@@ -9,7 +9,6 @@ import lombok.Setter;
 import studojurata_api.model.Aluno;
 import studojurata_api.model.BaseEntity;
 
-/** Skins já adquiridas pelo aluno (item 8.2), e qual está equipada no momento. */
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"aluno_id", "skin_id"}))
 @Getter

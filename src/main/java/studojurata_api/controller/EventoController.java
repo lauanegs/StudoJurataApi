@@ -7,7 +7,6 @@ import studojurata_api.service.EventoService;
 
 import java.util.List;
 
-/** Restrito a ADMINISTRADOR para escrita (ver SecurityConfig); leitura liberada a qualquer usuário autenticado. */
 @RestController
 @RequestMapping("/eventos")
 @RequiredArgsConstructor

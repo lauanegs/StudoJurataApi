@@ -30,22 +30,18 @@ public class AlunoTurmaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Matrícula " + id + " não encontrada."));
     }
 
-    /** Lista o histórico completo de matrículas de uma turma (ativas ou não). */
     public List<AlunoTurma> historicoPorTurma(Long turmaId) {
         return repository.findByTurmaIdOrderByDataInicioDesc(turmaId);
     }
 
-    /** Lista apenas os alunos com matrícula ativa numa turma. */
     public List<AlunoTurma> ativosPorTurma(Long turmaId) {
         return repository.findByTurmaIdAndStatus(turmaId, StatusMatricula.ATIVA);
     }
 
-    /** Lista o histórico completo de matrículas de um aluno (em todas as turmas). */
     public List<AlunoTurma> historicoPorAluno(Long alunoId) {
         return repository.findByAlunoIdOrderByDataInicioDesc(alunoId);
     }
 
-    /** Quantidade de matrículas ativas em uma turma (fonte de verdade para "alunos ativos"). */
     public long contarAtivosPorTurma(Long turmaId) {
         return repository.countByTurmaIdAndStatus(turmaId, StatusMatricula.ATIVA);
     }
@@ -80,10 +76,6 @@ public class AlunoTurmaService {
         return repository.save(obj);
     }
 
-    /**
-     * Atualiza uma matrícula existente. Reaplica as mesmas validações de
-     * unicidade/capacidade caso o status resultante seja ATIVA.
-     */
     @Transactional
     public AlunoTurma atualizar(Long id, AlunoTurma obj) {
         AlunoTurma existente = buscar(id);
@@ -105,10 +97,6 @@ public class AlunoTurmaService {
         return repository.save(obj);
     }
 
-    /**
-     * Cancela uma matrícula (soft delete): mantém o registro histórico,
-     * apenas altera status para CANCELADA e preenche dataFim.
-     */
     @Transactional
     public AlunoTurma cancelar(Long id, LocalDate dataFim) {
         AlunoTurma matricula = buscar(id);
@@ -117,10 +105,6 @@ public class AlunoTurmaService {
         return repository.save(matricula);
     }
 
-    /**
-     * Conclui uma matrícula (ex.: encerramento natural do ciclo na turma),
-     * preservando o histórico.
-     */
     @Transactional
     public AlunoTurma concluir(Long id, LocalDate dataFim) {
         AlunoTurma matricula = buscar(id);
@@ -128,13 +112,6 @@ public class AlunoTurmaService {
         matricula.setDataFim(dataFim != null ? dataFim : LocalDate.now());
         return repository.save(matricula);
     }
-
-    /**
-     * Exclusão física: mantida apenas para compatibilidade/uso administrativo
-     * pontual. Preferir sempre cancelar()/concluir() para preservar
-     * histórico pedagógico.
-     */
-    public void deletar(Long id) { repository.deleteById(id); }
 
     private void validarMatriculaAtivaUnica(Long alunoId, Long turmaId, Long ignorarMatriculaId) {
         boolean jaAtiva = repository.findFirstByAluno_IdAndTurma_IdAndStatus(alunoId, turmaId, StatusMatricula.ATIVA)

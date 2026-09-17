@@ -15,13 +15,6 @@ import studojurata_api.repository.DisciplinaRepository;
 
 import java.util.List;
 
-/**
- * Grade curricular (pedido explícito): quais disciplinas compõem cada Curso
- * e a carga horária de cada uma — reaproveitada pela tela de Turma
- * (restringe o seletor de disciplina às da grade do curso, ver
- * TurmaFormulario no front) e pelo Plano de Ensino (pré-preenche a carga
- * horária, ver PlanoEnsinoFormulario).
- */
 @Service
 @RequiredArgsConstructor
 public class CursoDisciplinaService {
@@ -94,7 +87,6 @@ public class CursoDisciplinaService {
         }
     }
 
-    /** Curso.cargaHorariaTotal passa a ser sempre a soma das cargas horárias ativas desta grade. */
     private void recalcularCargaHorariaTotal(Curso curso) {
         int total = repository.findByCurso_Id(curso.getId()).stream()
                 .filter(item -> item.getStatus() == StatusAtivoInativo.ATIVO)

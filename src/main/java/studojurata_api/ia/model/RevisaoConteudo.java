@@ -12,22 +12,13 @@ import studojurata_api.model.BaseEntity;
 import studojurata_api.model.ConteudoPlano;
 
 /**
- * Ver item 1.5 da Análise Crítica (sugestão aprovada): rastreia o reforço
- * adaptativo por repetição espaçada de um aluno sobre um conteúdo específico,
- * seguindo a teoria da curva de esquecimento citada no TCC.
+ * Repetição espaçada de um aluno sobre um conteúdo, baseada na curva de
+ * esquecimento. A cada reforço, dataProximoReforco avança 7 dias (1º), 14 (2º)
+ * e 90 (3º); a partir do 4º o conteúdo é considerado dominado
+ * (dataProximoReforco nula, nivelDominio ALTO).
  *
- * A cada reforço realizado (RevisaoConteudoService.registrarReforco):
- * - quantidadeReforcos é incrementada;
- * - dataUltimoReforco passa a ser hoje;
- * - dataProximoReforco é recalculada com intervalos fixos e crescentes —
- *   7 dias após o 1º reforço, 14 após o 2º, 90 (3 meses) após o 3º;
- * - a partir do 4º reforço, o conteúdo é considerado dominado:
- *   dataProximoReforco fica null e nivelDominio vira ALTO — a repetição
- *   espaçada para (confirmado pelo usuário).
- *
- * Existe no máximo um registro por par (aluno, conteudoPlano) — histórico de
- * reforços é resumido neste único registro (quantidadeReforcos acumula a
- * contagem), não uma linha por evento, mantendo o modelo simples para o MVP.
+ * Um único registro por aluno+conteúdo: quantidadeReforcos resume o
+ * histórico em vez de uma linha por evento.
  */
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"aluno_id", "conteudo_plano_id"}))

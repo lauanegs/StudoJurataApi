@@ -10,15 +10,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-/**
- * Correção 2.9 da Segunda Análise Crítica ("Auditoria — decisão confirmada"):
- * createdAt/updatedAt agora são preenchidos automaticamente (JPA Auditing,
- * habilitado via @EnableJpaAuditing em StudojurataApiApplication) para todas
- * as entidades que estendem BaseEntity, sem precisar de código repetido em
- * cada uma. Complementado por AuditLog (ver model/AuditLog.java) para as
- * entidades sensíveis (Nota, SimuladoAluno, Aula), que precisam não só de
- * "quando foi a última alteração" mas de "o que mudou e quem mudou".
- */
+/** createdAt/updatedAt preenchidos por JPA Auditing (@EnableJpaAuditing). */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
 @Getter

@@ -7,11 +7,8 @@ import studojurata_api.model.enums.TipoQuestao;
 import java.util.List;
 
 /**
- * Integração com o Gemini (item "integração Gemini" desta etapa), isolada em
- * uma interface própria (ver item 3.3 da Análise Crítica: "isolar em um
- * serviço próprio... com fallback para banco de questões existente quando a
- * IA falhar") para que GeracaoQuestaoIAService nunca dependa diretamente de
- * detalhes de transporte HTTP e possa ser testado com um dublê/mock.
+ * Interface para que GeracaoQuestaoIAService não dependa do transporte HTTP
+ * e possa trocar de provedor ou ser testado com um dublê.
  */
 public interface GeminiQuestaoClient {
 

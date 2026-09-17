@@ -12,13 +12,9 @@ import studojurata_api.service.gamificacao.SkinService;
 import java.util.List;
 
 /**
- * Correção 8.1/8.2. Sempre por aluno específico — nunca uma listagem
- * comparativa entre alunos (sem ranking, por decisão explícita).
- *
- * Correção 2.1 da Terceira Análise Crítica (IDOR): todo endpoint aqui recebe
- * um alunoId livre na URL, então todos passam por AlunoAccessGuard — sem
- * essa checagem, um aluno podia consultar a pontuação de outro ou comprar
- * skins gastando as moedas de outro aluno só trocando o id na URL.
+ * Sempre por aluno específico, sem listagem comparativa (não há ranking).
+ * Todo endpoint recebe o alunoId na URL, então todos passam por
+ * AlunoAccessGuard: sem isso, um aluno poderia gastar as moedas de outro.
  */
 @RestController
 @RequestMapping("/gamificacao")

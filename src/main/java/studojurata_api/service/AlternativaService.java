@@ -25,19 +25,9 @@ public class AlternativaService {
     }
 
     /**
-     * Garante no máximo uma alternativa correta por Questao — regra
-     * indispensável para a correção automática das questões ALTERNATIVAS
-     * (ver itens 2.4 e 7.1: SimuladoAlunoService.finalizar lê
-     * alternativaEscolhida.getCorreta() da ÚNICA alternativa que o aluno
-     * seleciona, então só faz sentido existir uma resposta certa).
-     * <p>
-     * Questões VERDADEIRO_FALSO são o caso previsto na "Tela novo simulado"
-     * do Documento de Interfaces: o professor lista várias afirmações
-     * (alternativas) e marca CADA UMA independentemente como Verdadeira ou
-     * Falsa — não existe "a única correta" entre elas. A correção automática
-     * continua funcionando sem nenhuma mudança: o aluno ainda escolhe UMA
-     * alternativa, e o `correta` dela (agora podendo haver várias com
-     * `correta=true` na mesma questão) decide se acertou.
+     * Questões ALTERNATIVAS têm no máximo uma correta, pois a correção lê a
+     * única alternativa escolhida. Em VERDADEIRO_FALSO cada afirmação é
+     * julgada à parte, então várias podem ser verdadeiras.
      */
     @Transactional
     public Alternativa salvar(Alternativa obj) {

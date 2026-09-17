@@ -26,6 +26,7 @@ import studojurata_api.repository.SimuladoQuestaoRepository;
 import studojurata_api.service.gamificacao.PontuacaoAlunoService;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -61,11 +62,7 @@ public class SimuladoAlunoService {
         return repository.findBySimuladoId(simuladoId);
     }
 
-    /**
-     * Uso administrativo pontual (ex.: correção manual de um registro). O
-     * caminho normal de criação é SimuladoService.lancar (item 1.3), que cria
-     * um SimuladoAluno PENDENTE por aluno elegível.
-     */
+    /** Uso administrativo pontual; o caminho normal de criação é SimuladoService.lancar. */
     public SimuladoAluno salvar(SimuladoAluno obj) {
         if (obj.getStatus() == null) {
             obj.setStatus(StatusSimuladoAluno.PENDENTE);
@@ -75,31 +72,16 @@ public class SimuladoAlunoService {
 
     public void deletar(Long id) { repository.deleteById(id); }
 
-    /**
-     * Finaliza a tentativa do aluno (itens 1.3, 2.4 e 4.2 da Análise
-     * Crítica):
-     * <ul>
-     *   <li>não zera nem descarta o progresso do aluno: aceita uma lista de
-     *   respostas parcial;</li>
-     *   <li>questões do simulado que não aparecerem em {@code respostas} são
-     *   tratadas como deixadas em branco — registradas com alternativa nula
-     *   e acertou=false (sugestão adotada para o item 4.2, em aberto na
-     *   análise: tratar como erro, igual a uma prova tradicional, sem
-     *   bloquear o envio);</li>
-     *   <li>calcula quantidadeAcertos e nota (proporcional à pontuação de
-     *   cada SimuladoQuestao ativa, sobre a notaMaxima do Simulado);</li>
-     *   <li>é idempotente: uma tentativa já CONCLUIDA não pode ser
-     *   finalizada de novo, evitando sobrescrever um resultado já
-     *   registrado;</li>
-     *   <li>serve tanto para a finalização voluntária (aluno confirma a
-     *   última questão) quanto para o auto-envio por esgotamento do tempo
-     *   limite (request.finalizadoPorTempo = true), conforme o item 4.2: ao
-     *   esgotar o tempo o aluno não perde o que já respondeu, apenas recebe
-     *   o modal informando que as respostas foram enviadas.</li>
-     * </ul>
-     */
-    public record ResultadoFinalizacao(SimuladoAluno simuladoAluno, LocalDate proximaRevisao) {}
+    public record ResultadoFinalizacao(SimuladoAluno simuladoAluno, Integer diasProximaRevisao) {}
 
+    private record ResultadoCorrecao(int acertos, double pontuacaoObtida, double pontuacaoTotal) {}
+
+    /**
+     * Aceita respostas parciais: questões ausentes contam como em branco (erro).
+     * A nota é proporcional à pontuação de cada questão ativa sobre a
+     * notaMaxima. Serve também ao auto-envio por tempo esgotado. Uma
+     * tentativa CONCLUIDA não pode ser finalizada de novo.
+     */
     @Transactional
     public ResultadoFinalizacao finalizar(Long simuladoAlunoId, FinalizarSimuladoRequest request) {
         SimuladoAluno simuladoAluno = buscar(simuladoAlunoId);
@@ -114,6 +96,27 @@ public class SimuladoAlunoService {
         List<SimuladoQuestao> questoes = simuladoQuestaoRepository.findBySimuladoIdAndStatusOrderByOrdem(
                 simuladoAluno.getSimulado().getId(), StatusSimuladoQuestao.ATIVA);
 
+        ResultadoCorrecao correcao = corrigirRespostas(simuladoAluno, questoes, request);
+        SimuladoAluno salvo = salvarResultado(simuladoAluno, request, correcao, questoes.size());
+
+        recalcularNotaDaDisciplina(salvo);
+
+        // Moedas por concluir, independente da nota: não é bonificação por acerto.
+        pontuacaoAlunoService.concederMoedas(salvo.getAluno().getId(),
+                PontuacaoAlunoService.MOEDAS_POR_SIMULADO_CONCLUIDO);
+
+        Integer diasProximaRevisao = registrarRevisaoEspacada(salvo.getAluno().getId(), questoes, correcao);
+
+        return new ResultadoFinalizacao(salvo, diasProximaRevisao);
+    }
+
+    /**
+     * Questão em branco, inclusive V/F com afirmação não julgada, conta como
+     * erro em vez de reabrir a tentativa: reabrir deixaria o aluno refazer
+     * sabendo o que já tinha respondido.
+     */
+    private ResultadoCorrecao corrigirRespostas(
+            SimuladoAluno simuladoAluno, List<SimuladoQuestao> questoes, FinalizarSimuladoRequest request) {
         Map<Long, FinalizarSimuladoRequest.Item> respostasPorQuestao = new HashMap<>();
         if (request.getRespostas() != null) {
             for (FinalizarSimuladoRequest.Item item : request.getRespostas()) {
@@ -122,14 +125,6 @@ public class SimuladoAlunoService {
                 }
             }
         }
-
-        // Item 4.2 (mantido, decisão revista com o usuário): questão em branco
-        // — incluindo VERDADEIRO_FALSO com alguma afirmação não julgada — não
-        // bloqueia a finalização nem reinicia a tentativa; ela só conta como
-        // erro na correção. Deixar o back reabrir a tentativa deixaria o aluno
-        // refazer o simulado já sabendo quais respostas confirmou como certas
-        // ou erradas antes do tempo acabar — pior do que simplesmente errar
-        // as questões que ficaram sem resposta.
 
         int acertos = 0;
         double pontuacaoObtida = 0d;
@@ -162,12 +157,17 @@ public class SimuladoAlunoService {
             }
         }
 
-        Double notaMaxima = simuladoAluno.getSimulado().getNotaMaxima();
-        double nota = (notaMaxima != null && pontuacaoTotal > 0)
-                ? (pontuacaoObtida / pontuacaoTotal) * notaMaxima
-                : pontuacaoObtida;
+        return new ResultadoCorrecao(acertos, pontuacaoObtida, pontuacaoTotal);
+    }
 
-        simuladoAluno.setQuantidadeAcertos(acertos);
+    private SimuladoAluno salvarResultado(
+            SimuladoAluno simuladoAluno, FinalizarSimuladoRequest request, ResultadoCorrecao correcao, int totalQuestoes) {
+        Double notaMaxima = simuladoAluno.getSimulado().getNotaMaxima();
+        double nota = (notaMaxima != null && correcao.pontuacaoTotal() > 0)
+                ? (correcao.pontuacaoObtida() / correcao.pontuacaoTotal()) * notaMaxima
+                : correcao.pontuacaoObtida();
+
+        simuladoAluno.setQuantidadeAcertos(correcao.acertos());
         simuladoAluno.setNota(nota);
         simuladoAluno.setTempoGasto(request.getTempoGastoTotal());
         simuladoAluno.setFinalizadoPorTempo(request.isFinalizadoPorTempo());
@@ -176,47 +176,39 @@ public class SimuladoAlunoService {
         SimuladoAluno salvo = repository.save(simuladoAluno);
 
         auditLogService.registrar("SimuladoAluno", salvo.getId(), AcaoAuditoria.ATUALIZACAO,
-                "Finalizado: nota=" + nota + ", acertos=" + acertos + "/" + questoes.size()
+                "Finalizado: nota=" + nota + ", acertos=" + correcao.acertos() + "/" + totalQuestoes
                         + (Boolean.TRUE.equals(salvo.getFinalizadoPorTempo()) ? " (por esgotamento do tempo)" : ""));
 
-        // Correção 1.2/2.13: Nota da disciplina é sempre recalculada (derivada) a
-        // partir dos simulados concluídos, nunca setada diretamente.
-        // Correção "matrícula cíclica": o escopo passou de periodoLetivo
-        // (calendário) para turma — Simulado.turma é obrigatório quando
-        // tipoDestinacao = TODOS, mas pode ser nulo em ESPECIFICO.
+        return salvo;
+    }
+
+    /** Simulado.turma pode ser nula em ESPECIFICO; nesse caso não há como escopar a nota. */
+    private void recalcularNotaDaDisciplina(SimuladoAluno salvo) {
         Long disciplinaId = salvo.getSimulado().getDisciplina() != null ? salvo.getSimulado().getDisciplina().getId() : null;
         Long turmaId = salvo.getSimulado().getTurma() != null ? salvo.getSimulado().getTurma().getId() : null;
         if (disciplinaId != null && turmaId != null) {
             notaService.recalcular(salvo.getAluno().getId(), disciplinaId, turmaId);
         } else {
-            // Sem disciplina ou sem turma vinculada ao simulado (ex.: simulado
-            // ESPECIFICO sem turma) não há como escopar a nota — o recálculo é
-            // pulado e registrado em AuditLog para o Administrador identificar,
-            // em vez de o aluno simplesmente nunca ver a nota da disciplina,
-            // sem explicação.
+            // Registrado em AuditLog para o Administrador identificar por que o
+            // aluno não tem nota nessa disciplina.
             auditLogService.registrar("SimuladoAluno", salvo.getId(), AcaoAuditoria.ATUALIZACAO,
                     "Nota da disciplina NÃO recalculada: disciplina ou turma do simulado ausente "
                             + "(simulado sem turma vinculada). Corrija o cadastro do simulado.");
         }
-
-        // Correção 8.1/8.2: moeda concedida sempre por concluir o simulado,
-        // independente da nota obtida (equidade — não é bonificação por acerto).
-        pontuacaoAlunoService.concederMoedas(salvo.getAluno().getId(),
-                PontuacaoAlunoService.MOEDAS_POR_SIMULADO_CONCLUIDO);
-
-        // Item pedido pelo usuário: finalizar QUALQUER simulado (não só uma
-        // revisão manual do professor) agora alimenta de verdade o motor de
-        // repetição espaçada — a tela de finalização (front) passa a mostrar
-        // a data real da próxima revisão em vez de um texto fixo, e o job
-        // diário (GeracaoAutomaticaSimuladoJob) passa a gerar reforço
-        // automaticamente a partir daqui.
-        double percentualAcerto = pontuacaoTotal > 0 ? (pontuacaoObtida / pontuacaoTotal) * 100 : 0;
-        LocalDate proximaRevisao = registrarReforcoNosConteudos(salvo.getAluno().getId(), questoes, percentualAcerto);
-
-        return new ResultadoFinalizacao(salvo, proximaRevisao);
     }
 
-    /** Heurística MVP (mesmos limiares do front — ver utils/desempenho.ts nivelDesempenho). */
+    /** Qualquer simulado finalizado alimenta a repetição espaçada. */
+    private Integer registrarRevisaoEspacada(Long alunoId, List<SimuladoQuestao> questoes, ResultadoCorrecao correcao) {
+        double percentualAcerto = correcao.pontuacaoTotal() > 0
+                ? (correcao.pontuacaoObtida() / correcao.pontuacaoTotal()) * 100
+                : 0;
+        LocalDate proximaRevisao = registrarReforcoNosConteudos(alunoId, questoes, percentualAcerto);
+        return proximaRevisao != null
+                ? (int) ChronoUnit.DAYS.between(LocalDate.now(), proximaRevisao)
+                : null;
+    }
+
+    /** Mesmos limiares de nivelDesempenho no front (utils/desempenho.ts). */
     private static NivelDominio nivelDominioPeloPercentual(double percentual) {
         if (percentual < 40) return NivelDominio.BAIXO;
         if (percentual < 70) return NivelDominio.MEDIO;
@@ -224,13 +216,9 @@ public class SimuladoAlunoService {
     }
 
     /**
-     * Um simulado pode cobrir vários conteúdos (um por questão) — cada
-     * conteúdo distinto ganha seu próprio ciclo de repetição espaçada,
-     * avançado uma vez por finalização (não uma vez por questão). Retorna a
-     * data mais próxima entre os conteúdos tocados (ou null se nenhum tinha
-     * conteúdo vinculado, ou se todos já estão "dominados" — sem próxima
-     * data agendada), pra a tela de finalização mostrar em quantos dias o
-     * conteúdo volta.
+     * Cada conteúdo tocado avança uma vez por finalização, não uma vez por
+     * questão. Retorna a próxima data mais próxima, ou null se nenhum conteúdo
+     * tem revisão agendada.
      */
     private LocalDate registrarReforcoNosConteudos(Long alunoId, List<SimuladoQuestao> questoes, double percentualAcerto) {
         List<Long> questaoIds = questoes.stream().map(sq -> sq.getQuestao().getId()).toList();
@@ -260,8 +248,7 @@ public class SimuladoAlunoService {
         questaoAluno.setAlternativasVerdadeiras(List.of());
 
         if (resposta == null || resposta.getAlternativaId() == null) {
-            // Questão deixada em branco (item 4.2): acertou=false.
-            questaoAluno.setAlternativa(null);
+                    questaoAluno.setAlternativa(null);
             questaoAluno.setRespondida(false);
             return false;
         }
@@ -278,8 +265,7 @@ public class SimuladoAlunoService {
      * VERDADEIRO_FALSO: cada alternativa da questão é uma afirmação julgada
      * independentemente (correta=true/false é o gabarito — a afirmação É
      * verdadeira ou falsa). O aluno acerta a questão inteira só se marcou
-     * TODAS as afirmações certas; uma só errada derruba a questão toda,
-     * igual a uma prova tradicional (decisão confirmada com o usuário).
+     * TODAS as afirmações certas; uma só errada derruba a questão toda.
      *
      * alternativasVerdadeiras == null no request é o sentinel de "em branco"
      * — diferente de lista vazia, que é uma resposta legítima ("julguei
@@ -292,7 +278,7 @@ public class SimuladoAlunoService {
         List<Long> idsMarcadosVerdadeiros = resposta != null ? resposta.getAlternativasVerdadeiras() : null;
 
         if (afirmacoes.isEmpty() || idsMarcadosVerdadeiros == null) {
-            // Sem afirmações cadastradas, ou questão deixada em branco (item 4.2).
+            // Sem afirmações cadastradas, ou questão deixada em branco.
             questaoAluno.setAlternativasVerdadeiras(List.of());
             questaoAluno.setRespondida(false);
             return false;

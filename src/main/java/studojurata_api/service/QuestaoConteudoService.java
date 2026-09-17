@@ -16,17 +16,11 @@ import studojurata_api.repository.QuestaoRepository;
 import java.util.List;
 
 /**
- * Correção 5.1: controller passa a usar este service, não mais o Repository.
- * QuestaoConteudo é um vínculo N:N puro (não guarda histórico pedagógico em
- * si — quem guarda é QuestaoAluno/SimuladoQuestao), então exclusão física
- * continua sendo aceitável aqui.
- *
- * vincular/desvincular (usados pelo QuestaoEditor, aba "Conteúdo") seguem o
- * mesmo padrão de AulaConteudoService: sem esse vínculo, a questão fica
- * invisível pro cálculo de desempenho por conteúdo (RecomendacaoService) —
- * hoje só as questões geradas pela IA ganham esse vínculo automaticamente
- * (GeracaoQuestaoIAService), então questões criadas manualmente pelo
- * professor precisam do vínculo explícito aqui pra entrar na métrica.
+ * Sem o vínculo questão-conteúdo, a questão fica invisível para o cálculo de
+ * desempenho por conteúdo (RecomendacaoService). Só as questões geradas pela
+ * IA recebem o vínculo automaticamente; as criadas pelo professor dependem
+ * deste service. Exclusão física é aceitável porque o vínculo não guarda
+ * histórico pedagógico (quem guarda é QuestaoAluno/SimuladoQuestao).
  */
 @Service
 @RequiredArgsConstructor
@@ -36,32 +30,11 @@ public class QuestaoConteudoService {
     private final QuestaoRepository questaoRepository;
     private final ConteudoPlanoRepository conteudoPlanoRepository;
 
-    public List<QuestaoConteudo> listar() { return repository.findAll(); }
-
-    public QuestaoConteudo buscar(Long id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Vínculo questão-conteúdo " + id + " não encontrado."));
-    }
-
-    public QuestaoConteudo salvar(QuestaoConteudo obj) { return repository.save(obj); }
-
-    public QuestaoConteudo atualizar(Long id, QuestaoConteudo obj) {
-        obj.setId(id);
-        return repository.save(obj);
-    }
-
-    public void deletar(Long id) {
-        buscar(id);
-        repository.deleteById(id);
-    }
-
     public List<QuestaoConteudo> listarPorQuestao(Long questaoId) { return repository.findByQuestao_Id(questaoId); }
 
     /**
-     * Só permite vincular conteúdos da MESMA disciplina da questão — uma
-     * questão não tem turma, só disciplina (Questao.disciplina), então não
-     * dá pra restringir por plano de ensino específico como AulaConteudo faz;
-     * a disciplina é o recorte que faz sentido aqui.
+     * Restringe pela disciplina, não pelo plano de ensino como em
+     * AulaConteudo, porque a questão não tem turma.
      */
     @Transactional
     public QuestaoConteudo vincular(Long questaoId, Long conteudoPlanoId) {

@@ -8,13 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import studojurata_api.model.enums.DiaSemana;
 
-/**
- * Correção solicitada após a Terceira Análise Crítica: cada Turma passa a
- * ter um horário semanal. Uma turma normalmente tem aula em mais de um dia
- * da semana (ex.: segunda e quarta, 19h-21h) — por isso é uma entidade
- * própria (1 Turma : N HorarioTurma), não um único campo de horário em
- * Turma, que só conseguiria representar um dia/intervalo por vez.
- */
+/** Entidade própria porque uma turma costuma ter aula em mais de um dia da semana. */
 @Entity
 @Getter
 @Setter

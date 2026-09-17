@@ -7,7 +7,6 @@ import studojurata_api.service.HorarioTurmaService;
 
 import java.util.List;
 
-/** Consulta liberada a qualquer autenticado; escrita restrita a Professor/Administrador (ver SecurityConfig). */
 @RestController
 @RequiredArgsConstructor
 public class HorarioTurmaController {

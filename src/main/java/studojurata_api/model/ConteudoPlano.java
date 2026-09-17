@@ -19,12 +19,7 @@ public class ConteudoPlano extends BaseEntity {
     private String descricao;
     private Integer ordem;
 
-    /**
-     * Correção 2.11 da Segunda Análise Crítica: era String livre, agora enum.
-     * INATIVO é usado como soft-delete quando o conteúdo é removido do plano
-     * (ver item "Conteúdo removido" nos Casos Extremos) — nunca DELETE físico
-     * quando já existir QuestaoConteudo/AulaConteudo vinculado.
-     */
+    /** INATIVO é o soft-delete: conteúdo com questões ou aulas vinculadas nunca é apagado. */
     @Enumerated(EnumType.STRING)
     private StatusAtivoInativo status;
 }

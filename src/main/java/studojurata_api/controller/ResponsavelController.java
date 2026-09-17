@@ -7,7 +7,6 @@ import studojurata_api.service.ResponsavelService;
 
 import java.util.List;
 
-/** Correção 5.1: passa a falar com ResponsavelService (soft-delete), não mais com o Repository diretamente. */
 @RestController
 @RequestMapping("/responsaveis")
 @RequiredArgsConstructor

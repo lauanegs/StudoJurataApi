@@ -7,7 +7,6 @@ import studojurata_api.service.AlunoService;
 
 import java.util.List;
 
-/** Correção 5.1: passa a falar com AlunoService (soft-delete), não mais com o Repository diretamente. */
 @RestController
 @RequestMapping("/alunos")
 @RequiredArgsConstructor

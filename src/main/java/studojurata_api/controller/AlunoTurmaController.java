@@ -25,7 +25,6 @@ public class AlunoTurmaController {
     @GetMapping("/turma/{turmaId}/historico")
     public List<AlunoTurma> historicoPorTurma(@PathVariable Long turmaId) { return service.historicoPorTurma(turmaId); }
 
-    /** Apenas os alunos com matrícula ativa na turma. */
     @GetMapping("/turma/{turmaId}/ativos")
     public List<AlunoTurma> ativosPorTurma(@PathVariable Long turmaId) { return service.ativosPorTurma(turmaId); }
 
@@ -33,7 +32,6 @@ public class AlunoTurmaController {
     @GetMapping("/turma/{turmaId}/quantidade-ativos")
     public long quantidadeAtivos(@PathVariable Long turmaId) { return service.contarAtivosPorTurma(turmaId); }
 
-    /** Histórico completo de matrículas de um aluno em todas as turmas. */
     @GetMapping("/aluno/{alunoId}/historico")
     public List<AlunoTurma> historicoPorAluno(@PathVariable Long alunoId) { return service.historicoPorAluno(alunoId); }
 
@@ -43,24 +41,16 @@ public class AlunoTurmaController {
     @PutMapping("/{id}")
     public AlunoTurma atualizar(@PathVariable Long id, @RequestBody AlunoTurma o) { return service.atualizar(id, o); }
 
-    /** Cancela a matrícula (soft delete), preservando o histórico. */
+    /** Soft delete: preserva o histórico pedagógico. */
     @PostMapping("/{id}/cancelar")
     public AlunoTurma cancelar(@PathVariable Long id,
                                 @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate dataFim) {
         return service.cancelar(id, dataFim);
     }
 
-    /** Conclui a matrícula (encerramento natural do ciclo), preservando o histórico. */
     @PostMapping("/{id}/concluir")
     public AlunoTurma concluir(@PathVariable Long id,
                                 @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate dataFim) {
         return service.concluir(id, dataFim);
     }
-
-    /**
-     * Exclusão física — mantida apenas por compatibilidade. Prefira
-     * /{id}/cancelar para preservar o histórico pedagógico.
-     */
-    @DeleteMapping("/{id}")
-    public void deletar(@PathVariable Long id) { service.deletar(id); }
 }

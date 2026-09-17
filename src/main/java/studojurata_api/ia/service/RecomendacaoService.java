@@ -23,29 +23,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Gera recomendações de reforço para um aluno (item "recomendações" desta
- * etapa), combinando dois sinais já aprovados na Análise Crítica:
+ * Recomenda reforço por dois sinais: repetição espaçada vencida e
+ * aproveitamento abaixo de 60% no conteúdo. Não aciona geração sozinho.
  *
- * - item 1.5: conteúdos cuja repetição espaçada está devida
- *   (RevisaoConteudo.dataProximoReforco já atingida);
- * - item 1.4: conteúdos em que o aproveitamento do aluno está abaixo de 60%
- *   ("haverá situações onde a nota inferior a 60% de aproveitamento do aluno
- *   ia requerir a produção de mais um simulado").
- *
- * Ver também item 7.4 (métricas que deveriam alimentar a IA): esta é a
- * primeira consumidora concreta do histórico granular por
- * conteúdo/questão/aluno estruturado no módulo de simulados (QuestaoAluno).
- *
- * O resultado é apenas uma lista priorizável: não aciona sozinho nenhuma
- * geração de simulado — isso é uma decisão explícita do professor (ou de um
- * job futuro), via GeracaoSimuladoIAService, respeitando o item 1.4 quanto à
- * exigência de revisão humana antes da liberação ao aluno.
- *
- * Desempenho por conteúdo e por dificuldade: taxa de acerto agregada por
- * conteúdo já não bastava pra decidir EM QUE NÍVEL reforçar (um aluno que
- * acerta o fácil e erra o difícil precisa de um reforço bem diferente de um
- * que erra o fácil e "acerta" o difícil, provavelmente no chute) — ver
- * sugerirNivelReforco.
+ * A taxa por conteúdo diz SE reforçar; a taxa por nível de dificuldade
+ * (sugerirNivelReforco) diz EM QUE NÍVEL, já que errar o fácil e acertar o
+ * difícil pede um reforço bem diferente do caso inverso.
  */
 @Service
 @RequiredArgsConstructor
@@ -108,9 +91,6 @@ public class RecomendacaoService {
                 RecomendacaoDTO dto = obterOuCriar(porConteudo, alunoId, conteudo);
                 dto.getMotivos().add(MotivoRecomendacao.BAIXO_APROVEITAMENTO);
                 dto.setTaxaAcerto(taxa);
-                // Só entra quando há questão com nível registrado pra esse
-                // conteúdo — sem isso, fica null e GeracaoSimuladoIAService
-                // cai no nível padrão (ver lá).
                 Map<NivelDificuldade, double[]> porNivel = taxasPorConteudoENivel.get(entry.getKey());
                 dto.setNivelPrioritario(porNivel != null ? determinarNivelPrioritario(porNivel) : null);
             }
@@ -120,11 +100,9 @@ public class RecomendacaoService {
     }
 
     /**
-     * Nível de dificuldade a usar num simulado de reforço pra este
-     * aluno+conteúdo — o mais baixo dos três em que a taxa de acerto (com
-     * amostra suficiente) está abaixo do limiar daquele nível. Retorna null
-     * quando não há dado suficiente em nenhum nível pra decidir (caller cai
-     * pro nível padrão, ver GeracaoSimuladoIAService).
+     * O nível mais baixo em que a taxa de acerto, com amostra suficiente, está
+     * abaixo do limiar daquele nível. Null quando nenhum nível tem dados
+     * suficientes.
      */
     public NivelDificuldade sugerirNivelReforco(Long alunoId, Long conteudoPlanoId) {
         Map<NivelDificuldade, double[]> porNivel = calcularTaxaAcertoPorConteudoENivel(alunoId).get(conteudoPlanoId);
@@ -159,24 +137,19 @@ public class RecomendacaoService {
     }
 
     /**
-     * conteudoPlanoId -> [quantidadeAcertos, quantidadeRespondidas] — taxa
-     * geral, agregando todos os níveis de dificuldade juntos (comportamento
-     * original, usado pro gatilho de BAIXO_APROVEITAMENTO). Mantida separada
-     * de calcularTaxaAcertoPorConteudoENivel de propósito: nem toda questão
-     * tem nível preenchido (nivelDificuldade é opcional), então a taxa geral
-     * não pode depender disso — só o nível prioritário do reforço depende.
+     * conteudoPlanoId -> [quantidadeAcertos, quantidadeRespondidas], todos os
+     * níveis juntos. Separada da agregação por nível porque nivelDificuldade é
+     * opcional e a taxa geral não pode depender dele.
      */
     private Map<Long, double[]> calcularTaxaAcertoPorConteudo(Long alunoId) {
-        List<QuestaoAluno> respostas = questaoAlunoRepository.findBySimuladoAluno_AlunoId(alunoId);
-        if (respostas.isEmpty()) {
+        RespostasComConteudo dados = carregarRespostasComConteudo(alunoId);
+        if (dados.respostas().isEmpty()) {
             return Map.of();
         }
 
-        Map<Long, List<Long>> conteudosPorQuestao = mapearConteudosPorQuestao(respostas);
-
         Map<Long, double[]> agregado = new HashMap<>();
-        for (QuestaoAluno resposta : respostas) {
-            List<Long> conteudoIds = conteudosPorQuestao.get(resposta.getQuestao().getId());
+        for (QuestaoAluno resposta : dados.respostas()) {
+            List<Long> conteudoIds = dados.conteudosPorQuestao().get(resposta.getQuestao().getId());
             if (conteudoIds == null) continue;
             for (Long conteudoId : conteudoIds) {
                 double[] contadores = agregado.computeIfAbsent(conteudoId, k -> new double[2]);
@@ -191,16 +164,14 @@ public class RecomendacaoService {
 
     /** conteudoPlanoId -> nível -> [quantidadeAcertos, quantidadeRespondidas] — só questões com nível preenchido. */
     private Map<Long, Map<NivelDificuldade, double[]>> calcularTaxaAcertoPorConteudoENivel(Long alunoId) {
-        List<QuestaoAluno> respostas = questaoAlunoRepository.findBySimuladoAluno_AlunoId(alunoId);
-        if (respostas.isEmpty()) {
+        RespostasComConteudo dados = carregarRespostasComConteudo(alunoId);
+        if (dados.respostas().isEmpty()) {
             return Map.of();
         }
 
-        Map<Long, List<Long>> conteudosPorQuestao = mapearConteudosPorQuestao(respostas);
-
         Map<Long, Map<NivelDificuldade, double[]>> agregado = new HashMap<>();
-        for (QuestaoAluno resposta : respostas) {
-            List<Long> conteudoIds = conteudosPorQuestao.get(resposta.getQuestao().getId());
+        for (QuestaoAluno resposta : dados.respostas()) {
+            List<Long> conteudoIds = dados.conteudosPorQuestao().get(resposta.getQuestao().getId());
             if (conteudoIds == null) continue;
 
             NivelDificuldade nivel = resposta.getQuestao().getNivelDificuldade();
@@ -217,6 +188,15 @@ public class RecomendacaoService {
             }
         }
         return agregado;
+    }
+
+    /** Respostas do aluno e os conteúdos vinculados a cada questão — busca compartilhada pelas duas agregações acima. */
+    private record RespostasComConteudo(List<QuestaoAluno> respostas, Map<Long, List<Long>> conteudosPorQuestao) {}
+
+    private RespostasComConteudo carregarRespostasComConteudo(Long alunoId) {
+        List<QuestaoAluno> respostas = questaoAlunoRepository.findBySimuladoAluno_AlunoId(alunoId);
+        Map<Long, List<Long>> conteudosPorQuestao = respostas.isEmpty() ? Map.of() : mapearConteudosPorQuestao(respostas);
+        return new RespostasComConteudo(respostas, conteudosPorQuestao);
     }
 
     /** questaoId -> conteudoPlanoIds vinculados, resolvido só pras questões respondidas passadas. */

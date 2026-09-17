@@ -3,6 +3,7 @@ package studojurata_api.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import studojurata_api.dto.LancarSimuladoRequest;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
@@ -11,14 +12,12 @@ import studojurata_api.model.AlunoTurma;
 import studojurata_api.model.Simulado;
 import studojurata_api.model.SimuladoAluno;
 import studojurata_api.model.SimuladoQuestao;
-import studojurata_api.model.enums.StatusMatricula;
 import studojurata_api.model.enums.StatusQuestao;
 import studojurata_api.model.enums.StatusSimulado;
 import studojurata_api.model.enums.StatusSimuladoAluno;
 import studojurata_api.model.enums.StatusSimuladoQuestao;
 import studojurata_api.model.enums.TipoDestinacaoSimulado;
 import studojurata_api.repository.AlunoRepository;
-import studojurata_api.repository.AlunoTurmaRepository;
 import studojurata_api.repository.SimuladoAlunoRepository;
 import studojurata_api.repository.SimuladoQuestaoRepository;
 import studojurata_api.repository.SimuladoRepository;
@@ -33,7 +32,7 @@ public class SimuladoService {
     private final SimuladoRepository repository;
     private final SimuladoQuestaoRepository simuladoQuestaoRepository;
     private final SimuladoAlunoRepository simuladoAlunoRepository;
-    private final AlunoTurmaRepository alunoTurmaRepository;
+    private final AlunoTurmaService alunoTurmaService;
     private final AlunoRepository alunoRepository;
 
     public List<Simulado> listar() { return repository.findAll(); }
@@ -51,9 +50,8 @@ public class SimuladoService {
     }
 
     /**
-     * Edição dos dados do simulado só é permitida enquanto ele está em
-     * RASCUNHO — após publicado, alunos elegíveis já foram convocados
-     * (SimuladoAluno) com base nos dados vigentes no momento do lançamento.
+     * Só em RASCUNHO: depois de publicado, os alunos já foram convocados com
+     * base nos dados do lançamento.
      */
     public Simulado atualizar(Long id, Simulado obj) {
         Simulado existente = buscar(id);
@@ -62,20 +60,14 @@ public class SimuladoService {
                     "Só é possível editar os dados de um simulado enquanto ele está em RASCUNHO.");
         }
         obj.setId(id);
-        // preserva o status (RASCUNHO) — o DTO de entrada não expõe este campo,
-        // que é controlado exclusivamente pelo fluxo de lancar()/encerrar().
+        // O status só muda por lancar()/encerrar().
         obj.setStatus(existente.getStatus());
         return repository.save(obj);
     }
 
     public void deletar(Long id) { repository.deleteById(id); }
 
-    /**
-     * Item pedido pelo usuário: mesmo depois de PUBLICADO (edição geral
-     * travada por atualizar() acima), o professor ainda precisa poder
-     * "disponibilizar por mais tempo" — único campo que continua editável
-     * depois do lançamento.
-     */
+    /** Único campo editável depois do lançamento. */
     @Transactional
     public Simulado estenderDisponibilidade(Long id, LocalDateTime novaDataFim) {
         Simulado simulado = buscar(id);
@@ -91,18 +83,13 @@ public class SimuladoService {
     }
 
     /**
-     * Lança o simulado (item 1.3 da Análise Crítica).
-     *
-     * Valida que existem questões ativas vinculadas e que todas já foram
-     * aprovadas (item 7.3 — não é possível lançar um simulado com questões
-     * ainda pendentes de revisão do professor). Em seguida transiciona o
-     * status para PUBLICADO e cria um SimuladoAluno (status PENDENTE) para
-     * cada aluno elegível: todos os alunos com matrícula ATIVA na turma
-     * (tipoDestinacao = TODOS) ou apenas os alunos informados
-     * (tipoDestinacao = ESPECIFICO).
+     * Exige questões ativas e todas aprovadas. Cria uma tentativa PENDENTE
+     * por aluno elegível: matrículas ATIVAS da turma (TODOS) ou os alunos
+     * informados (ESPECIFICO).
      */
     @Transactional
-    public Simulado lancar(Long simuladoId, List<Long> alunoIdsEspecificos) {
+    public Simulado lancar(Long simuladoId, LancarSimuladoRequest request) {
+        List<Long> alunoIdsEspecificos = request != null ? request.getAlunoIds() : null;
         Simulado simulado = buscar(simuladoId);
 
         if (simulado.getStatus() != StatusSimulado.RASCUNHO) {
@@ -163,17 +150,12 @@ public class SimuladoService {
             throw new RequisicaoInvalidaException(
                     "Simulado com destinação TODOS precisa estar vinculado a uma turma.");
         }
-        return alunoTurmaRepository
-                .findByTurmaIdAndStatus(simulado.getTurma().getId(), StatusMatricula.ATIVA)
+        return alunoTurmaService.ativosPorTurma(simulado.getTurma().getId())
                 .stream()
                 .map(AlunoTurma::getAluno)
                 .toList();
     }
 
-    /**
-     * Encerra manualmente o simulado (ex.: janela dataFim atingida): deixa
-     * de aceitar novas tentativas/finalizações.
-     */
     @Transactional
     public Simulado encerrar(Long simuladoId) {
         Simulado simulado = buscar(simuladoId);

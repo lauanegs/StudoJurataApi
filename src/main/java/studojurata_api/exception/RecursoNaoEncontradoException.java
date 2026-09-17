@@ -1,9 +1,6 @@
 package studojurata_api.exception;
 
-/**
- * Lançada quando um recurso (entidade) referenciado por id não existe.
- * Traduzida para HTTP 404 por GlobalExceptionHandler.
- */
+/** HTTP 404. */
 public class RecursoNaoEncontradoException extends RuntimeException {
 
     public RecursoNaoEncontradoException(String message) {

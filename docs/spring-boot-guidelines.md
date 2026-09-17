@@ -64,7 +64,7 @@ Construtor via `@RequiredArgsConstructor` em 100% do código-fonte inspecionado.
 
 ## JPA/Hibernate
 
-- `spring.jpa.hibernate.ddl-auto=update`, `show-sql=true`, `format_sql=true` — só para dev. Se/quando o projeto migrar para uma ferramenta de migration (Flyway/Liquibase), isso é uma decisão de infraestrutura relevante o bastante para ser tratada como tarefa própria, não um efeito colateral de outra mudança.
+- `spring.jpa.hibernate.ddl-auto=update` — só para dev. `show-sql` fica desligado (imprimia todo SQL executado no console); para depurar uma consulta pontual, ligar localmente sem commitar. Se/quando o projeto migrar para uma ferramenta de migration (Flyway/Liquibase), isso é uma decisão de infraestrutura relevante o bastante para ser tratada como tarefa própria, não um efeito colateral de outra mudança.
 - `@Enumerated(EnumType.STRING)` sempre, nunca `ORDINAL`.
 - `equals`/`hashCode` de entidade só pelo `id` (via `BaseEntity`) — nunca `@Data` em `@Entity`.
 

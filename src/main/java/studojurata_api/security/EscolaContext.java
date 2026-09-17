@@ -5,11 +5,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 /**
- * Correção 2.2 da Terceira Análise Crítica ("Escola existe como coluna, mas
- * o isolamento multi-tenant não foi implementado"): ponto único para obter
- * a escola do usuário autenticado, usado para filtrar listagens de Turma,
- * Disciplina e Usuario por escola em vez de devolver os dados de todas as
- * escolas para qualquer usuário autenticado.
+ * Escola do usuário autenticado, para isolamento multi-tenant das listagens.
  *
  * Retorna {@code null} quando não há usuário autenticado reconhecido ou
  * quando o usuário ainda não tem escola associada (ex.: primeiro

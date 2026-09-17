@@ -18,7 +18,6 @@ import studojurata_api.repository.gamificacao.SkinRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/** Correção 8.2: moedas compram skins do personagem/mascote. */
 @Service
 @RequiredArgsConstructor
 public class SkinService {
@@ -64,7 +63,6 @@ public class SkinService {
         return skinAlunoRepository.save(skinAluno);
     }
 
-    /** Equipa uma skin já comprada, desmarcando a anteriormente ativa. */
     @Transactional
     public SkinAluno equipar(Long alunoId, Long skinId) {
         SkinAluno alvo = skinAlunoRepository.findByAluno_IdAndSkin_Id(alunoId, skinId)

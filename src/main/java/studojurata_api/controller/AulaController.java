@@ -39,11 +39,7 @@ public class AulaController {
     @PostMapping
     public Aula salvar(@RequestBody Aula o) { return service.salvar(o); }
 
-    /**
-     * Geração em lote — pedido explícito: gerar de uma vez as aulas do
-     * início do plano, seguindo os horários já cadastrados na turma, em vez
-     * de cadastrar uma de cada vez.
-     */
+    /** Gera as aulas do plano seguindo os horários já cadastrados na turma. */
     @PostMapping("/plano-aula/{planoAulaId}/gerar-lote")
     public List<Aula> gerarLote(@PathVariable Long planoAulaId, @RequestBody GerarAulasLoteRequest pedido) {
         return service.gerarLote(planoAulaId, pedido);
@@ -59,11 +55,9 @@ public class AulaController {
         return service.publicar(id, dataPublicacao);
     }
 
-    /** Soft delete: marca a aula como INATIVA, preservando frequências e conteúdos já vinculados (ver 4.3). */
+    /** Soft delete: preserva frequências e conteúdos já vinculados. */
     @DeleteMapping("/{id}")
     public void deletar(@PathVariable Long id) { service.deletar(id); }
-
-    // ---- Conteúdos da aula (aba "Registrar conteúdo") ----
 
     @GetMapping("/{id}/conteudos")
     public List<AulaConteudo> listarConteudos(@PathVariable Long id) { return aulaConteudoService.listarPorAula(id); }
@@ -78,12 +72,9 @@ public class AulaController {
         aulaConteudoService.desvincular(id, conteudoPlanoId);
     }
 
-    // ---- Frequência/chamada (aba "Realizar chamada") ----
-
     @GetMapping("/{id}/frequencias")
     public List<Frequencia> listarFrequencias(@PathVariable Long id) { return frequenciaService.listarPorAula(id); }
 
-    /** Lança a chamada completa da aula de uma só vez (um item por aluno). */
     @PostMapping("/{id}/frequencias/chamada")
     public List<Frequencia> registrarChamada(@PathVariable Long id, @RequestBody ChamadaRequest request) {
         return frequenciaService.registrarChamada(id, request);

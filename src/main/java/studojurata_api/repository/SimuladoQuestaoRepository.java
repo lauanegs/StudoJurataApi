@@ -8,8 +8,6 @@ import java.util.List;
 
 public interface SimuladoQuestaoRepository extends JpaRepository<SimuladoQuestao, Long> {
 
-    List<SimuladoQuestao> findBySimuladoIdOrderByOrdem(Long simuladoId);
-
     List<SimuladoQuestao> findBySimuladoIdAndStatusOrderByOrdem(Long simuladoId, StatusSimuladoQuestao status);
 
     long countBySimuladoIdAndStatus(Long simuladoId, StatusSimuladoQuestao status);

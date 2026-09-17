@@ -22,20 +22,8 @@ import studojurata_api.repository.TurmaRepository;
 import java.util.List;
 
 /**
- * Correção 1.2 + 2.13 da Segunda Análise Crítica: Nota deixou de ser um
- * valor solto editável por PUT e passou a ser sempre derivada dos simulados
- * concluídos do aluno naquela disciplina — nunca persistida diretamente a
- * partir do que o cliente da API mandar em "total".
- *
- * Correção "matrícula cíclica" (revisão pedagógica): o escopo do cálculo
- * deixou de ser periodoLetivo (calendário fixo) e passou a ser a turma —
- * cada disciplina distribui 100 pontos entre os simulados com notaMaxima
- * maior que zero (notaMaxima = 0 é só simulado de reforço/repetição
- * espaçada, não entra na soma), e só simulados aplicados a partir da data em
- * que o aluno se matriculou naquela turma contam — quem entrou depois do
- * ciclo começar não é penalizado por simulados anteriores à sua matrícula.
- *
- * Toda alteração de Nota é registrada em AuditLog (item 2.9/10.4).
+ * A nota é sempre derivada dos simulados concluídos (regra de cálculo em
+ * Nota). Toda alteração é registrada em AuditLog.
  */
 @Service
 @RequiredArgsConstructor
@@ -56,7 +44,6 @@ public class NotaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Nota " + id + " não encontrada."));
     }
 
-    /** Histórico completo do aluno, do registro mais recente ao mais antigo — acessível ao próprio aluno. */
     public List<Nota> historicoPorAluno(Long alunoId) {
         return repository.findByAluno_IdOrderByCreatedAtDesc(alunoId);
     }
@@ -65,14 +52,7 @@ public class NotaService {
         return repository.findByAluno_IdAndDisciplina_IdOrderByCreatedAtDesc(alunoId, disciplinaId);
     }
 
-    /**
-     * Recalcula (cria ou atualiza) a Nota de um aluno numa disciplina/turma,
-     * como a SOMA dos SimuladoAluno.nota já CONCLUIDOs daquela
-     * disciplina/turma, com notaMaxima > 0 e aplicados a partir da data de
-     * matrícula do aluno na turma. Chamado automaticamente sempre que um
-     * simulado é finalizado (ver SimuladoAlunoService.finalizar), e pode
-     * também ser chamado manualmente (ex.: reprocessamento administrativo).
-     */
+    /** Chamado a cada simulado finalizado e, manualmente, para reprocessamento. */
     @Transactional
     public Nota recalcular(Long alunoId, Long disciplinaId, Long turmaId) {
         AlunoTurma matricula = alunoTurmaRepository
@@ -121,10 +101,8 @@ public class NotaService {
     }
 
     /**
-     * Sem matrícula encontrada, mantém o comportamento permissivo anterior
-     * (conta o simulado) em vez de zerar a nota do aluno por um dado de
-     * matrícula ausente/inconsistente. Com matrícula, só conta simulados
-     * aplicados a partir da data em que o aluno entrou na turma.
+     * Sem matrícula encontrada, conta o simulado: um dado de matrícula
+     * inconsistente não deve zerar a nota do aluno.
      */
     private boolean elegivelPelaMatricula(SimuladoAluno simuladoAluno, AlunoTurma matricula) {
         if (matricula == null || matricula.getDataInicio() == null) return true;
@@ -133,7 +111,7 @@ public class NotaService {
         return !dataAplicacao.toLocalDate().isBefore(matricula.getDataInicio());
     }
 
-    /** Exclusão administrativa pontual (registro puramente derivado, não há "histórico pedagógico" a preservar em si). */
+    /** Exclusão física é aceitável: a nota é derivada e pode ser recalculada. */
     @Transactional
     public void deletar(Long id) {
         auditLogService.registrar("Nota", id, AcaoAuditoria.EXCLUSAO, "Registro de nota removido manualmente.");

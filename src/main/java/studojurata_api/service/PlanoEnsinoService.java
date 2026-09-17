@@ -18,19 +18,8 @@ import studojurata_api.security.EscolaContext;
 import java.util.List;
 
 /**
- * Correção 5.1: controller passa a usar este service, não mais o Repository.
- * Vínculo pedido explicitamente: todo Plano de Ensino pertence a um Curso
- * (ver PlanoEnsino.curso) — validado e resolvido da mesma forma que
- * TurmaService faz para Turma.curso.
- *
- * Correção 3.1 da Quarta Análise Crítica (isolamento por escola na
- * escrita): validarCurso recusa (403) um Curso que não pertence à escola
- * do usuário autenticado. Correção 3.3: recusa (409) vincular um plano de
- * ensino a um Curso já INATIVO.
- *
- * Correção "matrícula cíclica": periodoLetivo deixou de existir/ser
- * validado (ver PlanoEnsino.java) — a nota do aluno é escopada por turma,
- * não por calendário.
+ * validarCurso recusa curso de outra escola (403) ou inativo (409), como em
+ * TurmaService.
  */
 @Service
 @RequiredArgsConstructor
@@ -41,13 +30,7 @@ public class PlanoEnsinoService {
     private final PlanoAulaService planoAulaService;
     private final EscolaContext escolaContext;
 
-    /**
-     * Filtra pela escola do usuário autenticado (via Curso.escola); se não
-     * houver escola resolvível, devolve tudo (bootstrapping). Correção de
-     * auditoria: antes listar() ignorava EscolaContext (que já era usado em
-     * validarCurso, no caminho de escrita), devolvendo planos de ensino de
-     * todas as escolas para qualquer usuário autenticado.
-     */
+    /** Filtra pela escola do curso; sem escola resolvível (antes do cadastro inicial), não filtra. */
     public List<PlanoEnsino> listar() {
         Long escolaId = escolaContext.escolaAtualId();
         return escolaId != null ? repository.findByCurso_Escola_Id(escolaId) : repository.findAll();
@@ -58,7 +41,6 @@ public class PlanoEnsinoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Plano de ensino " + id + " não encontrado."));
     }
 
-    /** Todos os planos de ensino (um por disciplina) vinculados a um curso. */
     public List<PlanoEnsino> listarPorCurso(Long cursoId) {
         return repository.findByCurso_Id(cursoId);
     }
@@ -67,9 +49,6 @@ public class PlanoEnsinoService {
         validarCurso(obj);
         if (obj.getStatus() == null) obj.setStatus(StatusPlano.ATIVO);
         PlanoEnsino salvo = repository.save(obj);
-        // Pedido explícito: plano de aula nasce junto, sem tela separada pra
-        // criar isso na mão — só quando já há turma/disciplina definida (ver
-        // PlanoAulaService.gerarSeNecessario).
         planoAulaService.gerarSeNecessario(salvo);
         return salvo;
     }
@@ -78,8 +57,7 @@ public class PlanoEnsinoService {
         validarCurso(obj);
         obj.setId(id);
         PlanoEnsino salvo = repository.save(obj);
-        // Cobre o caso de um plano de ensino genérico (sem turma) que passou
-        // a ter turma/disciplina definida numa edição posterior.
+        // Plano genérico que ganhou turma numa edição também passa a ter plano de aula.
         planoAulaService.gerarSeNecessario(salvo);
         return salvo;
     }
@@ -105,11 +83,7 @@ public class PlanoEnsinoService {
         obj.setCurso(curso);
     }
 
-    /**
-     * Soft-delete (item 4.3/5.1 + caso extremo "Plano de ensino alterado
-     * após simulados já realizados") — vira CONCLUIDO, não "excluído" de
-     * fato: histórico (conteúdos, planos de aula, simulados) é preservado.
-     */
+    /** Soft delete: vira CONCLUIDO, preservando conteúdos, planos de aula e simulados. */
     public void deletar(Long id) {
         PlanoEnsino plano = buscar(id);
         plano.setStatus(StatusPlano.CONCLUIDO);

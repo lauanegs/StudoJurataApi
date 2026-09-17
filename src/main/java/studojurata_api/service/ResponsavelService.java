@@ -10,7 +10,6 @@ import studojurata_api.repository.ResponsavelRepository;
 
 import java.util.List;
 
-/** Correção 5.1: controller passa a usar este service, não mais o Repository. */
 @Service
 @RequiredArgsConstructor
 public class ResponsavelService {
@@ -31,7 +30,7 @@ public class ResponsavelService {
         return repository.save(obj);
     }
 
-    /** Soft-delete (item 4.3/5.1) via Pessoa vinculada (Responsavel é 1:1 com Pessoa — correção 2.1). */
+    /** Soft-delete pela Pessoa, já que Responsavel não tem status próprio. */
     @Transactional
     public void deletar(Long id) {
         Responsavel responsavel = buscar(id);
@@ -40,7 +39,6 @@ public class ResponsavelService {
         }
     }
 
-    /** Reativa um responsável inativado (volta a Pessoa pra ATIVO) — contraparte de deletar(). */
     @Transactional
     public Responsavel ativar(Long id) {
         Responsavel responsavel = buscar(id);

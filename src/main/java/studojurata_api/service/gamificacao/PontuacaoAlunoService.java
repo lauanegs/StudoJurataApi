@@ -15,18 +15,11 @@ import studojurata_api.repository.gamificacao.SkinRepository;
 
 import java.time.LocalDateTime;
 
-/**
- * Correção 8.1/8.2 da Segunda Análise Crítica: concede moedas/XP por
- * simulado concluído e por reforço registrado (RevisaoConteudo) — nunca só
- * por acerto, para não penalizar quem precisa revisar mais. Não expõe
- * nenhum ranking comparativo entre alunos (decisão explícita: sem
- * comparação entre colegas).
- */
 @Service
 @RequiredArgsConstructor
 public class PontuacaoAlunoService {
 
-    /** Mesma quantidade de moedas por simulado concluído, independente da nota — equidade pedida em 8.1. */
+    /** Independente da nota: não é bonificação por acerto. */
     public static final int MOEDAS_POR_SIMULADO_CONCLUIDO = 10;
 
     /** Mesma quantidade por reforço registrado — quem revisa é beneficiado tanto quanto quem acerta de primeira. */
@@ -51,12 +44,8 @@ public class PontuacaoAlunoService {
     }
 
     /**
-     * Correção 2.6 da Terceira Análise Crítica: a skin gratuita (custoMoedas
-     * = 0) do catálogo inicial não era concedida a ninguém automaticamente
-     * — o aluno precisava "comprar" mesmo a skin de custo zero para poder
-     * equipá-la. Agora, na primeira vez que o aluno interage com a
-     * gamificação (PontuacaoAluno é criado), a skin gratuita já é
-     * concedida e equipada por padrão.
+     * Na criação da pontuação, concede e equipa a skin gratuita, para o aluno
+     * não precisar "comprar" uma skin de custo zero.
      */
     private void concederSkinPadrao(Aluno aluno) {
         skinRepository.findByDisponivelTrue().stream()

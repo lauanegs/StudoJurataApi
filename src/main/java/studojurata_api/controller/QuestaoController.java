@@ -44,7 +44,6 @@ public class QuestaoController {
     @DeleteMapping("/{id}")
     public void deletar(@PathVariable Long id) { service.deletar(id); }
 
-    /** Fila da tela de Revisão do professor (itens 1.4/7.3). */
     @GetMapping("/pendentes")
     public List<QuestaoResponseDTO> listarPendentes() {
         return service.listarPendentes().stream().map(mapper::toResponseDTO).toList();
@@ -59,11 +58,6 @@ public class QuestaoController {
     public QuestaoResponseDTO rejeitar(@PathVariable Long id) {
         return mapper.toResponseDTO(service.rejeitar(id));
     }
-
-    // ---- Conteúdos vinculados à questão (aba "Conteúdo" do QuestaoEditor) ----
-    // Sem esse vínculo a questão fica fora do cálculo de desempenho por
-    // conteúdo (ver RecomendacaoService) — só questões geradas pela IA
-    // ganham isso automaticamente hoje.
 
     @GetMapping("/{id}/conteudos")
     public List<QuestaoConteudo> listarConteudos(@PathVariable Long id) {

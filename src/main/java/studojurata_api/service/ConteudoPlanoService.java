@@ -12,13 +12,6 @@ import studojurata_api.repository.ConteudoPlanoRepository;
 
 import java.util.List;
 
-/**
- * Correção 5.1 + caso extremo "Conteúdo removido" (Segunda Análise
- * Crítica): antes o controller excluía ConteudoPlano fisicamente,
- * inconsistente com o soft-delete já aplicado em SimuladoQuestao/
- * AulaConteudo para preservar QuestaoAluno já respondido. Agora deletar()
- * marca o conteúdo como INATIVO em vez de remover a linha.
- */
 @Service
 @RequiredArgsConstructor
 public class ConteudoPlanoService {
@@ -44,10 +37,8 @@ public class ConteudoPlanoService {
     }
 
     /**
-     * Recusa (409) inativar um conteúdo que já foi ministrado — vinculado a
-     * uma Aula com `dataPublicacao` preenchida (pedido do usuário). Um
-     * conteúdo nunca vinculado a nenhuma aula ministrada pode ser inativado
-     * normalmente.
+     * Soft-delete, recusado quando o conteúdo já foi ministrado (vinculado a
+     * uma aula com dataPublicacao).
      */
     public void deletar(Long id) {
         ConteudoPlano conteudo = buscar(id);

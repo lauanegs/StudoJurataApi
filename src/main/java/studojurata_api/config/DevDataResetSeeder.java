@@ -173,12 +173,8 @@ public class DevDataResetSeeder implements CommandLineRunner {
     }
 
     /**
-     * Um aluno a matricular numa turma — usado só para reduzir repetição no
-     * semear(). `codigo` é um sufixo de 2 dígitos único (ex.: "01") — vira a
-     * base do CPF gerado (com dígito verificador real, ver gerarCpfValido) e
-     * do telefone, em vez de ser extraído por substring de um CPF já
-     * formatado (isso produzia telefone com traço sobrando, tipo
-     * "(11) 930--0000").
+     * `codigo` é um sufixo único de 2 dígitos (ex.: "01"), base do CPF gerado
+     * e do telefone.
      */
     private record AlunoSeed(String nome, String codigo, String nascimentoIso, String username,
                               Sexo sexo, String nomeResponsavel, Parentesco parentesco) {
@@ -222,9 +218,8 @@ public class DevDataResetSeeder implements CommandLineRunner {
         discProgGamificada = disciplinaRepository.save(discProgGamificada);
 
         // ---- Grade curricular (Curso ↔ Disciplina + carga horária) ----------------
-        // Mesma regra já confirmada pelo usuário: Robótica e Programação Gamificada
-        // só têm a matéria correspondente (60h); Geek Júnior e Geek Teens têm as
-        // duas (30h cada) — soma sempre 60h, batendo com Curso.cargaHorariaTotal.
+        // Robótica e Programação Gamificada só têm a matéria correspondente (60h);
+        // Geek Júnior e Geek Teens têm as duas (30h cada), somando sempre 60h.
         criarCursoDisciplina(cursoGeekJunior, discRobotica, 30);
         criarCursoDisciplina(cursoGeekJunior, discProgGamificada, 30);
         criarCursoDisciplina(cursoRobotica, discRobotica, 60);
@@ -233,7 +228,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarCursoDisciplina(cursoGeekTeens, discProgGamificada, 30);
 
         // ---- Turmas (1 por curso, 1 aula semanal de 1h30, capacidade 8) ------------
-        // Confirmado pelo usuário: nome da turma = curso + dia da semana + horário de início.
         Turma turmaGeekJunior = criarTurma(escola, cursoGeekJunior, DiaSemana.TERCA, 8, 0, inicioAnoLetivo);
         Turma turmaRobotica = criarTurma(escola, cursoRobotica, DiaSemana.QUARTA, 14, 0, inicioAnoLetivo);
         Turma turmaProgGamificada = criarTurma(escola, cursoProgGamificada, DiaSemana.QUINTA, 14, 0, inicioAnoLetivo);
@@ -264,9 +258,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
         Usuario usuarioAdmin = criarUsuario(escola, pessoaAdmin, "admin", "admin123", TipoUsuario.ADMINISTRADOR, null, null);
 
         // ---- TurmaDisciplina --------------------------------------------------------
-        // Confirmado pelo usuário: Robótica só tem a matéria Robótica; Programação
-        // Gamificada só tem a matéria Programação Gamificada; Geek Júnior e Geek Teens
-        // têm as duas.
+        // Mesma distribuição de matérias da grade curricular acima.
         TurmaDisciplina tdGeekJuniorRobotica = criarTurmaDisciplina(turmaGeekJunior, discRobotica, profRobotica);
         TurmaDisciplina tdGeekJuniorProgGamificada = criarTurmaDisciplina(turmaGeekJunior, discProgGamificada, profProgGamificada);
         TurmaDisciplina tdRobotica = criarTurmaDisciplina(turmaRobotica, discRobotica, profRobotica);
@@ -427,7 +419,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarSimuladoAlunoPendente(simuladoGeekJuniorProgGamificada, alunosGeekJunior.get(3));
 
         // Exemplo do alerta "pede reforço manual" (AlertaDesempenhoCard, ver
-        // LIMIAR_DESEMPENHO no front): 3 dos 5 alunos concluídos (60%) ficam
+        // LIMIAR_BAIXO_DESEMPENHO no front): 3 dos 5 alunos concluídos (60%) ficam
         // abaixo de 60% de aproveitamento — visível em Desempenho > Por
         // simulado > Detalhar no Simulado de Robótica da turma de Robótica.
         responderSimulado(simuladoRobotica, alunosRobotica.get(0), questoesRobotica, 5);
@@ -522,15 +514,9 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarRevisao(alunosGeekJunior.get(3), conteudosGeekJuniorRobotica.get(0), 1, NivelDominio.BAIXO);
         criarRevisao(alunosProgGamificada.get(1), conteudosProgGamificada.get(0), 3, NivelDominio.MEDIO);
 
-        // Revisão já DEVIDA hoje (ao contrário das duas acima, sempre no
-        // futuro) — só pra dar algo imediatamente testável sem esperar o
-        // cron: aparece em GET /ia/revisao-conteudo/devidos e no job
-        // GeracaoAutomaticaSimuladoJob assim que o backend sobe de novo (não
-        // precisa esperar 5h da manhã pra rodar o teste manual via
-        // POST /ia/geracao/simulado). Conteúdo escolhido de propósito com
-        // pouco banco aprovado (1 questão por nível, ver criarQuestoes) —
-        // pedir 5 questões de nível MEDIA obriga pelo menos 2 delas a vir do
-        // Gemini de verdade, não só do cache.
+        // Revisão já devida hoje, para testar a geração sem esperar o cron.
+        // O conteúdo tem só 1 questão aprovada por nível: pedir 5 de nível MEDIA
+        // obriga ao menos 2 a virem do Gemini, não só do cache.
         criarRevisaoDevidaHoje(alunosRobotica.get(0), conteudosRobotica.get(0), NivelDominio.BAIXO);
     }
 
@@ -558,10 +544,8 @@ public class DevDataResetSeeder implements CommandLineRunner {
     }
 
     /**
-     * Nome da turma = curso + dia da semana + horário de início (confirmado
-     * pelo usuário). Sem dataFim: matrícula cíclica (pedido explícito) —
-     * uma turma ATIVA continua indefinidamente, sem data de término
-     * definida; só ganha uma ao ser encerrada (ver TurmaFormulario no front).
+     * Nome da turma = curso + dia da semana + horário de início. Sem dataFim:
+     * turma ATIVA continua indefinidamente e só ganha data ao ser encerrada.
      */
     private Turma criarTurma(Escola escola, Curso curso, DiaSemana dia, int horaInicio, int minutoInicio,
                               LocalDate dataInicio) {
@@ -611,10 +595,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
         p.setEmail(email);
         p.setSexo(sexo);
         p.setStatus(StatusAtivoInativo.ATIVO);
-        // Coerência (pedido explícito): nenhuma Pessoa tinha endereço — a aba
-        // "Endereço" (e o preenchimento automático por CEP) sempre aparecia
-        // vazia em qualquer tela de teste. Gerado a partir do CPF, então é
-        // sempre o mesmo endereço pra mesma pessoa entre resets do seed.
+        // Derivado do CPF: a mesma pessoa recebe o mesmo endereço entre resets.
         p.setEndereco(gerarEndereco(cpf));
         return pessoaRepository.save(p);
     }
@@ -634,19 +615,10 @@ public class DevDataResetSeeder implements CommandLineRunner {
             {"05836-000", "Avenida Giovanni Gronchi", "Morumbi"},
     };
 
+    /** Endereço plausível de São Paulo/SP, determinístico a partir do CPF. */
     /**
-     * Endereço plausível de São Paulo/SP, determinístico a partir do CPF
-     * (mesma pessoa sempre recebe o mesmo endereço entre resets do seed) —
-     * escolhido de uma lista de logradouros reais em vez de texto genérico
-     * tipo "Rua 1".
-     */
-    /**
-     * Gera um CPF com dígitos verificadores REAIS a partir de uma base de 9
-     * dígitos — mesmo algoritmo de `cpfValido` no front
-     * (utils/validacao.ts). Sem isso, os CPFs fixos que o seed usava (ex.:
-     * "700.000.000-01") não passavam na validação de verdade: abrir um
-     * cadastro existente e salvar sem mexer no CPF já falhava com "CPF
-     * inválido", porque o dígito verificador nunca batia.
+     * Dígitos verificadores reais (mesmo algoritmo de `cpfValido` no front):
+     * com CPF inválido, salvar um cadastro do seed sem alterações falharia.
      */
     private String gerarCpfValido(String base9) {
         int[] d = new int[11];
@@ -732,9 +704,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
 
         criarUsuario(escola, pessoaAluno, seed.username(), "senha123", TipoUsuario.ALUNO, aluno, null);
 
-        // Responsável tinha CPF placeholder inválido ("RESP-<id>") — vira um
-        // CPF de verdade, com prefixo diferente do aluno (6 em vez de 7)
-        // pra nunca colidir, mas ainda derivado do mesmo código.
+        // Prefixo 6 (o do aluno é 7) para os CPFs nunca colidirem.
         Pessoa pessoaResp = criarPessoa(seed.nomeResponsavel(), gerarCpfValido("6000000" + seed.codigo()),
                 LocalDate.of(1980, 1, 1), "(11) 94" + seed.codigo() + "-0000",
                 "resp." + seed.username() + "@studojurata.com",
@@ -782,7 +752,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         pe.setTurmaDisciplina(td);
         pe.setProfessor(td.getProfessor());
         pe.setCurso(curso);
-        // titulo não existe mais — identificação do plano é o próprio id, gerado ao salvar.
         pe.setCargaHoraria(60);
         pe.setEmenta("Ementa de " + titulo);
         pe.setObjetivoGeral("Desenvolver o raciocínio lógico e as habilidades práticas do curso " + curso.getNome() + ".");
@@ -825,12 +794,8 @@ public class DevDataResetSeeder implements CommandLineRunner {
         pa.setStatus(status);
         pa = planoAulaRepository.save(pa);
 
-        // Coerência: a carga horária da aula precisa bater com o horário
-        // semanal real da turma (ver AulaService.validar — no uso normal
-        // pela tela "Registrar aula", cargaHoraria é sempre CALCULADA a
-        // partir do horarioTurma escolhido, nunca digitada à mão quando
-        // existe um horário cadastrado). Sem isso, o seed tinha aulas de
-        // "2h" numa turma cujo único horário cadastrado dura 1h30.
+        // A carga horária precisa bater com o horário da turma, como
+        // AulaService.validar exige no uso normal.
         List<HorarioTurma> horarios = horarioTurmaRepository.findByTurma_Id(td.getTurma().getId());
         HorarioTurma horario = horarios.isEmpty() ? null : horarios.get(0);
         double cargaHorariaAula = horario != null
@@ -1067,11 +1032,8 @@ public class DevDataResetSeeder implements CommandLineRunner {
     }
 
     /**
-     * Simulado ainda em RASCUNHO — reúne as questões de IA aguardando
-     * aprovação. `quantidadeQuestoes` reflete de verdade quantas o chamador
-     * vai vincular em seguida (sempre 2, nos dois usos deste seed) — deixar
-     * 0 fixo aqui, com 2 questões de fato vinculadas logo depois, é a
-     * inconsistência que o campo existe justamente para evitar.
+     * Simulado em RASCUNHO com as questões de IA aguardando aprovação.
+     * `quantidadeQuestoes` precisa bater com quantas o chamador vincula depois.
      */
     private Simulado criarSimuladoRascunho(String titulo, Disciplina disciplina, Turma turma, int quantidadeQuestoes) {
         Simulado s = new Simulado();
@@ -1217,11 +1179,8 @@ public class DevDataResetSeeder implements CommandLineRunner {
     }
 
     /**
-     * Variante de criarRevisao com dataProximoReforco = hoje, em vez da
-     * fórmula sempre-futura acima — só pra dar um cenário pronto de teste da
-     * integração real com o Gemini (GeracaoAutomaticaSimuladoJob e
-     * POST /ia/geracao/simulado), sem precisar esperar o job de repetição
-     * espaçada natural do sistema.
+     * Variante de criarRevisao já devida hoje, para testar a integração com o
+     * Gemini sem esperar a repetição espaçada.
      */
     private void criarRevisaoDevidaHoje(Aluno aluno, ConteudoPlano conteudo, NivelDominio nivel) {
         RevisaoConteudo r = new RevisaoConteudo();

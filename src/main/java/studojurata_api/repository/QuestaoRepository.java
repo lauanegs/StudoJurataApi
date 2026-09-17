@@ -9,6 +9,4 @@ import java.util.List;
 public interface QuestaoRepository extends JpaRepository<Questao, Long> {
 
     List<Questao> findByStatus(StatusQuestao status);
-
-    List<Questao> findByDisciplinaIdAndStatus(Long disciplinaId, StatusQuestao status);
 }

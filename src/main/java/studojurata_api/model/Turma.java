@@ -14,7 +14,6 @@ import studojurata_api.model.enums.StatusTurma;
 @EqualsAndHashCode(callSuper = true)
 public class Turma extends BaseEntity {
 
-    /** Correção 9.1 (Escola/tenant): toda turma pertence a uma escola. */
     @ManyToOne(optional = false)
     private Escola escola;
 
@@ -22,36 +21,11 @@ public class Turma extends BaseEntity {
     private Integer capacidadeMaxima;
 
     /**
-     * Correção da "gambiarra" de troca de turma (Segunda Análise Crítica):
-     * curso passa a ser um atributo direto da Turma, não mais derivado
-     * indiretamente de PlanoEnsino.curso via TurmaDisciplina (onde nada
-     * garantia que todas as disciplinas da mesma turma apontassem para o
-     * mesmo curso). Não existe mais o conceito de "turma oficial vs. de
-     * apoio": toda turma é igualmente oficial, e o aluno sempre segue o
-     * curso vinculado à turma em que está matriculado (ver AlunoTurma).
-     *
-     * Correção 2.4 da Terceira Análise Crítica: o campo passou a ser
-     * obrigatório — sem isso, nada impedia cadastrar uma turma sem curso,
-     * reabrindo a própria ambiguidade que este campo foi criado para
-     * fechar. Validado também em TurmaService (mensagem 400 amigável).
-     *
-     * Evolução pedida posteriormente: curso deixou de ser um texto livre e
-     * passou a ser a entidade Curso (ver Curso.java) — uma escola pode
-     * oferecer vários cursos, cada um com atributos próprios (descrição,
-     * carga horária total), e várias turmas diferentes podem pertencer ao
-     * mesmo curso.
+     * O curso é da turma, não derivado das disciplinas: o aluno segue o curso
+     * da turma em que está matriculado.
      */
     @ManyToOne(optional = false)
     private Curso curso;
-
-    /*
-     * quantidadeAlunos foi removido: era um campo persistido e redundante,
-     * sujeito a desincronização em relação às matrículas ativas reais.
-     * A contagem de alunos ativos agora é sempre derivada via
-     * AlunoTurmaRepository.countByTurmaIdAndStatus(turmaId, ATIVA)
-     * (ver TurmaService.contarAlunosAtivos / AlunoTurmaService), nunca
-     * armazenada como fonte de verdade.
-     */
 
     @Enumerated(EnumType.STRING)
     private StatusTurma status;

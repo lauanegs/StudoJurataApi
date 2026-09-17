@@ -9,14 +9,9 @@ import studojurata_api.service.NotaService;
 import java.util.List;
 
 /**
- * Correção 1.2/2.13/5.1 da Segunda Análise Crítica: passa a falar com
- * NotaService (não mais com o Repository diretamente), e Nota.total deixa de
- * ser aceito diretamente do cliente — é sempre recalculado via /recalcular.
- *
- * Correção 2.1 da Terceira Análise Crítica (IDOR): listar()/recalcular() são
- * agora restritos a PROFESSOR/ADMINISTRADOR (ver SecurityConfig); buscar()
- * e os endpoints de histórico por aluno passam por AlunoAccessGuard, que
- * garante que um Aluno só veja as suas próprias notas.
+ * Não há escrita livre de nota: ela é sempre derivada dos simulados via
+ * /recalcular. Consultas por aluno passam por AlunoAccessGuard para que um
+ * aluno só veja as próprias notas.
  */
 @RestController
 @RequestMapping("/notas")
@@ -26,7 +21,6 @@ public class NotaController {
     private final NotaService service;
     private final AlunoAccessGuard alunoAccessGuard;
 
-    /** Restrito a PROFESSOR/ADMINISTRADOR (ver SecurityConfig) — listagem geral não é por aluno específico. */
     @GetMapping public List<Nota> listar(){ return service.listar(); }
 
     @GetMapping("/{id}")
@@ -36,7 +30,6 @@ public class NotaController {
         return nota;
     }
 
-    /** Histórico de notas do aluno em todos os períodos letivos — acessível ao próprio aluno. */
     @GetMapping("/aluno/{alunoId}/historico")
     public List<Nota> historicoPorAluno(@PathVariable Long alunoId) {
         alunoAccessGuard.garantir(alunoId);
@@ -49,18 +42,10 @@ public class NotaController {
         return service.historicoPorAlunoEDisciplina(alunoId, disciplinaId);
     }
 
-    /**
-     * Recalcula (deriva) a nota do aluno numa disciplina/turma a partir dos
-     * simulados concluídos — este é o único jeito de gerar/alterar uma Nota
-     * agora; não existe mais POST/PUT de total livre. Restrito a
-     * PROFESSOR/ADMINISTRADOR (ver SecurityConfig): é uma operação de
-     * reprocessamento, não uma consulta do aluno.
-     */
     @PostMapping("/recalcular")
     public Nota recalcular(@RequestParam Long alunoId, @RequestParam Long disciplinaId, @RequestParam Long turmaId) {
         return service.recalcular(alunoId, disciplinaId, turmaId);
     }
 
-    /** Restrito a ADMINISTRADOR (ver SecurityConfig). */
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
 }

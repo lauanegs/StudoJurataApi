@@ -10,7 +10,6 @@ import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.Curso;
 import studojurata_api.model.Turma;
 import studojurata_api.model.enums.StatusAtivoInativo;
-import studojurata_api.model.enums.StatusMatricula;
 import studojurata_api.model.enums.StatusTurma;
 import studojurata_api.repository.AlunoTurmaRepository;
 import studojurata_api.repository.CursoRepository;
@@ -20,26 +19,8 @@ import studojurata_api.security.EscolaContext;
 import java.util.List;
 
 /**
- * Correção 2.2 da Terceira Análise Crítica (isolamento multi-tenant):
- * listar() passa a filtrar pela escola do usuário autenticado (via
- * EscolaContext), em vez de devolver as turmas de todas as escolas para
- * qualquer usuário. Correção 2.3: deletar() passa a ser soft-delete
- * (Turma.status = INATIVA) — o campo já existia mas nunca era usado, e uma
- * Turma pode ter AlunoTurma/TurmaDisciplina/histórico de simulados
- * vinculados, o mesmo risco que motivou soft-delete nas demais entidades.
- * Correção 2.4: curso passa a ser obrigatório (ver Turma.curso), e agora é
- * a entidade Curso — validarCurso resolve o Curso completo a partir do id
- * enviado, garantindo que ele existe (404 amigável em vez de a constraint
- * do banco estourar como erro 500). O horário semanal da turma passou a
- * ser tratado à parte, em HorarioTurma/HorarioTurmaService (1 Turma : N
- * HorarioTurma, pois uma turma tem aula em mais de um dia da semana).
- *
- * Correção 3.1 da Quarta Análise Crítica (isolamento por escola na
- * escrita): validarCurso agora também recusa (403) um Curso que não
- * pertence à escola do usuário autenticado — antes, qualquer Curso
- * existente podia ser vinculado a qualquer Turma só pelo id, mesmo sendo
- * de outra escola. Correção 3.3: recusa (409) vincular uma turma a um
- * Curso já INATIVO (soft-deletado/descontinuado).
+ * validarCurso resolve o curso pelo id e recusa curso de outra escola (403)
+ * ou inativo (409).
  */
 @Service
 @RequiredArgsConstructor
@@ -47,10 +28,11 @@ public class TurmaService {
 
     private final TurmaRepository repository;
     private final AlunoTurmaRepository alunoTurmaRepository;
+    private final AlunoTurmaService alunoTurmaService;
     private final CursoRepository cursoRepository;
     private final EscolaContext escolaContext;
 
-    /** Filtra pela escola do usuário autenticado; se não houver escola resolvível, devolve tudo (bootstrapping). */
+    /** Sem escola resolvível (antes do cadastro inicial da escola), não filtra. */
     public List<Turma> listar() {
         Long escolaId = escolaContext.escolaAtualId();
         return escolaId != null ? repository.findByEscola_Id(escolaId) : repository.findAll();
@@ -73,11 +55,8 @@ public class TurmaService {
         validarCurso(obj);
         obj.setId(id);
 
-        // Se a capacidade máxima está sendo reduzida abaixo da quantidade de
-        // alunos já ativos, alertamos em vez de permitir uma turma "estourada"
-        // silenciosamente.
         if (obj.getCapacidadeMaxima() != null) {
-            long ativos = alunoTurmaRepository.countByTurmaIdAndStatus(id, StatusMatricula.ATIVA);
+            long ativos = alunoTurmaService.contarAtivosPorTurma(id);
             if (ativos > obj.getCapacidadeMaxima()) {
                 throw new RegraNegocioException(
                         "Não é possível reduzir a capacidade máxima para " + obj.getCapacidadeMaxima()
@@ -88,17 +67,13 @@ public class TurmaService {
         return repository.save(obj);
     }
 
-    /** Quantidade de alunos com matrícula ativa na turma, sempre derivada das matrículas (nunca persistida em Turma). */
     public long contarAlunosAtivos(Long turmaId) {
-        return alunoTurmaRepository.countByTurmaIdAndStatus(turmaId, StatusMatricula.ATIVA);
+        return alunoTurmaService.contarAtivosPorTurma(turmaId);
     }
 
     /**
-     * Soft-delete (correção 2.3): preserva o histórico de matrículas/disciplinas
-     * vinculadas à turma. Recusa (409) excluir uma turma que já teve qualquer
-     * matrícula (ativa ou histórica) — essa exclusão existe só para o caso da
-     * secretaria ter criado a turma por engano, nunca para descartar turma com
-     * histórico pedagógico real (usar "Situação: Inativa" para encerrar).
+     * Recusa turma com qualquer matrícula: a exclusão serve só para turma
+     * criada por engano; para encerrar, a turma é inativada.
      */
     public void deletar(Long id) {
         Turma turma = buscar(id);
@@ -111,7 +86,6 @@ public class TurmaService {
         repository.save(turma);
     }
 
-    /** Reativa uma turma inativada (volta pra ATIVA) — contraparte de deletar(). */
     public Turma ativar(Long id) {
         Turma turma = buscar(id);
         turma.setStatus(StatusTurma.ATIVA);
@@ -137,10 +111,7 @@ public class TurmaService {
                     "O curso \"" + curso.getNome() + "\" está inativo e não pode receber novas turmas.");
         }
 
-        // Correção 3.1 da Quarta Análise Crítica: o Curso precisa pertencer à
-        // mesma escola do usuário autenticado — sem isso, qualquer Curso
-        // cadastrado no sistema (de qualquer escola) podia ser vinculado a
-        // esta Turma só sabendo o id.
+        // Sem isso, qualquer curso de outra escola poderia ser vinculado só pelo id.
         Long escolaId = escolaContext.escolaAtualId();
         if (escolaId != null && curso.getEscola() != null && !escolaId.equals(curso.getEscola().getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,

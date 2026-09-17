@@ -8,9 +8,5 @@ import java.util.List;
 
 public interface SimuladoRepository extends JpaRepository<Simulado, Long> {
 
-    List<Simulado> findByTurmaId(Long turmaId);
-
     List<Simulado> findByTurmaIdAndStatus(Long turmaId, StatusSimulado status);
-
-    List<Simulado> findByDisciplinaId(Long disciplinaId);
 }

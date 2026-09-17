@@ -32,18 +32,9 @@ public class SimuladoQuestaoService {
     }
 
     /**
-     * Ver item 7.1 da Análise Crítica: toda questão usada em um simulado
-     * precisa estar vinculada a um conteúdo (QuestaoConteudo) — pré-requisito
-     * estrutural para qualquer geração/adaptação futura baseada em conteúdo.
-     *
-     * A exigência vale só para questões de origem IA (que já nascem com esse
-     * vínculo em GeracaoQuestaoIAService — ver item 7.1). Questões de origem
-     * PROFESSOR são escritas na tela "Novo simulado" (SimuladoFormulario),
-     * que nunca teve — e não tem hoje — nenhum campo para escolher um
-     * ConteudoPlano; aplicar a mesma exigência a elas travava toda criação
-     * manual de simulado com 409 "A questão precisa estar vinculada a um
-     * conteúdo antes de compor um simulado", sem nenhuma forma de o professor
-     * satisfazer o requisito pela interface.
+     * O vínculo com conteúdo só é exigido para questões de origem IA, que já
+     * nascem vinculadas. Para as do professor o vínculo é opcional, para não
+     * travar a criação manual de simulados.
      */
     @Transactional
     public SimuladoQuestao salvar(SimuladoQuestao obj) {
@@ -60,19 +51,12 @@ public class SimuladoQuestaoService {
         SimuladoQuestao existente = buscar(id);
         obj.setId(id);
         validarQuestaoVinculadaAoConteudo(obj);
-        // preserva o status — o DTO de entrada não expõe este campo, que é
-        // controlado exclusivamente pelo fluxo de remover() (soft-delete).
+        // O status só muda por remover().
         obj.setStatus(existente.getStatus());
         return repository.save(obj);
     }
 
-    /**
-     * Remove (soft-delete) a questão do simulado — status REMOVIDA — em vez
-     * de excluir fisicamente, preservando o histórico de respostas
-     * (QuestaoAluno) já registradas contra ela. Ver Casos Extremos:
-     * "Conteudo removido" e "Plano de ensino alterado após simulados já
-     * realizados".
-     */
+    /** Soft delete: preserva as respostas já registradas contra a questão. */
     @Transactional
     public SimuladoQuestao remover(Long id) {
         SimuladoQuestao simuladoQuestao = buscar(id);
@@ -80,10 +64,7 @@ public class SimuladoQuestaoService {
         return repository.save(simuladoQuestao);
     }
 
-    /**
-     * Exclusão física: mantida apenas para compatibilidade/uso administrativo
-     * pontual. Preferir sempre remover() para preservar histórico.
-     */
+    /** Exclusão física administrativa; o fluxo normal é remover(). */
     public void deletar(Long id) { repository.deleteById(id); }
 
     private void validarLimiteDeQuestoes(SimuladoQuestao obj) {

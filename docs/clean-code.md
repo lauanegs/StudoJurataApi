@@ -59,7 +59,9 @@ Nunca deixar uma exceção técnica (`NullPointerException`, `SQLException`) vaz
 
 ## Comentários
 
-O projeto usa comentários Javadoc/bloco para **explicar o "porquê"**, não o "o quê" — e isso inclui um padrão específico deste código: referenciar o item da "Análise Crítica" que motivou uma decisão (`// Correção 2.1 da Terceira Análise Crítica (IDOR)...`). Esse rastro é valioso porque documenta uma decisão de segurança/negócio que não é óbvia lendo só o código. **Manter esse estilo** ao tocar código antigo; ao adicionar lógica nova sem uma "análise crítica" associada, explicar o porquê da decisão em prosa normal.
+Comentários Javadoc/bloco existem só para **explicar o "porquê"** que o código não mostra sozinho: uma regra de negócio não óbvia, uma decisão de segurança, uma limitação externa (ex.: `ddl-auto=update`), um comportamento aparentemente estranho.
+
+**Não registrar histórico no código.** Nada de "Correção 2.1 da Análise Crítica", "pedido do usuário", "confirmado com o usuário", "antes era X, agora é Y", datas ou autoria — isso pertence ao `git log`/descrição do PR. Ao tocar um comentário assim, manter só o porquê que ainda vale para o código atual e descartar a narrativa. Comentário desatualizado em relação ao código é pior que nenhum: ao mudar a regra, atualizar ou remover o comentário junto.
 
 Não comentar o óbvio (`// busca o simulado` acima de `buscar(id)`). Comentário que só repete o nome do método/variável é ruído — remova-o ou substitua por um nome melhor.
 

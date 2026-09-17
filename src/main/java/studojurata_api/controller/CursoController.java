@@ -11,7 +11,6 @@ import studojurata_api.service.PlanoEnsinoService;
 
 import java.util.List;
 
-/** Consulta liberada a qualquer autenticado; escrita restrita a Professor/Administrador (ver SecurityConfig). */
 @RestController
 @RequestMapping("/cursos")
 @RequiredArgsConstructor
@@ -28,7 +27,6 @@ public class CursoController {
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
     @PostMapping("/{id}/ativar") public Curso ativar(@PathVariable Long id){ return service.ativar(id); }
 
-    /** Planos de ensino (um por disciplina do currículo) vinculados a este curso. */
     @GetMapping("/{id}/planos-ensino")
     public List<PlanoEnsino> planosDeEnsino(@PathVariable Long id) {
         return planoEnsinoService.listarPorCurso(id);

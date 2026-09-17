@@ -8,15 +8,9 @@ import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.model.enums.TipoUsuario;
 
 /**
- * Correção 2.1 da Terceira Análise Crítica (IDOR em /notas e /gamificacao):
- * endpoints que recebem um {@code alunoId} livre na URL (histórico de notas,
- * pontuação, compra/equipar skin) precisam garantir que o próprio aluno só
- * acesse os seus dados — sem essa checagem, qualquer aluno autenticado podia
- * trocar o id na URL e ver notas ou gastar moedas de outro aluno.
- *
- * Professor e Administrador continuam com acesso irrestrito a qualquer
- * aluno, por necessidade de gestão pedagógica (consultar boletim, conceder
- * ajuste manual etc.).
+ * Proteção contra IDOR em endpoints com {@code alunoId} na URL: sem ela,
+ * um aluno poderia trocar o id e ver notas ou gastar moedas de outro.
+ * Professor e Administrador acessam qualquer aluno por necessidade de gestão.
  */
 @Component
 public class AlunoAccessGuard {
@@ -40,7 +34,6 @@ public class AlunoAccessGuard {
                         "Você só pode acessar os seus próprios dados.");
             }
         }
-        // PROFESSOR e ADMINISTRADOR: liberado.
     }
 
     private CustomUserDetails usuarioLogado() {

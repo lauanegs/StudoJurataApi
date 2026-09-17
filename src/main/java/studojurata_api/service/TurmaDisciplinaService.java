@@ -18,15 +18,7 @@ import studojurata_api.repository.TurmaRepository;
 
 import java.util.List;
 
-/**
- * Correção 5.1: controller passa a usar este service, não mais o Repository.
- *
- * Validação adicionada (pedido do usuário): o front (TurmaFormulario) já
- * filtrava o seletor de disciplina pra só mostrar as da grade curricular do
- * curso da turma (CursoDisciplina), mas nada impedia um POST direto na API
- * vincular qualquer disciplina — a trava só existia no front. Agora o
- * service também recusa.
- */
+/** Só aceita disciplinas da grade curricular do curso da turma. */
 @Service
 @RequiredArgsConstructor
 public class TurmaDisciplinaService {
@@ -57,12 +49,8 @@ public class TurmaDisciplinaService {
     }
 
     /**
-     * Soft-delete (item 4.3/5.1): existem PlanoEnsino/Aula/Simulado pendurados via esta associação.
-     *
-     * Recusa (409) desvincular a disciplina enquanto houver plano de ensino
-     * ou plano de aula ATIVO usando este vínculo (pedido do usuário) — o
-     * professor perderia o rastro do que já vinha planejando/ministrando.
-     * Primeiro é preciso concluir (ou excluir) esses planos.
+     * Soft-delete, recusado enquanto houver plano de ensino ou de aula ATIVO
+     * no vínculo: o professor perderia o rastro do que está ministrando.
      */
     public void deletar(Long id) {
         TurmaDisciplina turmaDisciplina = buscar(id);

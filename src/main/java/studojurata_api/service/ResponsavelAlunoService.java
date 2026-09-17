@@ -9,7 +9,6 @@ import studojurata_api.repository.ResponsavelAlunoRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/** Correção 5.1 (soft-delete/service layer) + 10.3 (consentimento simples). */
 @Service
 @RequiredArgsConstructor
 public class ResponsavelAlunoService {
@@ -34,7 +33,6 @@ public class ResponsavelAlunoService {
         return repository.save(obj);
     }
 
-    /** Registra o aceite do checkbox de consentimento (item 10.3), com o texto exibido no momento. */
     public ResponsavelAluno aceitarTermos(Long id, String textoVersao) {
         ResponsavelAluno vinculo = buscar(id);
         vinculo.setAceitouTermos(true);
@@ -43,11 +41,7 @@ public class ResponsavelAlunoService {
         return repository.save(vinculo);
     }
 
-    /**
-     * Vínculo responsável-aluno não representa histórico pedagógico do aluno
-     * em si (o histórico de matrícula/notas continua intacto); exclusão
-     * física aqui é aceitável — ex.: correção de cadastro errado.
-     */
+    /** Exclusão física é aceitável: o vínculo não guarda histórico pedagógico. */
     public void deletar(Long id) {
         buscar(id);
         repository.deleteById(id);

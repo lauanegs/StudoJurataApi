@@ -7,7 +7,6 @@ import studojurata_api.service.TurmaDisciplinaService;
 
 import java.util.List;
 
-/** Correção 5.1: passa a falar com TurmaDisciplinaService (soft-delete), não mais com o Repository diretamente. */
 @RestController
 @RequestMapping("/turma-disciplina")
 @RequiredArgsConstructor

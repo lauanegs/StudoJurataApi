@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/** Correção 2.9: Aula é uma das 3 entidades priorizadas para AuditLog (junto com Nota e SimuladoAluno). */
 @Service
 @RequiredArgsConstructor
 public class AulaService {
@@ -46,7 +45,6 @@ public class AulaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Aula " + id + " não encontrada."));
     }
 
-    /** Aulas de um plano de aula, na ordem em que devem ser ministradas. */
     public List<Aula> listarPorPlanoAula(Long planoAulaId) {
         return repository.findByPlanoAula_IdOrderByOrdemAsc(planoAulaId);
     }
@@ -72,13 +70,7 @@ public class AulaService {
         return salva;
     }
 
-    /**
-     * Marca a aula como efetivamente ministrada, preenchendo a data de
-     * publicação (correção 2.5/interface: "data que realmente foi passada
-     * a aula"). É a partir desse campo que as estatísticas de "aulas
-     * realizadas" e "carga horária realizada" do plano de aula são
-     * calculadas.
-     */
+    /** A data de publicação é a base das estatísticas de aulas realizadas do plano. */
     @Transactional
     public Aula publicar(Long id, LocalDate dataPublicacao) {
         Aula aula = buscar(id);
@@ -91,11 +83,8 @@ public class AulaService {
     }
 
     /**
-     * Item pedido pelo usuário: assim que a última aula ATIVA do plano de
-     * aula for publicada (todas com data de publicação preenchida), o plano
-     * de aula e o plano de ensino são concluídos automaticamente — sem ação
-     * manual do professor. Não reabre um plano já concluído (ex.: reeditar a
-     * data de uma aula antiga não deveria mexer em nada aqui).
+     * Publicada a última aula ativa, conclui o plano de aula e o de ensino.
+     * Nunca reabre um plano já concluído.
      */
     private void concluirPlanoSeUltimaAula(PlanoAula planoAula) {
         if (planoAula == null || planoAula.getStatus() == StatusPlano.CONCLUIDO) return;
@@ -114,14 +103,9 @@ public class AulaService {
     }
 
     /**
-     * Geração em lote (pedido explícito: "no início do curso ele já faz a
-     * geração ali e vai manipulando depois", em vez de cadastrar uma aula
-     * de cada vez) — segue os horários semanais já cadastrados na turma
-     * (HorarioTurma), ciclando entre eles em ordem de dia/hora a partir de
-     * dataInicio até completar a quantidade pedida. Cada aula gerada já sai
-     * com o horário vinculado (mesma regra de validar(): carga horária
-     * calculada, não digitada) — o professor edita/exclui as que precisar
-     * depois em AulaFormulario, individualmente.
+     * Percorre os horários semanais da turma em ordem de dia/hora a partir de
+     * dataInicio até completar a quantidade pedida. Cada aula já sai com o
+     * horário vinculado, então a carga horária é calculada.
      */
     @Transactional
     public List<Aula> gerarLote(Long planoAulaId, GerarAulasLoteRequest pedido) {
@@ -156,9 +140,7 @@ public class AulaService {
                 ? pedido.getTituloBase().trim()
                 : "Aula";
 
-        // Limite herdado do Plano de Ensino (item pedido pelo usuário: o
-        // plano de aula não pode ter mais aulas do que a carga horária total
-        // administrada permite) — null significa sem limite definido.
+        // O plano de aula não pode ultrapassar a carga horária do plano de ensino; null = sem limite.
         Integer limiteCargaHoraria = planoAula.getPlanoEnsino() != null
                 ? planoAula.getPlanoEnsino().getCargaHoraria()
                 : null;
@@ -168,9 +150,8 @@ public class AulaService {
 
         List<Aula> geradas = new ArrayList<>();
         LocalDate data = pedido.getDataInicio() != null ? pedido.getDataInicio() : LocalDate.now();
-        // Limite defensivo: no pior caso (1 horário cadastrado), 1 aula por
-        // semana — nunca deveria demorar mais que isso pra completar a
-        // quantidade pedida, então serve só de trava contra loop infinito.
+        // Trava contra loop infinito: com 1 horário cadastrado, sai 1 aula por
+        // semana, então a quantidade pedida nunca precisa de mais semanas que isso.
         int diasVarridosNoMaximo = pedido.getQuantidade() * 7 * horarios.size();
         int diasVarridos = 0;
         boolean limiteAtingido = false;
@@ -217,11 +198,6 @@ public class AulaService {
         return geradas;
     }
 
-    /**
-     * Soft delete (correção 4.3): mantém o registro (e a frequência /
-     * conteúdos já vinculados a ele) para preservar o histórico
-     * pedagógico, apenas marcando a aula como INATIVA.
-     */
     @Transactional
     public void deletar(Long id) {
         Aula obj = buscar(id);
@@ -238,13 +214,8 @@ public class AulaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Plano de aula " + obj.getPlanoAula().getId() + " não encontrado."));
         obj.setPlanoAula(planoAula);
 
-        // Horário vinculado (opcional): quando informado, a carga horária da
-        // aula passa a ser CALCULADA a partir dele (hora fim - hora início),
-        // nunca do valor que o cliente mandou — evita erro de digitação e faz
-        // o cadastro de horários da turma (antes um cadastro morto, sem
-        // nenhum consumidor) finalmente servir pra algo. Sem horário
-        // vinculado (reposição, aula fora do horário fixo), a carga horária
-        // continua sendo digitada à mão.
+        // Com horário vinculado, a carga horária é calculada e o valor enviado
+        // pelo cliente é ignorado; sem horário (reposição), vale o digitado.
         if (obj.getHorarioTurma() != null && obj.getHorarioTurma().getId() != null) {
             HorarioTurma horario = horarioTurmaRepository.findById(obj.getHorarioTurma().getId())
                     .orElseThrow(() -> new RecursoNaoEncontradoException(
@@ -267,10 +238,7 @@ public class AulaService {
             }
         }
 
-        // Item pedido pelo usuário: o total de aulas do plano não pode
-        // ultrapassar a carga horária herdada do Plano de Ensino (que por
-        // sua vez vem da grade curricular do curso) — essa carga horária
-        // não é alterável por aqui, só reflete o que já foi administrado.
+        // A soma das aulas não pode ultrapassar a carga horária herdada do plano de ensino.
         Integer limiteCargaHoraria = planoAula.getPlanoEnsino() != null
                 ? planoAula.getPlanoEnsino().getCargaHoraria()
                 : null;

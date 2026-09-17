@@ -21,7 +21,6 @@ public class TurmaDisciplina extends BaseEntity {
     @ManyToOne
     private Professor professor;
 
-    /** Correção 2.11 da Segunda Análise Crítica: era String livre, agora enum. */
     @Enumerated(EnumType.STRING)
     private StatusAtivoInativo status;
 }

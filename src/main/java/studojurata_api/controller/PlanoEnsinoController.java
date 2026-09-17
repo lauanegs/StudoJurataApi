@@ -7,7 +7,6 @@ import studojurata_api.service.PlanoEnsinoService;
 
 import java.util.List;
 
-/** Correção 5.1: passa a falar com PlanoEnsinoService (soft-delete), não mais com o Repository diretamente. */
 @RestController
 @RequestMapping("/plano-ensino")
 @RequiredArgsConstructor

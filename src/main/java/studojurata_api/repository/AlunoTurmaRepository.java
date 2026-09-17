@@ -27,10 +27,8 @@ public interface AlunoTurmaRepository extends JpaRepository<AlunoTurma, Long> {
     boolean existsByAluno_Id(Long alunoId);
 
     /**
-     * Usado por NotaService.recalcular para achar a data de matrícula do
-     * aluno na turma (qualquer status — a nota permanece histórica mesmo
-     * após a matrícula ser concluída/cancelada) e não contar simulados
-     * aplicados antes dele entrar na turma.
+     * Qualquer status: a nota continua histórica mesmo depois de a matrícula
+     * ser concluída ou cancelada.
      */
     Optional<AlunoTurma> findFirstByAluno_IdAndTurma_IdOrderByDataInicioDesc(Long alunoId, Long turmaId);
 }

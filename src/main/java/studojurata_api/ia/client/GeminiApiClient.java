@@ -21,23 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Implementação real da integração com o Gemini (Google Generative Language
- * API), usando java.net.http.HttpClient (nativo do JDK, sem depender de
- * nenhuma biblioteca HTTP adicional no classpath) e o ObjectMapper padrão do
- * Spring Boot para montar/parsear JSON.
- *
- * Configuração (application.properties — ver README do módulo de IA):
- *   studojurata.ia.gemini.api-key=...
- *   studojurata.ia.gemini.model=gemini-flash-lite-latest
- *   studojurata.ia.gemini.base-url=https://generativelanguage.googleapis.com/v1beta/models
- *   studojurata.ia.gemini.timeout-ms=8000
- *
  * Sem api-key configurada, gerarQuestoes falha imediatamente com
- * GeminiIndisponivelException — o que já aciona o fallback em
- * GeracaoQuestaoIAService, permitindo rodar o backend em ambiente de
- * desenvolvimento/demonstração sem uma chave real (ver item 9.3: o projeto é
- * um MVP, a integração de fato com custos/tokens de produção fica para uma
- * etapa futura).
+ * GeminiIndisponivelException, o que aciona o fallback de
+ * GeracaoQuestaoIAService — o backend roda em desenvolvimento sem chave real.
  */
 @Component
 @RequiredArgsConstructor
@@ -48,11 +34,6 @@ public class GeminiApiClient implements GeminiQuestaoClient {
     @Value("${studojurata.ia.gemini.api-key:}")
     private String apiKey;
 
-    // Histórico de tentativas (ver git log): várias versões fixas do
-    // gemini-flash foram descontinuadas em sequência (Google gira modelos
-    // rápido demais pra acompanhar aqui) — usa o alias "latest" em vez de
-    // pinar uma versão. Ver studojurata.ia.gemini.model em
-    // application.properties pra trocar sem mexer no código.
     @Value("${studojurata.ia.gemini.model:gemini-flash-lite-latest}")
     private String modelo;
 
@@ -62,12 +43,9 @@ public class GeminiApiClient implements GeminiQuestaoClient {
     @Value("${studojurata.ia.gemini.timeout-ms:8000}")
     private long timeoutMs;
 
-    // Construído sob demanda (não no campo) — abrir o HttpClient já cria o
-    // Selector do java.net.http em segundo plano, e alguns ambientes
-    // restringem esse socket de loopback na inicialização do processo. Como
-    // gerarQuestoes já tem fallback documentado quando a chamada falha, adiar
-    // a criação evita que só o BOOT da aplicação dependa dessa permissão de
-    // rede — só passa a exigir quando a geração por IA é realmente usada.
+    // Criado sob demanda: o HttpClient abre um socket de loopback ao ser
+    // construído, e alguns ambientes o restringem na inicialização. Assim o
+    // boot da aplicação não depende disso, só a geração por IA.
     private HttpClient httpClient;
 
     private HttpClient httpClient() {
@@ -121,13 +99,9 @@ public class GeminiApiClient implements GeminiQuestaoClient {
     }
 
     /**
-     * Confirmado pelo usuário: o prompt anterior tinha "ensino médio" fixo
-     * (sem relação com o público real, majoritariamente infantil/teen aqui),
-     * não pedia contextualização (situação prática/cotidiana) e, ao exigir
-     * ficar "estritamente" preso ao texto curto do plano de ensino, empurrava
-     * a IA pra perguntas sobre o MATERIAL (o texto do plano em si) em vez de
-     * sobre o ASSUNTO/tema de conhecimento — os três pontos abaixo corrigem
-     * isso.
+     * O prompt adequa a linguagem à idade do aluno (público infantojuvenil),
+     * pede situações práticas e orienta a IA a perguntar sobre o assunto, não
+     * sobre o texto do plano de ensino.
      */
     private String montarPrompt(String conteudoTexto, NivelDificuldade nivel, TipoQuestao tipo, int quantidade, Integer idadeAluno) {
         String instrucaoTipo = tipo == TipoQuestao.VERDADEIRO_FALSO

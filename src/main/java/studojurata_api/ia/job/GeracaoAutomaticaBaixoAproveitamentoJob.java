@@ -16,21 +16,12 @@ import studojurata_api.model.enums.StatusSimulado;
 import studojurata_api.repository.AlunoRepository;
 
 /**
- * Geração automática do simulado de reforço por baixo aproveitamento
- * (RecomendacaoService, item 1.4) — motivo sem uma data própria de vencimento
- * (ao contrário de REPETICAO_ESPACADA, ver GeracaoAutomaticaSimuladoJob), por
- * isso reavaliado por um intervalo fixo em vez de um gatilho de data:
- * confirmado pelo usuário, a cada 7 dias o job recalcula a taxa de acerto de
- * TODOS os alunos e gera um simulado pra quem ainda estiver abaixo do
- * limiar (RecomendacaoService.LIMIAR_BAIXO_APROVEITAMENTO).
+ * Baixo aproveitamento não tem data de vencimento própria (ao contrário da
+ * repetição espaçada), então é reavaliado por intervalo fixo para todos os
+ * alunos.
  *
- * Sem dado próprio pra "já gerei pra este ciclo" (não há campo de data como
- * RevisaoConteudo.dataProximoReforco), a checagem de duplicidade aqui é:
- * não gerar um novo rascunho pra um aluno+conteúdo enquanto já existir um
- * simulado gerado por IA (de qualquer motivo — inclusive o job de repetição
- * espaçada) ainda em RASCUNHO, ou seja, ainda não revisado/lançado pelo
- * professor. Assim que aquele rascunho for lançado (ou encerrado), a próxima
- * execução do job pode gerar um novo, se o aluno continuar abaixo do limiar.
+ * Para não empilhar rascunhos, não gera um novo para aluno+conteúdo enquanto
+ * existir um simulado gerado por IA, de qualquer motivo, ainda em RASCUNHO.
  */
 @Component
 @RequiredArgsConstructor
@@ -43,12 +34,7 @@ public class GeracaoAutomaticaBaixoAproveitamentoJob {
     private final SimuladoGeradoIARepository simuladoGeradoIARepository;
     private final GeracaoSimuladoIAService geracaoSimuladoIAService;
 
-    /**
-     * Intervalo fixo de verdade (fixedDelay, não cron) — 7 dias contados a
-     * partir do fim da execução anterior, sem depender de dia do mês (que
-     * não divide igualmente por 7). Configurável via
-     * studojurata.ia.geracao-automatica.baixo-aproveitamento.intervalo-ms.
-     */
+    /** fixedDelay em vez de cron: cron não expressa "a cada 7 dias" de forma exata. */
     @Scheduled(fixedDelayString = "${studojurata.ia.geracao-automatica.baixo-aproveitamento.intervalo-ms:604800000}")
     public void gerarParaBaixoAproveitamento() {
         for (Aluno aluno : alunoRepository.findAll()) {
@@ -65,8 +51,7 @@ public class GeracaoAutomaticaBaixoAproveitamentoJob {
                             recomendacao.getNivelPrioritario(),
                             recomendacao.getMotivos());
                 } catch (RuntimeException erro) {
-                    // Isolado por recomendação — mesma lógica do job de repetição
-                    // espaçada: uma falha pontual não pode travar os demais alunos.
+                    // Uma falha pontual não pode interromper a geração dos demais alunos.
                     log.error(
                             "Falha ao gerar simulado automático por baixo aproveitamento (aluno {}, conteúdo {})",
                             alunoId, recomendacao.getConteudoPlanoId(), erro);

@@ -36,25 +36,16 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Coração do módulo de IA: obtém, para um conteúdo/dificuldade/tipo/
- * quantidade solicitados, um conjunto de Questao prontas para compor um
- * simulado — combinando três fontes, nesta ordem de prioridade (ver itens
- * 3.3 e 9.3 da Análise Crítica):
+ * Obtém questões para um conteúdo combinando três fontes, nesta ordem:
  *
- * 1. CACHE: questões já aprovadas anteriormente para o mesmo conteúdo e
- *    dificuldade (reaproveitamento — evita chamar a IA de novo para
- *    conteúdo/dificuldade já cobertos, o que também economiza tokens/custo,
- *    relevante no MVP conforme o item 9.3);
- * 2. GEMINI: o que faltar é gerado pela API do Gemini. Questões novas nascem
- *    com status PENDENTE (origem IA) — exigem revisão humana do professor
- *    antes de poderem ser reaproveitadas ou de o simulado que as contém ser
- *    lançado (ver StatusQuestao e SimuladoService.lancar, já existentes);
- * 3. FALLBACK: se a chamada ao Gemini falhar, tenta completar a quantidade
- *    ainda faltante com outras questões já aprovadas do mesmo conteúdo,
- *    relaxando o filtro de dificuldade/tipo exatos se necessário (nunca
- *    relaxando o requisito de já estar APROVADA).
+ * 1. CACHE: questões já aprovadas do mesmo conteúdo e dificuldade — evita
+ *    chamar a IA (e gastar tokens) para o que já foi coberto;
+ * 2. GEMINI: gera o que faltar. Questões novas nascem PENDENTE e exigem
+ *    revisão do professor antes de reaproveitadas ou lançadas;
+ * 3. FALLBACK: se o Gemini falhar, completa com outras questões aprovadas do
+ *    conteúdo, relaxando dificuldade/tipo, nunca o requisito de APROVADA.
  *
- * Cada chamada gera um registro em HistoricoGeracaoIA, sucesso ou falha.
+ * Cada chamada gera um registro em HistoricoGeracaoIA, com qualquer resultado.
  */
 @Service
 @RequiredArgsConstructor
@@ -157,11 +148,9 @@ public class GeracaoQuestaoIAService {
     }
 
     /**
-     * Confirmado pelo usuário: título+descrição isolados do conteúdo não
-     * davam contexto suficiente pra IA evitar perguntas genéricas/sobre o
-     * material em si — disciplina e curso ajudam a IA a entender o domínio
-     * e o tom (ex.: "Robótica" no curso "Geek Júnior" pede uma abordagem bem
-     * diferente do mesmo assunto num curso técnico adulto).
+     * Disciplina e curso entram no texto porque título e descrição sozinhos
+     * levam a IA a perguntas genéricas: o mesmo assunto pede abordagens
+     * diferentes num curso infantil e num técnico.
      */
     private String montarTextoConteudo(ConteudoPlano conteudo, Disciplina disciplina) {
         StringBuilder sb = new StringBuilder();
@@ -184,7 +173,7 @@ public class GeracaoQuestaoIAService {
         questao.setDisciplina(disciplina);
         questao.setNivelDificuldade(nivel);
         questao.setOrigem(OrigemQuestao.IA);
-        // Questões de origem IA nascem PENDENTE: exigem revisão humana antes de reaproveitamento (item 7.3).
+        // Questões de origem IA nascem PENDENTE: exigem revisão humana antes de reaproveitamento.
         questao.setStatus(StatusQuestao.PENDENTE);
         questao = questaoRepository.save(questao);
 
@@ -195,13 +184,10 @@ public class GeracaoQuestaoIAService {
                 Alternativa alternativa = new Alternativa();
                 alternativa.setQuestao(questao);
                 alternativa.setTexto(altDto.getTexto());
-                // Normaliza a resposta do Gemini para no máximo uma alternativa
-                // correta por questão (mesma invariante de AlternativaService.
-                // validarCorretaUnica, que aqui é contornada por persistirmos
-                // via repository diretamente): a partir da segunda ocorrência
-                // de correta=true, força false — evita quebrar a apuração de
-                // acertos em SimuladoAlunoService.finalizar caso a IA retorne
-                // um JSON malformado com zero ou múltiplas corretas.
+                // Garante no máximo uma alternativa correta mesmo que a IA devolva
+                // várias: a persistência aqui não passa por
+                // AlternativaService.validarCorretaUnica, e a correção em
+                // SimuladoAlunoService.finalizar depende dessa invariante.
                 boolean correta = altDto.isCorreta() && !jaTemCorreta;
                 if (correta) jaTemCorreta = true;
                 alternativa.setCorreta(correta);

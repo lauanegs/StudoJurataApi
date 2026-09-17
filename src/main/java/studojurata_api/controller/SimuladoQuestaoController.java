@@ -41,7 +41,7 @@ public class SimuladoQuestaoController {
     @DeleteMapping("/{id}")
     public void deletar(@PathVariable Long id) { service.deletar(id); }
 
-    /** Remove (soft-delete) a questão do simulado, preservando histórico de respostas. */
+    /** Soft delete: preserva o histórico de respostas. */
     @PostMapping("/{id}/remover")
     public SimuladoQuestaoResponseDTO remover(@PathVariable Long id) {
         return mapper.toResponseDTO(service.remover(id));

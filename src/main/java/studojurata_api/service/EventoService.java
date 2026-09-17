@@ -8,10 +8,6 @@ import studojurata_api.repository.EventoRepository;
 
 import java.util.List;
 
-/**
- * Correção 2.8. Item 4.4 da primeira Análise Crítica (filtro Pendentes/
- * Concluídos) coberto por listarPendentes/listarConcluidos.
- */
 @Service
 @RequiredArgsConstructor
 public class EventoService {

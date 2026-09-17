@@ -15,15 +15,9 @@ import studojurata_api.model.enums.NivelDificuldade;
 import studojurata_api.model.enums.TipoQuestao;
 
 /**
- * Registro de auditoria de cada chamada de geração de questões via IA (ver
- * itens 3.3, 7.2 e 9.3 da Análise Crítica). Permite:
- * - auditar a qualidade/origem das questões que entraram no sistema (7.2);
- * - diagnosticar indisponibilidade do Gemini e uso de fallback (3.3);
- * - medir quanto o cache de reaproveitamento está evitando chamadas novas
- *   à IA (9.3 — "cache de conteúdos similares já gerados").
- *
- * Um registro é criado a cada chamada de GeracaoQuestaoIAService.gerar,
- * independente do resultado ter sido sucesso, parcial ou falha total.
+ * Um registro por chamada de GeracaoQuestaoIAService.gerar, com qualquer
+ * resultado: permite auditar a origem das questões, diagnosticar falhas do
+ * Gemini e medir o quanto o cache evita chamadas.
  */
 @Entity
 @Getter

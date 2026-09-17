@@ -7,12 +7,6 @@ import studojurata_api.service.UsuarioService;
 
 import java.util.List;
 
-/**
- * Correção 5.1 + 5.2: passa a falar com UsuarioService (que agora é o único
- * caminho de escrita e faz o hash da senha), não mais com o Repository
- * diretamente. Antes existiam dois caminhos (este controller e o
- * UsuarioService, que era código morto e não hasheava) — agora há um só.
- */
 @RestController
 @RequestMapping("/usuarios")
 @RequiredArgsConstructor

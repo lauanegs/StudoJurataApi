@@ -15,21 +15,9 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Reforço adaptativo por repetição espaçada (item 1.5 da Análise Crítica,
- * sugestão aprovada), seguindo a teoria da curva de esquecimento citada no
- * TCC: a cada reforço, o intervalo até o próximo aumenta, afastando
- * progressivamente a revisão de conteúdos já dominados.
- *
- * Confirmado pelo usuário: intervalos fixos e crescentes (não mais 2ⁿ dias) —
- * 7 dias após o 1º reforço, 14 após o 2º, 3 meses após o 3º — e a partir do
- * 4º reforço o conteúdo é considerado dominado (NivelDominio.ALTO) e a
- * repetição espaçada para (dataProximoReforco fica null, e some sozinho das
- * consultas "devidos", que já ignoram data nula).
- *
- * Correção 8.1/8.2 da Segunda Análise Crítica: cada reforço registrado
- * também concede moedas de gamificação (mesma quantidade concedida por
- * simulado concluído), garantindo que quem revisa seja tão beneficiado
- * quanto quem acerta de primeira.
+ * Repetição espaçada (ver RevisaoConteudo para os intervalos). Cada reforço
+ * concede as mesmas moedas de um simulado concluído, para que revisar seja
+ * tão recompensado quanto acertar de primeira.
  */
 @Service
 @RequiredArgsConstructor
@@ -47,7 +35,6 @@ public class RevisaoConteudoService {
         return repository.findByAlunoId(alunoId);
     }
 
-    /** Repetição espaçada devida hoje, em toda a base (uso administrativo/job). */
     public List<RevisaoConteudo> listarDevidosHoje() {
         return repository.findByDataProximoReforcoLessThanEqual(LocalDate.now());
     }
@@ -57,10 +44,8 @@ public class RevisaoConteudoService {
     }
 
     /**
-     * Registra que um reforço (revisão do conteúdo, seja por simulado
-     * concluído, seja por contato manual registrado pelo professor) ocorreu
-     * hoje, recalculando a próxima data de repetição espaçada por 2^n dias e
-     * o nível de domínio estimado.
+     * Registra um reforço feito hoje (simulado concluído ou revisão manual),
+     * recalculando a próxima data e o nível de domínio.
      */
     @Transactional
     public RevisaoConteudo registrarReforco(Long alunoId, Long conteudoPlanoId, NivelDominio nivelDominioObservado) {

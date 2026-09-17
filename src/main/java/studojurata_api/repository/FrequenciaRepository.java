@@ -14,12 +14,7 @@ public interface FrequenciaRepository extends JpaRepository<Frequencia, Long> {
 
     Optional<Frequencia> findByAluno_IdAndAula_Id(Long alunoId, Long aulaId);
 
-    boolean existsByAluno_IdAndAula_Id(Long alunoId, Long aulaId);
-
-    long countByAula_IdAndPresenteTrue(Long aulaId);
-
-    long countByAluno_IdAndPresenteFalse(Long alunoId);
-
-    /** Usado para somar a carga horária já cursada pelo aluno na turma (ver FrequenciaService). */
     List<Frequencia> findByAluno_IdAndAula_PlanoAula_TurmaDisciplina_Turma_IdAndPresenteTrue(Long alunoId, Long turmaId);
+
+    List<Frequencia> findByAula_PlanoAula_TurmaDisciplina_Turma_Id(Long turmaId);
 }

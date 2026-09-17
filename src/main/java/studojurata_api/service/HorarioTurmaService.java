@@ -12,11 +12,6 @@ import studojurata_api.repository.TurmaRepository;
 
 import java.util.List;
 
-/**
- * Correção solicitada após a Terceira Análise Crítica: horário semanal da
- * turma — 1 Turma para N HorarioTurma, já que uma turma costuma ter aula em
- * mais de um dia da semana, cada um com seu próprio intervalo de horário.
- */
 @Service
 @RequiredArgsConstructor
 public class HorarioTurmaService {

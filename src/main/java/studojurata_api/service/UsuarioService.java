@@ -11,19 +11,6 @@ import studojurata_api.security.EscolaContext;
 
 import java.util.List;
 
-/**
- * Correção 5.2 da Segunda Análise Crítica ("UsuarioService é código morto e
- * não hasheia a senha"): este service deixa de ser código morto — passa a
- * ser o único caminho usado por UsuarioController — e passa a hashear a
- * senha aqui (regra de negócio pertence ao service, não ao controller).
- * Antes havia dois caminhos de escrita para Usuario: o controller (que
- * hasheava certo) e este service (que não hasheava, e nunca era chamado).
- * Agora existe um único caminho, e ele está correto.
- *
- * Correção 2.2 da Terceira Análise Crítica (isolamento multi-tenant):
- * listar() filtra pela escola do usuário autenticado — antes, qualquer
- * Administrador via a lista de usuários de todas as escolas.
- */
 @Service
 @RequiredArgsConstructor
 public class UsuarioService {
@@ -32,7 +19,7 @@ public class UsuarioService {
     private final PasswordEncoder passwordEncoder;
     private final EscolaContext escolaContext;
 
-    /** Filtra pela escola do usuário autenticado; se não houver escola resolvível, devolve tudo (bootstrapping). */
+    /** Sem escola resolvível (antes do cadastro inicial da escola), não filtra. */
     public List<Usuario> listar() {
         Long escolaId = escolaContext.escolaAtualId();
         return escolaId != null ? repository.findByEscola_Id(escolaId) : repository.findAll();
@@ -49,10 +36,7 @@ public class UsuarioService {
         return repository.save(obj);
     }
 
-    /**
-     * Só re-hasheia a senha se uma nova senha em texto puro foi enviada;
-     * evita hashear novamente um hash já persistido (item 10.1).
-     */
+    /** Só gera hash quando uma nova senha foi enviada, para não aplicar hash sobre hash. */
     public Usuario atualizar(Long id, Usuario obj) {
         obj.setId(id);
         if (obj.getSenha() != null && !obj.getSenha().isBlank()) {
@@ -64,14 +48,13 @@ public class UsuarioService {
         return repository.save(obj);
     }
 
-    /** Soft-delete (item 4.3/5.1): revoga o acesso sem apagar o histórico de quem fez o quê (AuditLog.usuario). */
+    /** Soft-delete: revoga o acesso sem apagar quem fez o quê em AuditLog. */
     public void deletar(Long id) {
         Usuario usuario = buscar(id);
         usuario.setStatus(StatusAtivoInativo.INATIVO);
         repository.save(usuario);
     }
 
-    /** Reativa um usuário inativado (volta a ATIVO) — contraparte de deletar(). */
     public Usuario ativar(Long id) {
         Usuario usuario = buscar(id);
         usuario.setStatus(StatusAtivoInativo.ATIVO);

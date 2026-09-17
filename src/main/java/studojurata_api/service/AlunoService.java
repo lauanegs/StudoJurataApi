@@ -12,7 +12,6 @@ import studojurata_api.repository.AlunoTurmaRepository;
 
 import java.util.List;
 
-/** Correção 5.1 (Segunda Análise Crítica): controller passa a usar este service, não mais o Repository. */
 @Service
 @RequiredArgsConstructor
 public class AlunoService {
@@ -35,14 +34,9 @@ public class AlunoService {
     }
 
     /**
-     * Soft-delete (item 4.3/5.1): Aluno não tem status próprio (é 1:1 com
-     * Pessoa, ver correção 2.1) — "excluir" um aluno com histórico
-     * pedagógico (notas, matrículas, simulados) marca a Pessoa vinculada
-     * como INATIVA, preservando a linha física e todas as FKs históricas.
-     *
-     * Recusa (409) excluir um aluno que já teve qualquer matrícula (ativa ou
-     * histórica) — essa exclusão existe só para descartar cadastro feito por
-     * engano, nunca para apagar aluno com histórico pedagógico real.
+     * Soft-delete pela Pessoa, já que Aluno não tem status próprio. Recusa
+     * aluno com qualquer matrícula: a exclusão serve só para descartar
+     * cadastro feito por engano.
      */
     @Transactional
     public void deletar(Long id) {
@@ -56,7 +50,6 @@ public class AlunoService {
         }
     }
 
-    /** Reativa um aluno inativado (volta a Pessoa pra ATIVO) — contraparte de deletar(). */
     @Transactional
     public Aluno ativar(Long id) {
         Aluno aluno = buscar(id);

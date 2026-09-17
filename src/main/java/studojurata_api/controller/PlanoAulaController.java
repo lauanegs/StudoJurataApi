@@ -21,7 +21,6 @@ public class PlanoAulaController {
     @GetMapping("/{id}")
     public PlanoAula buscar(@PathVariable Long id) { return service.buscar(id); }
 
-    /** Planos de aula de uma TurmaDisciplina específica. */
     @GetMapping("/turma-disciplina/{turmaDisciplinaId}")
     public List<PlanoAula> listarPorTurmaDisciplina(@PathVariable Long turmaDisciplinaId) {
         return service.listarPorTurmaDisciplina(turmaDisciplinaId);
@@ -37,13 +36,12 @@ public class PlanoAulaController {
     @GetMapping("/{id}/estatisticas")
     public Map<String, Object> estatisticas(@PathVariable Long id) { return service.estatisticas(id); }
 
-    // Sem POST: pedido explícito — plano de aula não é mais criado na mão,
-    // nasce sozinho junto com o plano de ensino (ver PlanoEnsinoService).
+    // Sem POST: o plano de aula nasce junto com o plano de ensino (ver PlanoEnsinoService).
 
     @PutMapping("/{id}")
     public PlanoAula atualizar(@PathVariable Long id, @RequestBody PlanoAula o) { return service.atualizar(id, o); }
 
-    /** Soft delete: marca o plano de aula como INATIVO, preservando o histórico (ver 4.3). */
+    /** Soft delete: preserva o histórico. */
     @DeleteMapping("/{id}")
     public void deletar(@PathVariable Long id) { service.deletar(id); }
 }

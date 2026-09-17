@@ -12,6 +12,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.web.bind.annotation.*;
 import studojurata_api.dto.LoginRequest;
 import studojurata_api.dto.LoginResponse;
+import studojurata_api.mapper.AuthMapper;
 import studojurata_api.security.CustomUserDetails;
 
 @RestController
@@ -20,6 +21,7 @@ import studojurata_api.security.CustomUserDetails;
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
+    private final AuthMapper mapper;
     private final HttpSessionSecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
     @PostMapping("/login")
@@ -34,17 +36,7 @@ public class AuthController {
         securityContextRepository.saveContext(context, httpRequest, null);
 
         CustomUserDetails principal = (CustomUserDetails) authentication.getPrincipal();
-        var usuario = principal.getUsuario();
-
-        LoginResponse response = new LoginResponse(
-                usuario.getId(),
-                usuario.getUsername(),
-                usuario.getTipoUsuario(),
-                usuario.getPessoa() != null ? usuario.getPessoa().getId() : null,
-                usuario.getPessoa() != null ? usuario.getPessoa().getNome() : null
-        );
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(mapper.toLoginResponse(principal.getUsuario()));
     }
 
     @PostMapping("/logout")
@@ -61,14 +53,6 @@ public class AuthController {
             return ResponseEntity.status(401).build();
         }
 
-        var usuario = principal.getUsuario();
-        LoginResponse response = new LoginResponse(
-                usuario.getId(),
-                usuario.getUsername(),
-                usuario.getTipoUsuario(),
-                usuario.getPessoa() != null ? usuario.getPessoa().getId() : null,
-                usuario.getPessoa() != null ? usuario.getPessoa().getNome() : null
-        );
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(mapper.toLoginResponse(principal.getUsuario()));
     }
 }

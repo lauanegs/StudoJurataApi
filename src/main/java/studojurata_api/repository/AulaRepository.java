@@ -19,7 +19,6 @@ public interface AulaRepository extends JpaRepository<Aula, Long> {
 
     long countByPlanoAula_Id(Long planoAulaId);
 
-    /** Soma da carga horária apenas das aulas já realizadas (para estatística de "carga horária realizada"). */
     @Query("select coalesce(sum(a.cargaHoraria), 0.0) from Aula a " +
             "where a.planoAula.id = :planoAulaId and a.dataPublicacao is not null")
     double somarCargaHorariaRealizada(@Param("planoAulaId") Long planoAulaId);

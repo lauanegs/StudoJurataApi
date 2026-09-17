@@ -9,11 +9,8 @@ import studojurata_api.repository.QuestaoAlunoRepository;
 import java.util.List;
 
 /**
- * CRUD de apoio para QuestaoAluno (conceitualmente "RespostaAluno" — ver
- * item 2.4 da Análise Crítica). O caminho principal de escrita é
- * SimuladoAlunoService.finalizar, que grava/atualiza as respostas de uma
- * tentativa inteira de uma vez; este service permanece para consultas
- * pontuais (ex.: tela de detalhamento do simulado por aluno).
+ * O caminho principal de escrita das respostas é SimuladoAlunoService.finalizar;
+ * este service atende consultas pontuais.
  */
 @Service
 @RequiredArgsConstructor

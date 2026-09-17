@@ -8,12 +8,7 @@ import studojurata_api.model.enums.NivelDificuldade;
 import java.time.LocalDate;
 import java.util.Set;
 
-/**
- * Recomendação de reforço para um aluno em um conteúdo específico (ver
- * RecomendacaoService, itens 1.4/1.5/7.4 da Análise Crítica). Não dispara
- * nada sozinha: é a entrada para o professor (ou para um job futuro) decidir
- * acionar GeracaoSimuladoIAService.
- */
+/** Não dispara nada sozinha: serve de entrada para acionar GeracaoSimuladoIAService. */
 @Getter
 @Setter
 public class RecomendacaoDTO {

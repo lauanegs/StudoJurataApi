@@ -6,10 +6,8 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * Corpo de requisição para estender a disponibilidade de um simulado já
- * PUBLICADO (item pedido pelo usuário: "disponibilizar por mais tempo") —
- * único campo editável depois do lançamento, diferente da edição geral
- * (SimuladoService.atualizar), que continua travada fora do RASCUNHO.
+ * Único campo editável de um simulado já PUBLICADO; a edição geral
+ * (SimuladoService.atualizar) só é permitida em RASCUNHO.
  */
 @Getter
 @Setter

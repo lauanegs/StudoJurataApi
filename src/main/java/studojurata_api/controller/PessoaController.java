@@ -7,7 +7,6 @@ import studojurata_api.service.PessoaService;
 
 import java.util.List;
 
-/** Correção 5.1: passa a falar com PessoaService (soft-delete), não mais com o Repository diretamente. */
 @RestController
 @RequestMapping("/pessoas")
 @RequiredArgsConstructor

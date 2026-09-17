@@ -14,7 +14,6 @@ import studojurata_api.model.enums.TipoUsuario;
 @EqualsAndHashCode(callSuper = true)
 public class Usuario extends BaseEntity {
 
-    /** Correção 9.1 (Escola/tenant). */
     @ManyToOne(optional = false)
     private Escola escola;
 
@@ -29,22 +28,12 @@ public class Usuario extends BaseEntity {
     private String username;
 
     /**
-     * Sempre armazenada com hash (BCrypt), nunca em texto puro.
-     * Nunca é serializada nas respostas da API — mas precisa continuar
-     * aceitando escrita (@JsonIgnore bloqueava as DUAS direções, então a
-     * senha enviada em POST/PUT /usuarios nunca chegava a
-     * UsuarioService.salvar/atualizar; passwordEncoder.encode(null) estourava
-     * 500 sempre que alguém tentava criar um usuário pela API — bug
-     * pré-existente, só não detectado porque o DevDataResetSeeder cria
-     * Usuario direto em Java, sem passar pelo Jackson).
+     * Hash BCrypt. WRITE_ONLY e não @JsonIgnore: a senha precisa ser aceita na
+     * entrada, só nunca serializada na resposta.
      */
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String senha;
 
-    /**
-     * Papel do usuário, usado tanto para regra de negócio quanto para
-     * autorização (Spring Security). Substitui o antigo tipoUsuario em String livre.
-     */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TipoUsuario tipoUsuario;
@@ -52,11 +41,7 @@ public class Usuario extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private StatusAtivoInativo status;
 
-    /**
-     * Preenchido apenas quando tipoUsuario = ALUNO. Referência explícita ao
-     * perfil de negócio representado por este login, em vez de depender
-     * implicitamente da Pessoa para descobrir o perfil.
-     */
+    /** Preenchido apenas quando tipoUsuario = ALUNO. */
     @OneToOne
     @JoinColumn(unique = true)
     private Aluno aluno;

@@ -6,11 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import studojurata_api.model.BaseEntity;
 
-/**
- * Catálogo de skins do personagem/mascote, compráveis com moedas (item 8.2
- * — decisão confirmada). No lançamento, apenas 3 skins disponíveis
- * (ver GamificacaoSeeder).
- */
+/** Skins do mascote, compráveis com moedas. Catálogo inicial em GamificacaoSeeder. */
 @Entity
 @Getter
 @Setter

@@ -1,10 +1,8 @@
 package studojurata_api.exception;
 
 /**
- * Lançada quando uma requisição, embora bem formada, viola uma regra de
- * negócio (ex.: lançar um simulado sem questões aprovadas, finalizar uma
- * tentativa já concluída). Traduzida para HTTP 409 por
- * GlobalExceptionHandler.
+ * Requisição bem formada que o estado atual não permite (ex.: lançar simulado
+ * com questões não aprovadas). HTTP 409.
  */
 public class RegraNegocioException extends RuntimeException {
 

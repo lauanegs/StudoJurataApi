@@ -15,16 +15,9 @@ import studojurata_api.model.ConteudoPlano;
 import studojurata_api.model.Simulado;
 
 /**
- * Vínculo entre um Simulado gerado automaticamente por
- * GeracaoSimuladoIAService e o aluno/conteúdo/motivo (RecomendacaoService)
- * que originou a geração.
- *
- * Não fica como campo direto em Simulado porque essa informação só existe
- * pra simulados de reforço automático — um simulado criado manualmente pelo
- * professor (a maioria) nunca tem esse contexto, e Simulado é reaproveitado
- * por todo o módulo (não só o de IA). Registro criado só quando a geração
- * passa por GeracaoSimuladoIAService — simulados anteriores a esta entidade
- * simplesmente não têm vínculo, e quem consome trata isso como "sem dado".
+ * Aluno, conteúdo e motivo que originaram um simulado gerado pela IA. Fica
+ * fora de Simulado porque simulados criados pelo professor nunca têm esse
+ * contexto.
  */
 @Entity
 @Getter
@@ -46,12 +39,8 @@ public class SimuladoGeradoIA extends BaseEntity {
     private Set<MotivoRecomendacao> motivos = new LinkedHashSet<>();
 
     /**
-     * Prazo pra revisar/aprovar e lançar este simulado — a data em que a
-     * repetição espaçada ficou devida (RevisaoConteudo.dataProximoReforco),
-     * quando existe; senão, a própria data de geração (baixo aproveitamento
-     * não tem agenda própria, é um limiar já atingido agora). Confirmado
-     * pelo usuário: passado esse prazo sem o simulado ter sido lançado
-     * (Simulado.status ainda RASCUNHO), ele conta como atrasado.
+     * Data em que a repetição espaçada venceu ou, para baixo aproveitamento, a
+     * data de geração. Ainda em RASCUNHO depois dela, o simulado está atrasado.
      */
     private LocalDate prazoLancamento;
 }

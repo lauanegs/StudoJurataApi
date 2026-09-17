@@ -12,13 +12,11 @@ import studojurata_api.model.enums.StatusAtivoInativo;
 @EqualsAndHashCode(callSuper = true)
 public class Disciplina extends BaseEntity {
 
-    /** Correção 9.1 (Escola/tenant). */
     @ManyToOne(optional = false)
     private Escola escola;
 
     private String titulo;
 
-    /** Correção 2.11 da Segunda Análise Crítica: era String livre, agora enum. */
     @Enumerated(EnumType.STRING)
     private StatusAtivoInativo status;
 }

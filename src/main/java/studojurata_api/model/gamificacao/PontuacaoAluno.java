@@ -8,13 +8,9 @@ import studojurata_api.model.Aluno;
 import studojurata_api.model.BaseEntity;
 
 /**
- * Correção 8.1/8.2 da Segunda Análise Crítica ("Gamificação — decisão
- * confirmada"): moedas ganhas por simulado concluído E por reforço
- * registrado em RevisaoConteudo — não só por acerto — garantindo a equidade
- * pedida (quem revisa é tão beneficiado quanto quem acerta de primeira).
- * Sem ranking competitivo entre colegas (decisão explícita do usuário):
- * PontuacaoAluno é sempre consultado individualmente, nunca em uma listagem
- * comparativa entre alunos.
+ * Moedas vêm de simulado concluído e de reforço registrado, não só de acerto,
+ * para que quem revisa seja tão recompensado quanto quem acerta de primeira.
+ * Sempre consultado individualmente: não há ranking entre colegas.
  */
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"aluno_id"}))

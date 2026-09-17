@@ -10,6 +10,4 @@ public interface AlternativaRepository extends JpaRepository<Alternativa, Long> 
     List<Alternativa> findByQuestaoIdOrderByOrdem(Long questaoId);
 
     List<Alternativa> findByQuestaoIdAndCorretaTrue(Long questaoId);
-
-    long countByQuestaoIdAndCorretaTrue(Long questaoId);
 }

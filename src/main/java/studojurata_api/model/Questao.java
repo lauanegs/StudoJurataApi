@@ -10,15 +10,9 @@ import studojurata_api.model.enums.StatusQuestao;
 import studojurata_api.model.enums.TipoQuestao;
 
 /**
- * Ver itens 7.1, 7.2 e 7.3 da Análise Crítica:
- * - toda questão é vinculada ao conteúdo através de QuestaoConteudo
- *   (relação já existente, mantida à parte para não duplicar FK aqui);
- * - nivelDificuldade e origem foram adicionados para permitir auditoria de
- *   qualidade e, futuramente, alimentar sinais de dificuldade progressiva;
- * - status passou a representar o fluxo de moderação: questões de origem IA
- *   nascem PENDENTE e só entram no banco de reaproveitamento (podem ser
- *   vinculadas a novos simulados) após aprovação do professor; questões de
- *   origem PROFESSOR nascem já APROVADA.
+ * O vínculo com conteúdos fica em QuestaoConteudo. status é o fluxo de
+ * moderação: questões de origem IA nascem PENDENTE e só podem ir para novos
+ * simulados após aprovação; as do professor já nascem APROVADA.
  */
 @Entity
 @Getter

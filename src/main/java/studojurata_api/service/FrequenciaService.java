@@ -11,6 +11,7 @@ import studojurata_api.model.Aluno;
 import studojurata_api.model.Aula;
 import studojurata_api.model.Frequencia;
 import studojurata_api.model.Turma;
+import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.model.enums.StatusMatricula;
 import studojurata_api.repository.AlunoRepository;
 import studojurata_api.repository.AlunoTurmaRepository;
@@ -20,12 +21,9 @@ import studojurata_api.repository.TurmaRepository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-/**
- * Implementa a aba "Realizar chamada" da tela de registro de aula
- * (correção 1.1 da Análise Crítica: antes não existia nenhuma entidade
- * para persistir a presença marcada pelo professor).
- */
 @Service
 @RequiredArgsConstructor
 public class FrequenciaService {
@@ -41,11 +39,36 @@ public class FrequenciaService {
 
     public List<Frequencia> listarPorAluno(Long alunoId) { return repository.findByAluno_IdOrderByAula_DataPrevistaDesc(alunoId); }
 
+    public record ResumoFrequenciaAluno(Long alunoId, double cargaHoraria, long faltas) {}
+
     /**
-     * Registra (ou atualiza) a chamada de uma aula de uma só vez, para
-     * todos os alunos informados. Só é permitido lançar frequência para
-     * alunos com matrícula ATIVA na turma da aula.
+     * Carga horária cursada (aulas com presença) e faltas de cada aluno com
+     * matrícula ativa, considerando só as disciplinas não inativas da turma —
+     * uma disciplina removida da turma não conta mais para o aluno.
      */
+    public List<ResumoFrequenciaAluno> resumoPorTurma(Long turmaId) {
+        Map<Long, List<Frequencia>> frequenciasPorAluno = repository.findByAula_PlanoAula_TurmaDisciplina_Turma_Id(turmaId)
+                .stream()
+                .filter(frequencia -> frequencia.getAula().getPlanoAula().getTurmaDisciplina().getStatus() != StatusAtivoInativo.INATIVO)
+                .collect(Collectors.groupingBy(frequencia -> frequencia.getAluno().getId()));
+
+        return alunoTurmaService.ativosPorTurma(turmaId).stream()
+                .map(matricula -> {
+                    Long alunoId = matricula.getAluno().getId();
+                    List<Frequencia> frequencias = frequenciasPorAluno.getOrDefault(alunoId, List.of());
+                    double cargaHoraria = frequencias.stream()
+                            .filter(Frequencia::getPresente)
+                            .mapToDouble(frequencia -> frequencia.getAula().getCargaHoraria() != null
+                                    ? frequencia.getAula().getCargaHoraria()
+                                    : 0)
+                            .sum();
+                    long faltas = frequencias.stream().filter(frequencia -> !frequencia.getPresente()).count();
+                    return new ResumoFrequenciaAluno(alunoId, cargaHoraria, faltas);
+                })
+                .toList();
+    }
+
+    /** Só aceita alunos com matrícula ATIVA na turma da aula. */
     @Transactional
     public List<Frequencia> registrarChamada(Long aulaId, ChamadaRequest request) {
         if (request == null || request.getAlunos() == null || request.getAlunos().isEmpty()) {
@@ -95,12 +118,8 @@ public class FrequenciaService {
     }
 
     /**
-     * Conclusão automática da matrícula (pedido do usuário): assim que a
-     * soma da carga horária das aulas presentes do aluno nesta turma atinge
-     * (ou ultrapassa) a carga horária total do curso, a matrícula ATIVA é
-     * marcada como CONCLUIDA automaticamente, com data de conclusão de hoje.
-     * A organização pode reativá-la depois (editar a matrícula), se decidir
-     * que o aluno deve cursar carga horária adicional.
+     * Conclui a matrícula quando a carga horária cursada atinge a do curso.
+     * A escola pode reativá-la se decidir por carga horária adicional.
      */
     private void concluirSeAtingiuCargaHoraria(Long alunoId, Long turmaId) {
         Turma turma = turmaRepository.findById(turmaId).orElse(null);

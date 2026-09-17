@@ -12,13 +12,9 @@ import studojurata_api.repository.TurmaDisciplinaRepository;
 import java.util.List;
 
 /**
- * Correção 5.1 + caso extremo "Professor deixa a escola" (Segunda Análise
- * Crítica): deletar() agora faz soft-delete (Professor.status = INATIVO,
- * já existia o campo mas nada o usava) e, na mesma operação, desvincula o
- * professor das TurmaDisciplina em que lecionava — deixando-as "órfãs"
- * (professor = null) para que o Administrador reatribua um novo professor,
- * em vez de a turma continuar silenciosamente associada a um professor que
- * já não está mais na escola.
+ * deletar() inativa o professor e o desvincula das turmas em que lecionava,
+ * para que o Administrador reatribua em vez de a turma continuar associada a
+ * quem saiu da escola.
  */
 @Service
 @RequiredArgsConstructor
@@ -61,7 +57,6 @@ public class ProfessorService {
         }
     }
 
-    /** Reativa um professor inativado (volta a ATIVO) — contraparte de deletar(). */
     public Professor ativar(Long id) {
         Professor professor = buscar(id);
         professor.setStatus(StatusAtivoInativo.ATIVO);

@@ -5,13 +5,7 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 
-/**
- * Geração em lote de aulas pra um plano de aula (item pedido pelo usuário:
- * "no início do curso ele já faz a geração ali e vai manipulando depois",
- * em vez de cadastrar uma aula de cada vez em AulaFormulario). Segue os
- * horários já cadastrados na turma (HorarioTurma) — sem eles, não há como
- * gerar (ver AulaService.gerarLote).
- */
+/** Segue os horários cadastrados na turma (HorarioTurma); sem eles não há como gerar. */
 @Getter
 @Setter
 public class GerarAulasLoteRequest {

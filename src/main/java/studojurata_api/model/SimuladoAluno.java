@@ -7,15 +7,9 @@ import lombok.Setter;
 import studojurata_api.model.enums.StatusSimuladoAluno;
 
 /**
- * Ver item 1.3 da Análise Crítica: registro criado no momento do lançamento
- * do simulado, para todos os alunos elegíveis, com status PENDENTE. Quando o
- * aluno finaliza a tentativa (SimuladoAlunoService.finalizar), o status muda
- * para CONCLUIDO e nota/quantidadeAcertos/tempoGasto passam a ser válidos.
- *
- * tempoGasto é armazenado em segundos e cobre tanto a finalização normal
- * quanto a finalização por esgotamento do tempo limite (ver item 4.2: o
- * simulado do aluno nunca é zerado por timeout — apenas finalizado com o que
- * já havia sido respondido até então).
+ * Nasce PENDENTE no lançamento do simulado; nota, acertos e tempoGasto só
+ * valem depois de CONCLUIDO. Tempo esgotado finaliza com o que já foi
+ * respondido, nunca zera a tentativa.
  */
 @Entity
 @Getter
@@ -35,11 +29,7 @@ public class SimuladoAluno extends BaseEntity {
     /** Tempo total gasto pelo aluno na tentativa, em segundos. */
     private Integer tempoGasto;
 
-    /**
-     * true quando a finalização ocorreu por esgotamento do tempo limite do
-     * simulado (auto-envio), e não por o aluno confirmar voluntariamente a
-     * última questão. Não afeta a nota — apenas informativo/auditoria.
-     */
+    /** Finalizado por tempo esgotado. Informativo, não afeta a nota. */
     private Boolean finalizadoPorTempo;
 
     @Enumerated(EnumType.STRING)

@@ -8,15 +8,6 @@ import studojurata_api.model.AuditLog;
 import studojurata_api.model.enums.AcaoAuditoria;
 import studojurata_api.repository.AuditLogRepository;
 
-import java.util.List;
-
-/**
- * Ponto único de registro de auditoria (item 2.9/10.4 da Segunda Análise
- * Crítica). Usado hoje por NotaService, SimuladoAlunoService e AulaService —
- * as três entidades priorizadas na recomendação ("Nota, SimuladoAluno e Aula
- * primeiro"). Pode ser chamado de qualquer outro service no futuro sem
- * mudança de contrato.
- */
 @Service
 @RequiredArgsConstructor
 public class AuditLogService {
@@ -31,10 +22,6 @@ public class AuditLogService {
         log.setUsuario(usuarioAtual());
         log.setDetalhes(detalhes);
         repository.save(log);
-    }
-
-    public List<AuditLog> historicoDaEntidade(String entidade, Long entidadeId) {
-        return repository.findByEntidadeAndEntidadeIdOrderByIdDesc(entidade, entidadeId);
     }
 
     private String usuarioAtual() {

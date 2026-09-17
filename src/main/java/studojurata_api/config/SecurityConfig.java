@@ -21,10 +21,6 @@ import studojurata_api.security.CustomUserDetailsService;
 @Configuration
 public class SecurityConfig {
 
-    /**
-     * Senhas são sempre persistidas com hash (BCrypt) na camada de serviço,
-     * nunca em texto puro (item 10.1 da análise crítica).
-     */
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -45,21 +41,13 @@ public class SecurityConfig {
     }
 
     /**
-     * Libera o front-end local (Vite) a consumir a API.
-     * Como a autenticação é baseada em sessão (cookie JSESSIONID), é
-     * necessário setAllowCredentials(true) e o front precisa enviar as
-     * requisições com credentials: "include" (fetch) ou withCredentials:
-     * true (axios) — caso contrário o navegador não envia/recebe o cookie
-     * de sessão mesmo com o CORS liberado.
+     * Autenticação é por cookie de sessão, então o CORS precisa de
+     * allowCredentials e o front precisa enviar credentials: "include".
      *
-     * Usa um padrão (localhost em qualquer porta) em vez de travar em
-     * "http://localhost:5173": o Vite sobe na 5173 por padrão, mas troca
-     * sozinho de porta (5174, 5175...) sempre que a 5173 já está ocupada
-     * por outro processo na máquina do desenvolvedor — com uma origem fixa,
-     * a troca de porta faz todo login falhar com 403 sem nenhuma pista de
-     * que o problema é CORS. Continua restrito a localhost/127.0.0.1;
-     * ajuste (ou adicione) as origens de produção quando o deploy do front
-     * for feito.
+     * Aceita localhost em qualquer porta porque o Vite troca sozinho de porta
+     * (5174, 5175...) quando a 5173 está ocupada — com origem fixa, o login
+     * falharia com 403 sem nenhuma pista de que o problema é CORS. As origens
+     * de produção precisam ser adicionadas aqui antes do deploy.
      */
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
@@ -77,114 +65,73 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Ativa o CORS usando o CorsConfigurationSource acima. Sem isso,
-            // o Spring Security bloqueia o preflight (OPTIONS) antes mesmo
-            // de qualquer @CrossOrigin de controller ser considerado.
+            // Sem isso o Spring Security bloqueia o preflight (OPTIONS) antes
+            // de a configuração de CORS acima ser considerada.
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                // Login é público; o restante exige autenticação.
                 .requestMatchers("/auth/login").permitAll()
 
-                // Swagger/OpenAPI liberado sem autenticação — conveniência de
-                // ambiente de desenvolvimento (o "Try it out" das rotas
-                // protegidas continuará exigindo sessão logada). ATENÇÃO:
-                // antes de subir para produção, avalie restringir isso (ex.:
-                // hasRole("ADMINISTRADOR") ou springdoc.swagger-ui.enabled=false
-                // em application-prod.properties), pois expõe publicamente a
-                // documentação de todos os endpoints da API.
+                // Conveniência de desenvolvimento: expõe a documentação de todos
+                // os endpoints. Restringir ou desligar
+                // (springdoc.swagger-ui.enabled=false) antes de produção.
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
                         "/v3/api-docs.yaml").permitAll()
 
-                // Gestão de usuários (login/senha/papel) e de escolas (tenant, item
-                // 9.1) é restrita ao Administrador.
                 .requestMatchers("/usuarios/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/escolas/**").hasRole("ADMINISTRADOR")
-                .requestMatchers("/audit-log/**").hasRole("ADMINISTRADOR")
 
-                // Cadastro/edição/exclusão de perfis é restrita ao Administrador;
-                // consulta (GET) fica liberada para qualquer usuário autenticado.
+                // Cadastro de perfis: escrita só do Administrador, consulta para
+                // qualquer autenticado.
                 .requestMatchers(HttpMethod.POST, "/pessoas/**", "/alunos/**", "/professores/**",
                         "/responsaveis/**", "/responsavel-aluno/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PUT, "/pessoas/**", "/alunos/**", "/professores/**",
                         "/responsaveis/**", "/responsavel-aluno/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/pessoas/**", "/alunos/**", "/professores/**",
                         "/responsaveis/**", "/responsavel-aluno/**").hasRole("ADMINISTRADOR")
-                // Checkbox de aceite de consentimento (item 10.3) pode ser feito por
-                // qualquer usuário autenticado (o próprio responsável).
+                // O aceite de termos é feito pelo próprio responsável.
                 .requestMatchers(HttpMethod.POST, "/responsavel-aluno/*/aceitar-termos").authenticated()
 
-                // Eventos (item 2.8): apenas o Administrador cria/edita/exclui,
-                // conforme o Documento de Interfaces; consulta liberada a todos.
                 .requestMatchers(HttpMethod.GET, "/eventos/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/eventos/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PUT, "/eventos/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/eventos/**").hasRole("ADMINISTRADOR")
 
-                // Notas (item 1.2/2.13 + correção 2.1 da Terceira Análise —
-                // IDOR): listagem geral e recálculo são operações de gestão,
-                // não consulta do próprio aluno, então ficam restritas a
-                // quem administra notas; exclusão fica só com o Admin. Os
-                // demais endpoints (buscar por id, histórico por aluno)
-                // continuam liberados a qualquer autenticado, mas o
-                // NotaController garante via AlunoAccessGuard que um Aluno
-                // só veja as suas próprias notas.
+                // Listagem geral e recálculo são operações de gestão. As demais
+                // consultas de nota ficam abertas a autenticados porque o
+                // NotaController aplica AlunoAccessGuard (aluno só vê as próprias).
                 .requestMatchers(HttpMethod.GET, "/notas").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.POST, "/notas/recalcular").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/notas/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/notas/**").authenticated()
 
-                // Gamificação (item 8.1/8.2): sempre por aluno específico, nunca
-                // uma listagem comparativa — liberado a qualquer autenticado,
-                // mas o GamificacaoController garante via AlunoAccessGuard
-                // (correção 2.1 da Terceira Análise) que um Aluno só acesse a
-                // própria pontuação/skins, nunca as de outro aluno.
+                // Sempre por aluno específico; o GamificacaoController aplica
+                // AlunoAccessGuard.
                 .requestMatchers("/gamificacao/**").authenticated()
 
-                // Correção 2.5 da Terceira Análise Crítica: gestão pedagógica
-                // (cursos, turmas e seus horários semanais, disciplinas,
-                // vínculo turma-disciplina, planos de ensino/aula, conteúdo,
-                // aulas e frequência) não tinha nenhuma regra própria e caía
-                // em anyRequest().authenticated() — ou seja, um Aluno logado
-                // podia criar/editar/excluir esses registros via API.
-                // Consulta (GET) continua liberada a qualquer autenticado;
-                // escrita fica restrita a quem efetivamente gerencia esse
-                // conteúdo (Professor/Admin). /horarios/** cobre o DELETE de
-                // HorarioTurma (rota própria, fora de /turmas/**).
+                // Gestão pedagógica: consulta para qualquer autenticado, escrita
+                // só para quem gerencia o conteúdo. /horarios/** cobre o DELETE de
+                // HorarioTurma, que tem rota própria fora de /turmas/**.
                 .requestMatchers(HttpMethod.GET, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
                         "/turma-disciplina/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
-                        "/aulas/**", "/aula-conteudo/**", "/frequencia/**").authenticated()
+                        "/aulas/**", "/frequencia/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
                         "/turma-disciplina/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
-                        "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                        "/aulas/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PUT, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
                         "/turma-disciplina/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
-                        "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                        "/aulas/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
                         "/turma-disciplina/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
-                        "/aulas/**", "/aula-conteudo/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                        "/aulas/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
 
-                // Correção de auditoria: /aluno-turma/** (matricular, atualizar,
-                // cancelar, concluir, deletar) e /questao-conteudo/**
-                // (vínculo questão-conteúdo) não tinham nenhuma regra própria e
-                // caíam em anyRequest().authenticated() — a mesma lacuna que a
-                // correção 2.5 já havia fechado para cursos/turmas/disciplinas/
-                // planos, mas que ficou de fora para estas duas rotas. Sem isso,
-                // um Aluno logado podia se automatricular, cancelar a
-                // matrícula de outro aluno, ou alterar vínculos questão-conteúdo,
-                // via API. Consulta (GET) continua liberada a qualquer
-                // autenticado; escrita fica restrita a quem gerencia matrícula/
-                // currículo (Professor/Administrador).
-                .requestMatchers(HttpMethod.GET, "/aluno-turma/**", "/questao-conteudo/**").authenticated()
-                .requestMatchers(HttpMethod.POST, "/aluno-turma/**", "/questao-conteudo/**")
-                        .hasAnyRole("PROFESSOR", "ADMINISTRADOR")
-                .requestMatchers(HttpMethod.PUT, "/aluno-turma/**", "/questao-conteudo/**")
-                        .hasAnyRole("PROFESSOR", "ADMINISTRADOR")
-                .requestMatchers(HttpMethod.DELETE, "/aluno-turma/**", "/questao-conteudo/**")
-                        .hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                // Sem estas regras, um Aluno logado poderia se automatricular ou
+                // cancelar a matrícula de outro aluno via API.
+                .requestMatchers(HttpMethod.GET, "/aluno-turma/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/aluno-turma/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.PUT, "/aluno-turma/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
 
-                // Módulo de simulados: montagem/moderação/lançamento é tarefa do
-                // professor (ou administrador); o aluno só consulta (GET) e
-                // finaliza a própria tentativa (POST /simulado-aluno/{id}/finalizar).
+                // Montagem, moderação e lançamento de simulados são do professor;
+                // o aluno só consulta e finaliza a própria tentativa.
                 .requestMatchers(HttpMethod.POST, "/simulado-aluno/*/finalizar").authenticated()
                 .requestMatchers(HttpMethod.GET, "/simulados/**", "/questoes/**", "/alternativas/**",
                         "/simulado-questao/**", "/simulado-aluno/**", "/questao-aluno/**").authenticated()
@@ -193,32 +140,20 @@ public class SecurityConfig {
                         .hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PUT, "/simulados/**", "/questoes/**", "/alternativas/**",
                         "/simulado-questao/**", "/questao-aluno/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
-                // PATCH /simulados/{id}/disponibilidade — estender "disponível até"
-                // de um simulado já PUBLICADO (único campo editável pós-lançamento).
                 .requestMatchers(HttpMethod.PATCH, "/simulados/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
-                // Desvincular conteúdo (/questoes/{id}/conteudos/{conteudoPlanoId}) não é
-                // excluir a questão — mesma regra do DELETE de /questao-conteudo/** acima
-                // (PROFESSOR também pode) — por isso precisa vir ANTES do DELETE
-                // /questoes/** abaixo (mais restrito, ADMINISTRADOR-only, pensado pra
-                // excluir a questão em si).
+                // Desvincular conteúdo não é excluir a questão: precisa vir antes
+                // do DELETE /questoes/**, que é só do Administrador.
                 .requestMatchers(HttpMethod.DELETE, "/questoes/*/conteudos/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/simulados/**", "/questoes/**", "/alternativas/**",
                         "/simulado-questao/**", "/simulado-aluno/**", "/questao-aluno/**").hasRole("ADMINISTRADOR")
 
-                // Módulo de IA: geração, revisão de conteúdo e histórico são
-                // ferramentas de gestão pedagógica (professor/administrador);
-                // recomendações também, já que hoje alimentam a decisão do
-                // professor de gerar (ou não) um novo simulado (item 1.4).
                 .requestMatchers("/ia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
 
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
-                // maximumSessions(1) limita sessões concorrentes (1 login ativo por
-                // usuário) — é complementar, não é timeout por inatividade. A
-                // expiração de sessão real (item 5.3/10.5 da Segunda Análise
-                // Crítica) está configurada em server.servlet.session.timeout
-                // (application.properties).
+                // Limita sessões concorrentes; o timeout por inatividade fica em
+                // server.servlet.session.timeout.
                 .maximumSessions(1)
             )
             .formLogin(AbstractHttpConfigurer::disable)

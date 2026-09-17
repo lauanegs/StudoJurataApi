@@ -6,11 +6,7 @@ import org.springframework.stereotype.Component;
 import studojurata_api.model.gamificacao.Skin;
 import studojurata_api.repository.gamificacao.SkinRepository;
 
-/**
- * Correção 8.2 da Segunda Análise Crítica: "no lançamento, apenas 3 skins
- * disponíveis" — popula o catálogo inicial na primeira subida da aplicação,
- * sem sobrescrever se já existirem (idempotente).
- */
+/** Popula o catálogo inicial de skins na primeira subida, sem sobrescrever as existentes. */
 @Component
 @RequiredArgsConstructor
 public class GamificacaoSeeder implements CommandLineRunner {

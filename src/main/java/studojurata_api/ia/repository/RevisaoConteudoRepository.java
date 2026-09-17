@@ -13,7 +13,6 @@ public interface RevisaoConteudoRepository extends JpaRepository<RevisaoConteudo
 
     Optional<RevisaoConteudo> findByAlunoIdAndConteudoPlanoId(Long alunoId, Long conteudoPlanoId);
 
-    /** Repetição espaçada devida: dataProximoReforco já atingida (ver item 1.5). */
     List<RevisaoConteudo> findByDataProximoReforcoLessThanEqual(LocalDate data);
 
     List<RevisaoConteudo> findByAlunoIdAndDataProximoReforcoLessThanEqual(Long alunoId, LocalDate data);

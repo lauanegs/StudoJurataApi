@@ -9,6 +9,5 @@ import java.util.Optional;
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByUsername(String username);
 
-    /** Correção 2.2 da Terceira Análise Crítica (isolamento multi-tenant): filtra por escola. */
     List<Usuario> findByEscola_Id(Long escolaId);
 }

@@ -25,12 +25,7 @@ public class QuestaoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Questão " + id + " não encontrada."));
     }
 
-    /**
-     * Ver item 7.3 da Análise Crítica: questões de origem IA nascem PENDENTE
-     * e só entram no banco de reaproveitamento após aprovação do professor;
-     * questões digitadas manualmente pelo professor (origem PROFESSOR)
-     * nascem já APROVADA, pois já passaram pelo julgamento humano na criação.
-     */
+    /** Status inicial pela origem: IA nasce PENDENTE, professor nasce APROVADA. */
     public Questao salvar(Questao obj) {
         if (obj.getOrigem() == null) {
             obj.setOrigem(OrigemQuestao.PROFESSOR);
@@ -44,15 +39,13 @@ public class QuestaoService {
     public Questao atualizar(Long id, Questao obj) {
         Questao existente = buscar(id);
         obj.setId(id);
-        // preserva o status — o DTO de entrada não expõe este campo, que é
-        // controlado exclusivamente pelo fluxo de aprovar()/rejeitar().
+        // O status só muda por aprovar()/rejeitar().
         obj.setStatus(existente.getStatus());
         return repository.save(obj);
     }
 
     public void deletar(Long id) { repository.deleteById(id); }
 
-    /** Fila de revisão do professor — tela "Revisão" (itens 1.4 e 7.3). */
     public List<Questao> listarPendentes() {
         return repository.findByStatus(StatusQuestao.PENDENTE);
     }

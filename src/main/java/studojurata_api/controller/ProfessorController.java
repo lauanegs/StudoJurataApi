@@ -8,7 +8,6 @@ import studojurata_api.service.ProfessorService;
 
 import java.util.List;
 
-/** Correção 5.1: passa a falar com ProfessorService (soft-delete + reatribuição de turmas), não mais com o Repository. */
 @RestController
 @RequestMapping("/professores")
 @RequiredArgsConstructor

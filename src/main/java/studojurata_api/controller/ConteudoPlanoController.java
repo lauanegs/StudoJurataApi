@@ -7,7 +7,6 @@ import studojurata_api.service.ConteudoPlanoService;
 
 import java.util.List;
 
-/** Correção 5.1: passa a falar com ConteudoPlanoService (soft-delete), não mais com o Repository diretamente. */
 @RestController
 @RequestMapping("/conteudo-plano")
 @RequiredArgsConstructor

@@ -32,7 +32,7 @@ public class EscolaService {
         return repository.save(obj);
     }
 
-    /** Soft-delete (item 4.3/5.1): nunca exclusão física de uma escola com turmas/usuários vinculados. */
+    /** Soft-delete: escola tem turmas e usuários vinculados. */
     public void deletar(Long id) {
         Escola escola = buscar(id);
         escola.setStatus(StatusAtivoInativo.INATIVO);

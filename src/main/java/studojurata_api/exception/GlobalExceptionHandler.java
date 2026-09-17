@@ -11,15 +11,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
-/**
- * Tradução centralizada das exceptions de negócio da API para respostas HTTP
- * padronizadas. Mantém os services livres de detalhes de HTTP (fora os casos
- * legados que ainda usam ResponseStatusException diretamente, também
- * tratados aqui para compatibilidade).
- */
+/** Traduz as exceções de negócio para HTTP, mantendo os services livres de detalhes de HTTP. */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -38,12 +32,6 @@ public class GlobalExceptionHandler {
         return corpo(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
-    /** Compatibilidade com orElseThrow() sem argumentos ainda presentes em services legados. */
-    @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<ErrorResponse> handleNoSuchElement(NoSuchElementException ex, HttpServletRequest request) {
-        return corpo(HttpStatus.NOT_FOUND, "Recurso não encontrado.", request);
-    }
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidacao(MethodArgumentNotValidException ex, HttpServletRequest request) {
         String mensagem = ex.getBindingResult().getFieldErrors().stream()
@@ -53,12 +41,8 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Alguns endpoints ainda expõem exclusão física (deletar()) por
-     * compatibilidade/uso administrativo pontual (ver javadoc dos services).
-     * Quando o recurso tem dependentes (ex.: excluir uma Questao referenciada
-     * por Alternativa/SimuladoQuestao/QuestaoConteudo), o banco recusa a
-     * operação com uma violação de integridade — sem este handler, isso
-     * vazava como HTTP 500 genérico em vez de um erro de negócio claro.
+     * Exclusão física de um registro com dependentes é recusada pelo banco;
+     * sem este handler, isso chegaria ao cliente como 500 genérico.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleIntegridade(DataIntegrityViolationException ex, HttpServletRequest request) {
@@ -74,16 +58,10 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Correção de auditoria: AuthController.login() chama
-     * AuthenticationManager.authenticate() diretamente (fora do filtro
-     * padrão de login do Spring Security), então uma credencial inválida
-     * (BadCredentialsException, DisabledException etc.) não passava por
-     * nenhum handler aqui — o corpo da resposta de um login malsucedido
-     * não seguia o mesmo formato ErrorResponse do resto da API. Trata
-     * qualquer AuthenticationException (classe-base de todas as falhas de
-     * autenticação do Spring Security) como 401, com mensagem genérica —
-     * nunca ecoar o motivo exato (usuário inexistente vs. senha errada)
-     * para não facilitar enumeração de usuários válidos.
+     * AuthController chama o AuthenticationManager fora do filtro padrão do
+     * Spring Security, então falhas de login chegam aqui. A mensagem é
+     * genérica de propósito: informar se o usuário existe facilitaria a
+     * enumeração de contas.
      */
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) {
