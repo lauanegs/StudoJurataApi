@@ -40,9 +40,6 @@ public class SimuladoController {
         return mapper.toResponseDTO(service.atualizar(id, mapper.toEntity(dto)));
     }
 
-    @DeleteMapping("/{id}")
-    public void deletar(@PathVariable Long id) { service.deletar(id); }
-
     /** Cria uma tentativa PENDENTE para cada aluno elegível. */
     @PostMapping("/{id}/lancar")
     public SimuladoResponseDTO lancar(@PathVariable Long id, @RequestBody(required = false) LancarSimuladoRequest request) {

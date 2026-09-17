@@ -42,12 +42,6 @@ public class TurmaDisciplinaService {
         return repository.save(obj);
     }
 
-    public TurmaDisciplina atualizar(Long id, TurmaDisciplina obj) {
-        obj.setId(id);
-        validar(obj);
-        return repository.save(obj);
-    }
-
     /**
      * Soft-delete, recusado enquanto houver plano de ensino ou de aula ATIVO
      * no vínculo: o professor perderia o rastro do que está ministrando.

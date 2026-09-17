@@ -18,8 +18,6 @@ public class EventoService {
 
     public List<Evento> listarPendentes() { return repository.findByConcluidoOrderByDataHorarioAsc(false); }
 
-    public List<Evento> listarConcluidos() { return repository.findByConcluidoOrderByDataHorarioAsc(true); }
-
     public Evento buscar(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Evento " + id + " não encontrado."));

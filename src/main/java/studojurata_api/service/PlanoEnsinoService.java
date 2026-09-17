@@ -41,10 +41,6 @@ public class PlanoEnsinoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Plano de ensino " + id + " não encontrado."));
     }
 
-    public List<PlanoEnsino> listarPorCurso(Long cursoId) {
-        return repository.findByCurso_Id(cursoId);
-    }
-
     public PlanoEnsino salvar(PlanoEnsino obj) {
         validarCurso(obj);
         if (obj.getStatus() == null) obj.setStatus(StatusPlano.ATIVO);

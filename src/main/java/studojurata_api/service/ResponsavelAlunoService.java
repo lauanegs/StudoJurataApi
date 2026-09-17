@@ -15,8 +15,6 @@ public class ResponsavelAlunoService {
 
     private final ResponsavelAlunoRepository repository;
 
-    public List<ResponsavelAluno> listar() { return repository.findAll(); }
-
     public ResponsavelAluno buscar(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Vínculo responsável-aluno " + id + " não encontrado."));

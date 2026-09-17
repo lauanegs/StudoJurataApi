@@ -44,8 +44,6 @@ public class QuestaoService {
         return repository.save(obj);
     }
 
-    public void deletar(Long id) { repository.deleteById(id); }
-
     public List<Questao> listarPendentes() {
         return repository.findByStatus(StatusQuestao.PENDENTE);
     }

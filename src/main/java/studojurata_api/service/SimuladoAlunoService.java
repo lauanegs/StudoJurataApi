@@ -62,16 +62,6 @@ public class SimuladoAlunoService {
         return repository.findBySimuladoId(simuladoId);
     }
 
-    /** Uso administrativo pontual; o caminho normal de criação é SimuladoService.lancar. */
-    public SimuladoAluno salvar(SimuladoAluno obj) {
-        if (obj.getStatus() == null) {
-            obj.setStatus(StatusSimuladoAluno.PENDENTE);
-        }
-        return repository.save(obj);
-    }
-
-    public void deletar(Long id) { repository.deleteById(id); }
-
     public record ResultadoFinalizacao(SimuladoAluno simuladoAluno, Integer diasProximaRevisao) {}
 
     private record ResultadoCorrecao(int acertos, double pontuacaoObtida, double pontuacaoTotal) {}

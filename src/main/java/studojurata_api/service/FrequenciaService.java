@@ -142,7 +142,4 @@ public class FrequenciaService {
                 .findFirstByAluno_IdAndTurma_IdAndStatus(alunoId, turmaId, StatusMatricula.ATIVA)
                 .ifPresent(matricula -> alunoTurmaService.concluir(matricula.getId(), LocalDate.now()));
     }
-
-    @Transactional
-    public void deletar(Long id) { repository.deleteById(id); }
 }

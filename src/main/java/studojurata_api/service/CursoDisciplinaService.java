@@ -23,10 +23,6 @@ public class CursoDisciplinaService {
     private final CursoRepository cursoRepository;
     private final DisciplinaRepository disciplinaRepository;
 
-    public List<CursoDisciplina> listar() {
-        return repository.findAll();
-    }
-
     public List<CursoDisciplina> listarPorCurso(Long cursoId) {
         return repository.findByCurso_Id(cursoId);
     }
@@ -39,15 +35,6 @@ public class CursoDisciplinaService {
     public CursoDisciplina salvar(CursoDisciplina obj) {
         resolverVinculos(obj);
         if (obj.getStatus() == null) obj.setStatus(StatusAtivoInativo.ATIVO);
-        validarDuplicidade(obj);
-        CursoDisciplina salvo = repository.save(obj);
-        recalcularCargaHorariaTotal(salvo.getCurso());
-        return salvo;
-    }
-
-    public CursoDisciplina atualizar(Long id, CursoDisciplina obj) {
-        obj.setId(id);
-        resolverVinculos(obj);
         validarDuplicidade(obj);
         CursoDisciplina salvo = repository.save(obj);
         recalcularCargaHorariaTotal(salvo.getCurso());

@@ -23,29 +23,9 @@ public class NotaController {
 
     @GetMapping public List<Nota> listar(){ return service.listar(); }
 
-    @GetMapping("/{id}")
-    public Nota buscar(@PathVariable Long id){
-        Nota nota = service.buscar(id);
-        alunoAccessGuard.garantir(nota.getAluno().getId());
-        return nota;
-    }
-
     @GetMapping("/aluno/{alunoId}/historico")
     public List<Nota> historicoPorAluno(@PathVariable Long alunoId) {
         alunoAccessGuard.garantir(alunoId);
         return service.historicoPorAluno(alunoId);
     }
-
-    @GetMapping("/aluno/{alunoId}/disciplina/{disciplinaId}/historico")
-    public List<Nota> historicoPorAlunoEDisciplina(@PathVariable Long alunoId, @PathVariable Long disciplinaId) {
-        alunoAccessGuard.garantir(alunoId);
-        return service.historicoPorAlunoEDisciplina(alunoId, disciplinaId);
-    }
-
-    @PostMapping("/recalcular")
-    public Nota recalcular(@RequestParam Long alunoId, @RequestParam Long disciplinaId, @RequestParam Long turmaId) {
-        return service.recalcular(alunoId, disciplinaId, turmaId);
-    }
-
-    @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
 }

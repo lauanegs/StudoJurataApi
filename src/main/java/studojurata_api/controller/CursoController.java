@@ -4,10 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import studojurata_api.model.Curso;
 import studojurata_api.model.CursoDisciplina;
-import studojurata_api.model.PlanoEnsino;
 import studojurata_api.service.CursoDisciplinaService;
 import studojurata_api.service.CursoService;
-import studojurata_api.service.PlanoEnsinoService;
 
 import java.util.List;
 
@@ -17,7 +15,6 @@ import java.util.List;
 public class CursoController {
 
     private final CursoService service;
-    private final PlanoEnsinoService planoEnsinoService;
     private final CursoDisciplinaService cursoDisciplinaService;
 
     @GetMapping public List<Curso> listar(){ return service.listar(); }
@@ -26,11 +23,6 @@ public class CursoController {
     @PutMapping("/{id}") public Curso atualizar(@PathVariable Long id, @RequestBody Curso o){ return service.atualizar(id, o); }
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
     @PostMapping("/{id}/ativar") public Curso ativar(@PathVariable Long id){ return service.ativar(id); }
-
-    @GetMapping("/{id}/planos-ensino")
-    public List<PlanoEnsino> planosDeEnsino(@PathVariable Long id) {
-        return planoEnsinoService.listarPorCurso(id);
-    }
 
     /** Grade curricular (disciplinas + carga horária) deste curso — ver CursoDisciplina. */
     @GetMapping("/{id}/disciplinas")

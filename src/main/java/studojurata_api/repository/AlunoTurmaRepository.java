@@ -19,7 +19,6 @@ public interface AlunoTurmaRepository extends JpaRepository<AlunoTurma, Long> {
 
     List<AlunoTurma> findByTurmaIdOrderByDataInicioDesc(Long turmaId);
 
-    List<AlunoTurma> findByAlunoIdOrderByDataInicioDesc(Long alunoId);
 
     /** Usado para impedir excluir turma/aluno com qualquer matrícula vinculada (ativa ou histórico). */
     boolean existsByTurma_Id(Long turmaId);

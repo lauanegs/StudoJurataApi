@@ -24,9 +24,6 @@ public class AulaController {
     private final AulaConteudoService aulaConteudoService;
     private final FrequenciaService frequenciaService;
 
-    @GetMapping
-    public List<Aula> listar() { return service.listar(); }
-
     @GetMapping("/{id}")
     public Aula buscar(@PathVariable Long id) { return service.buscar(id); }
 

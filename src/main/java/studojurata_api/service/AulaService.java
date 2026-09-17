@@ -38,8 +38,6 @@ public class AulaService {
     private final HorarioTurmaRepository horarioTurmaRepository;
     private final AuditLogService auditLogService;
 
-    public List<Aula> listar() { return repository.findAll(); }
-
     public Aula buscar(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Aula " + id + " não encontrada."));

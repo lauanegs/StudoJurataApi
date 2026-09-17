@@ -35,14 +35,6 @@ public class RevisaoConteudoService {
         return repository.findByAlunoId(alunoId);
     }
 
-    public List<RevisaoConteudo> listarDevidosHoje() {
-        return repository.findByDataProximoReforcoLessThanEqual(LocalDate.now());
-    }
-
-    public List<RevisaoConteudo> listarDevidosHojePorAluno(Long alunoId) {
-        return repository.findByAlunoIdAndDataProximoReforcoLessThanEqual(alunoId, LocalDate.now());
-    }
-
     /**
      * Registra um reforço feito hoje (simulado concluído ou revisão manual),
      * recalculando a próxima data e o nível de domínio.

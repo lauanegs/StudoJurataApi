@@ -23,27 +23,8 @@ public class SimuladoQuestaoController {
         return service.listar().stream().map(mapper::toResponseDTO).toList();
     }
 
-    @GetMapping("/{id}")
-    public SimuladoQuestaoResponseDTO buscar(@PathVariable Long id) {
-        return mapper.toResponseDTO(service.buscar(id));
-    }
-
     @PostMapping
     public SimuladoQuestaoResponseDTO salvar(@Valid @RequestBody SimuladoQuestaoRequestDTO dto) {
         return mapper.toResponseDTO(service.salvar(mapper.toEntity(dto)));
-    }
-
-    @PutMapping("/{id}")
-    public SimuladoQuestaoResponseDTO atualizar(@PathVariable Long id, @Valid @RequestBody SimuladoQuestaoRequestDTO dto) {
-        return mapper.toResponseDTO(service.atualizar(id, mapper.toEntity(dto)));
-    }
-
-    @DeleteMapping("/{id}")
-    public void deletar(@PathVariable Long id) { service.deletar(id); }
-
-    /** Soft delete: preserva o histórico de respostas. */
-    @PostMapping("/{id}/remover")
-    public SimuladoQuestaoResponseDTO remover(@PathVariable Long id) {
-        return mapper.toResponseDTO(service.remover(id));
     }
 }

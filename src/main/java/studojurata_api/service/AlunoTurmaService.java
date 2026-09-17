@@ -38,10 +38,6 @@ public class AlunoTurmaService {
         return repository.findByTurmaIdAndStatus(turmaId, StatusMatricula.ATIVA);
     }
 
-    public List<AlunoTurma> historicoPorAluno(Long alunoId) {
-        return repository.findByAlunoIdOrderByDataInicioDesc(alunoId);
-    }
-
     public long contarAtivosPorTurma(Long turmaId) {
         return repository.countByTurmaIdAndStatus(turmaId, StatusMatricula.ATIVA);
     }
@@ -95,14 +91,6 @@ public class AlunoTurmaService {
         }
 
         return repository.save(obj);
-    }
-
-    @Transactional
-    public AlunoTurma cancelar(Long id, LocalDate dataFim) {
-        AlunoTurma matricula = buscar(id);
-        matricula.setStatus(StatusMatricula.CANCELADA);
-        matricula.setDataFim(dataFim != null ? dataFim : LocalDate.now());
-        return repository.save(matricula);
     }
 
     @Transactional

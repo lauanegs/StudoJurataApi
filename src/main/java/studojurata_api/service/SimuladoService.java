@@ -65,8 +65,6 @@ public class SimuladoService {
         return repository.save(obj);
     }
 
-    public void deletar(Long id) { repository.deleteById(id); }
-
     /** Único campo editável depois do lançamento. */
     @Transactional
     public Simulado estenderDisponibilidade(Long id, LocalDateTime novaDataFim) {

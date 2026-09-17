@@ -6,7 +6,6 @@ import org.springframework.transaction.annotation.Transactional;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.Aluno;
 import studojurata_api.model.gamificacao.PontuacaoAluno;
-import studojurata_api.model.gamificacao.Skin;
 import studojurata_api.model.gamificacao.SkinAluno;
 import studojurata_api.repository.AlunoRepository;
 import studojurata_api.repository.gamificacao.PontuacaoAlunoRepository;

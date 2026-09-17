@@ -6,7 +6,6 @@ import studojurata_api.model.PlanoEnsino;
 import java.util.List;
 
 public interface PlanoEnsinoRepository extends JpaRepository<PlanoEnsino, Long> {
-    List<PlanoEnsino> findByCurso_Id(Long cursoId);
 
     /** PlanoEnsino não tem escola própria: herda a do Curso. */
     List<PlanoEnsino> findByCurso_Escola_Id(Long escolaId);

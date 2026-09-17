@@ -39,17 +39,8 @@ public class NotaService {
 
     public List<Nota> listar() { return repository.findAll(); }
 
-    public Nota buscar(Long id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Nota " + id + " não encontrada."));
-    }
-
     public List<Nota> historicoPorAluno(Long alunoId) {
         return repository.findByAluno_IdOrderByCreatedAtDesc(alunoId);
-    }
-
-    public List<Nota> historicoPorAlunoEDisciplina(Long alunoId, Long disciplinaId) {
-        return repository.findByAluno_IdAndDisciplina_IdOrderByCreatedAtDesc(alunoId, disciplinaId);
     }
 
     /** Chamado a cada simulado finalizado e, manualmente, para reprocessamento. */
@@ -109,12 +100,5 @@ public class NotaService {
         var dataAplicacao = simuladoAluno.getSimulado().getDataInicio();
         if (dataAplicacao == null) return true;
         return !dataAplicacao.toLocalDate().isBefore(matricula.getDataInicio());
-    }
-
-    /** Exclusão física é aceitável: a nota é derivada e pode ser recalculada. */
-    @Transactional
-    public void deletar(Long id) {
-        auditLogService.registrar("Nota", id, AcaoAuditoria.EXCLUSAO, "Registro de nota removido manualmente.");
-        repository.deleteById(id);
     }
 }

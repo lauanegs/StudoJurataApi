@@ -2,7 +2,6 @@ package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.model.Pessoa;
 import studojurata_api.model.enums.StatusAtivoInativo;
@@ -17,11 +16,6 @@ public class PessoaService {
     private final PessoaRepository repository;
 
     public List<Pessoa> listar() { return repository.findAll(); }
-
-    public Pessoa buscar(Long id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Pessoa " + id + " não encontrada."));
-    }
 
     public Pessoa salvar(Pessoa obj) {
         validarCpfUnico(obj.getCpf(), null);
@@ -46,12 +40,5 @@ public class PessoaService {
         if (jaExiste) {
             throw new RegraNegocioException("Já existe uma pessoa cadastrada com o CPF " + cpf + ".");
         }
-    }
-
-    /** Soft-delete: Pessoa é a base de Aluno, Professor, Responsavel e Usuario. */
-    public void deletar(Long id) {
-        Pessoa pessoa = buscar(id);
-        pessoa.setStatus(StatusAtivoInativo.INATIVO);
-        repository.save(pessoa);
     }
 }

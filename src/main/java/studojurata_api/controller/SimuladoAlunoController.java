@@ -1,10 +1,8 @@
 package studojurata_api.controller;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import studojurata_api.dto.FinalizarSimuladoRequest;
-import studojurata_api.dto.SimuladoAlunoRequestDTO;
 import studojurata_api.dto.SimuladoAlunoResponseDTO;
 import studojurata_api.mapper.SimuladoAlunoMapper;
 import studojurata_api.service.SimuladoAlunoService;
@@ -38,14 +36,6 @@ public class SimuladoAlunoController {
     public List<SimuladoAlunoResponseDTO> listarPorSimulado(@PathVariable Long simuladoId) {
         return service.listarPorSimulado(simuladoId).stream().map(mapper::toResponseDTO).toList();
     }
-
-    @PostMapping
-    public SimuladoAlunoResponseDTO salvar(@Valid @RequestBody SimuladoAlunoRequestDTO dto) {
-        return mapper.toResponseDTO(service.salvar(mapper.toEntity(dto)));
-    }
-
-    @DeleteMapping("/{id}")
-    public void deletar(@PathVariable Long id) { service.deletar(id); }
 
     /** Além de nota e acertos, devolve em quantos dias cai a próxima revisão espaçada. */
     @PostMapping("/{id}/finalizar")

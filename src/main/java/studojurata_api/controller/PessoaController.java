@@ -15,8 +15,6 @@ public class PessoaController {
     private final PessoaService service;
 
     @GetMapping public List<Pessoa> listar(){ return service.listar(); }
-    @GetMapping("/{id}") public Pessoa buscar(@PathVariable Long id){ return service.buscar(id); }
     @PostMapping public Pessoa salvar(@RequestBody Pessoa o){ return service.salvar(o); }
     @PutMapping("/{id}") public Pessoa atualizar(@PathVariable Long id,@RequestBody Pessoa o){ return service.atualizar(id, o); }
-    @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
 }

@@ -41,9 +41,6 @@ public class QuestaoController {
         return mapper.toResponseDTO(service.atualizar(id, mapper.toEntity(dto)));
     }
 
-    @DeleteMapping("/{id}")
-    public void deletar(@PathVariable Long id) { service.deletar(id); }
-
     @GetMapping("/pendentes")
     public List<QuestaoResponseDTO> listarPendentes() {
         return service.listarPendentes().stream().map(mapper::toResponseDTO).toList();

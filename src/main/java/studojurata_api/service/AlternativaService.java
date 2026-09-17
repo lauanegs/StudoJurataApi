@@ -3,7 +3,6 @@ package studojurata_api.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.model.Alternativa;
 import studojurata_api.model.enums.TipoQuestao;
@@ -18,11 +17,6 @@ public class AlternativaService {
     private final AlternativaRepository repository;
 
     public List<Alternativa> listar() { return repository.findAll(); }
-
-    public Alternativa buscar(Long id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Alternativa " + id + " não encontrada."));
-    }
 
     /**
      * Questões ALTERNATIVAS têm no máximo uma correta, pois a correção lê a
@@ -41,8 +35,6 @@ public class AlternativaService {
         validarCorretaUnica(obj, id);
         return repository.save(obj);
     }
-
-    public void deletar(Long id) { repository.deleteById(id); }
 
     private void validarCorretaUnica(Alternativa obj, Long ignorarId) {
         if (!Boolean.TRUE.equals(obj.getCorreta()) || obj.getQuestao() == null || obj.getQuestao().getId() == null) {

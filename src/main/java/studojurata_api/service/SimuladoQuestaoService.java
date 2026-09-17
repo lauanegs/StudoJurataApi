@@ -3,7 +3,6 @@ package studojurata_api.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.SimuladoQuestao;
@@ -26,11 +25,6 @@ public class SimuladoQuestaoService {
 
     public List<SimuladoQuestao> listar() { return repository.findAll(); }
 
-    public SimuladoQuestao buscar(Long id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("SimuladoQuestao " + id + " não encontrada."));
-    }
-
     /**
      * O vínculo com conteúdo só é exigido para questões de origem IA, que já
      * nascem vinculadas. Para as do professor o vínculo é opcional, para não
@@ -45,27 +39,6 @@ public class SimuladoQuestaoService {
         }
         return repository.save(obj);
     }
-
-    @Transactional
-    public SimuladoQuestao atualizar(Long id, SimuladoQuestao obj) {
-        SimuladoQuestao existente = buscar(id);
-        obj.setId(id);
-        validarQuestaoVinculadaAoConteudo(obj);
-        // O status só muda por remover().
-        obj.setStatus(existente.getStatus());
-        return repository.save(obj);
-    }
-
-    /** Soft delete: preserva as respostas já registradas contra a questão. */
-    @Transactional
-    public SimuladoQuestao remover(Long id) {
-        SimuladoQuestao simuladoQuestao = buscar(id);
-        simuladoQuestao.setStatus(StatusSimuladoQuestao.REMOVIDA);
-        return repository.save(simuladoQuestao);
-    }
-
-    /** Exclusão física administrativa; o fluxo normal é remover(). */
-    public void deletar(Long id) { repository.deleteById(id); }
 
     private void validarLimiteDeQuestoes(SimuladoQuestao obj) {
         if (obj.getSimulado() == null || obj.getSimulado().getId() == null) return;

@@ -23,11 +23,6 @@ public class AlternativaController {
         return service.listar().stream().map(mapper::toResponseDTO).toList();
     }
 
-    @GetMapping("/{id}")
-    public AlternativaResponseDTO buscar(@PathVariable Long id) {
-        return mapper.toResponseDTO(service.buscar(id));
-    }
-
     @PostMapping
     public AlternativaResponseDTO salvar(@Valid @RequestBody AlternativaRequestDTO dto) {
         return mapper.toResponseDTO(service.salvar(mapper.toEntity(dto)));
@@ -37,7 +32,4 @@ public class AlternativaController {
     public AlternativaResponseDTO atualizar(@PathVariable Long id, @Valid @RequestBody AlternativaRequestDTO dto) {
         return mapper.toResponseDTO(service.atualizar(id, mapper.toEntity(dto)));
     }
-
-    @DeleteMapping("/{id}")
-    public void deletar(@PathVariable Long id) { service.deletar(id); }
 }
