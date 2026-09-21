@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.*;
 import studojurata_api.ia.dto.RevisaoConteudoResponseDTO;
 import studojurata_api.ia.mapper.RevisaoConteudoMapper;
 import studojurata_api.ia.service.RevisaoConteudoService;
+import studojurata_api.security.AlunoAccessGuard;
 
 import java.util.List;
 
@@ -15,9 +16,11 @@ public class RevisaoConteudoController {
 
     private final RevisaoConteudoService service;
     private final RevisaoConteudoMapper mapper;
+    private final AlunoAccessGuard alunoAccessGuard;
 
     @GetMapping("/aluno/{alunoId}")
     public List<RevisaoConteudoResponseDTO> listarPorAluno(@PathVariable Long alunoId) {
+        alunoAccessGuard.garantir(alunoId);
         return service.listarPorAluno(alunoId).stream().map(mapper::toResponseDTO).toList();
     }
 }

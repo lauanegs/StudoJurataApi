@@ -44,13 +44,13 @@ public class GamificacaoController {
 
     @PostMapping("/aluno/{alunoId}/skins/{skinId}/comprar")
     public SkinAluno comprar(@PathVariable Long alunoId, @PathVariable Long skinId) {
-        alunoAccessGuard.garantir(alunoId);
+        alunoAccessGuard.garantirEscritaDoAluno(alunoId);
         return skinService.comprar(alunoId, skinId);
     }
 
     @PostMapping("/aluno/{alunoId}/skins/{skinId}/equipar")
     public SkinAluno equipar(@PathVariable Long alunoId, @PathVariable Long skinId) {
-        alunoAccessGuard.garantir(alunoId);
+        alunoAccessGuard.garantirEscritaDoAluno(alunoId);
         return skinService.equipar(alunoId, skinId);
     }
 }

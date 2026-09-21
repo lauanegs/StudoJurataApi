@@ -23,6 +23,7 @@ import studojurata_api.repository.QuestaoAlunoRepository;
 import studojurata_api.repository.QuestaoConteudoRepository;
 import studojurata_api.repository.SimuladoAlunoRepository;
 import studojurata_api.repository.SimuladoQuestaoRepository;
+import studojurata_api.security.AlunoAccessGuard;
 import studojurata_api.service.gamificacao.PontuacaoAlunoService;
 
 import java.time.LocalDate;
@@ -46,6 +47,7 @@ public class SimuladoAlunoService {
     private final AuditLogService auditLogService;
     private final PontuacaoAlunoService pontuacaoAlunoService;
     private final RevisaoConteudoService revisaoConteudoService;
+    private final AlunoAccessGuard alunoAccessGuard;
 
     public List<SimuladoAluno> listar() { return repository.findAll(); }
 
@@ -62,6 +64,11 @@ public class SimuladoAlunoService {
         return repository.findBySimuladoId(simuladoId);
     }
 
+    /** Id do aluno dono da tentativa; null vira recusa no guard (falha fechado). */
+    private Long alunoDaTentativa(SimuladoAluno simuladoAluno) {
+        return simuladoAluno.getAluno() != null ? simuladoAluno.getAluno().getId() : null;
+    }
+
     public record ResultadoFinalizacao(SimuladoAluno simuladoAluno, Integer diasProximaRevisao) {}
 
     private record ResultadoCorrecao(int acertos, double pontuacaoObtida, double pontuacaoTotal) {}
@@ -75,6 +82,11 @@ public class SimuladoAlunoService {
     @Transactional
     public ResultadoFinalizacao finalizar(Long simuladoAlunoId, FinalizarSimuladoRequest request) {
         SimuladoAluno simuladoAluno = buscar(simuladoAlunoId);
+
+        // Autorização ANTES de qualquer efeito: tentativa de outro aluno não
+        // grava respostas, não recalcula nota, não concede moedas, não registra
+        // revisão e não escreve auditoria.
+        alunoAccessGuard.garantirEscritaDoAluno(alunoDaTentativa(simuladoAluno));
 
         if (simuladoAluno.getStatus() == StatusSimuladoAluno.CONCLUIDO) {
             throw new RegraNegocioException("Esta tentativa já foi finalizada.");

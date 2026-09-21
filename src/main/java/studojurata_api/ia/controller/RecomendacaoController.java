@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import studojurata_api.ia.dto.RecomendacaoDTO;
 import studojurata_api.ia.service.RecomendacaoService;
+import studojurata_api.security.AlunoAccessGuard;
 
 import java.util.List;
 
@@ -16,9 +17,11 @@ import java.util.List;
 public class RecomendacaoController {
 
     private final RecomendacaoService service;
+    private final AlunoAccessGuard alunoAccessGuard;
 
     @GetMapping("/aluno/{alunoId}")
     public List<RecomendacaoDTO> recomendarParaAluno(@PathVariable Long alunoId) {
+        alunoAccessGuard.garantir(alunoId);
         return service.recomendarParaAluno(alunoId);
     }
 }

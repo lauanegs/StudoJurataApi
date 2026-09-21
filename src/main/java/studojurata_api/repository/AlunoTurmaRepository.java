@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import studojurata_api.model.AlunoTurma;
 import studojurata_api.model.enums.StatusMatricula;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,4 +31,13 @@ public interface AlunoTurmaRepository extends JpaRepository<AlunoTurma, Long> {
      * ser concluída ou cancelada.
      */
     Optional<AlunoTurma> findFirstByAluno_IdAndTurma_IdOrderByDataInicioDesc(Long alunoId, Long turmaId);
+
+    /**
+     * Pertencimento do aluno a alguma das turmas informadas — usado pelo escopo
+     * do professor em endpoints individuais: uma consulta, em vez de carregar
+     * todos os alunos das turmas dele.
+     *
+     * <p>Qualquer status de matrícula: o histórico continua visível ao professor.
+     */
+    boolean existsByAluno_IdAndTurma_IdIn(Long alunoId, Collection<Long> turmaIds);
 }
