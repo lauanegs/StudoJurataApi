@@ -14,8 +14,13 @@ import studojurata_api.model.enums.StatusPlano;
 import studojurata_api.repository.CursoRepository;
 import studojurata_api.repository.PlanoEnsinoRepository;
 import studojurata_api.security.EscolaContext;
+import studojurata_api.security.EscopoUsuario;
+import studojurata_api.security.UsuarioAutenticado;
+import studojurata_api.model.enums.TipoUsuario;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * validarCurso recusa curso de outra escola (403) ou inativo (409), como em
@@ -29,11 +34,26 @@ public class PlanoEnsinoService {
     private final CursoRepository cursoRepository;
     private final PlanoAulaService planoAulaService;
     private final EscolaContext escolaContext;
+    private final UsuarioAutenticado usuarioAutenticado;
+    private final EscopoUsuario escopoUsuario;
 
     /** Filtra pela escola do curso; sem escola resolvível (antes do cadastro inicial), não filtra. */
     public List<PlanoEnsino> listar() {
-        Long escolaId = escolaContext.escolaAtualId();
-        return escolaId != null ? repository.findByCurso_Escola_Id(escolaId) : repository.findAll();
+        var usuario = usuarioAutenticado.atual();
+
+        if (usuario.getTipoUsuario() == TipoUsuario.ADMINISTRADOR) {
+            Long escolaId = escolaContext.escolaAtualId();
+            return escolaId != null ? repository.findByCurso_Escola_Id(escolaId) : repository.findAll();
+        }
+
+        Set<Long> vinculoIds = escopoUsuario.turmaDisciplinaIds();
+
+        List<PlanoEnsino> visiveis = new ArrayList<>();
+        if (!vinculoIds.isEmpty()) {
+            visiveis.addAll(repository.findByTurmaDisciplina_IdIn(vinculoIds));
+        }
+        visiveis.addAll(repository.findByTurmaDisciplinaIsNull());
+        return visiveis;
     }
 
     public PlanoEnsino buscar(Long id) {

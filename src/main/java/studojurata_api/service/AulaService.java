@@ -1,5 +1,11 @@
 package studojurata_api.service;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import studojurata_api.security.EscopoUsuario;
+import studojurata_api.security.UsuarioAutenticado;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +43,8 @@ public class AulaService {
     private final PlanoEnsinoRepository planoEnsinoRepository;
     private final HorarioTurmaRepository horarioTurmaRepository;
     private final AuditLogService auditLogService;
+    private final UsuarioAutenticado usuarioAutenticado;
+    private final EscopoUsuario escopoUsuario;
 
     public Aula buscar(Long id) {
         return repository.findById(id)
@@ -44,7 +52,26 @@ public class AulaService {
     }
 
     public List<Aula> listarPorPlanoAula(Long planoAulaId) {
+        PlanoAula planoAula = planoAulaRepository.findById(planoAulaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Plano de aula " + planoAulaId + " nao encontrado."));
+        garantirAcessoAoPlanoDeAula(planoAula);
         return repository.findByPlanoAula_IdOrderByOrdemAsc(planoAulaId);
+    }
+
+    /**
+     * ADMINISTRADOR passa; PROFESSOR e ALUNO so acessam o plano de aula se o
+     * vinculo dele estiver no escopo do usuario logado.
+     */
+    private void garantirAcessoAoPlanoDeAula(PlanoAula planoAula) {
+        if (usuarioAutenticado.ehAdministrador()) {
+            return;
+        }
+
+        Long vinculoId = planoAula.getTurmaDisciplina() != null ? planoAula.getTurmaDisciplina().getId() : null;
+        if (vinculoId == null || !escopoUsuario.turmaDisciplinaIds().contains(vinculoId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Voce so pode acessar planos de aula das suas turmas.");
+        }
     }
 
     @Transactional

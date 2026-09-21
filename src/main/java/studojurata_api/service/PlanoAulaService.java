@@ -1,5 +1,9 @@
 package studojurata_api.service;
 
+import studojurata_api.security.EscopoUsuario;
+import studojurata_api.security.UsuarioAutenticado;
+import studojurata_api.model.enums.TipoUsuario;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,8 +24,24 @@ public class PlanoAulaService {
 
     private final PlanoAulaRepository repository;
     private final AulaRepository aulaRepository;
+    private final UsuarioAutenticado usuarioAutenticado;
+    private final EscopoUsuario escopoUsuario;
 
-    public List<PlanoAula> listar() { return repository.findAll(); }
+    /**
+     * Escopado: ADMINISTRADOR ve tudo; PROFESSOR e ALUNO veem apenas os planos
+     * de aula dos seus vinculos. turmaDisciplina e obrigatorio no plano de aula,
+     * entao nao ha caso "generico" a preservar.
+     */
+    public List<PlanoAula> listar() {
+        var usuario = usuarioAutenticado.atual();
+
+        if (usuario.getTipoUsuario() == TipoUsuario.ADMINISTRADOR) {
+            return repository.findAll();
+        }
+
+        var vinculoIds = escopoUsuario.turmaDisciplinaIds();
+        return vinculoIds.isEmpty() ? List.of() : repository.findByTurmaDisciplina_IdIn(vinculoIds);
+    }
 
     public PlanoAula buscar(Long id) {
         return repository.findById(id)

@@ -1,5 +1,11 @@
 package studojurata_api.service;
 
+import java.util.ArrayList;
+
+import studojurata_api.security.EscopoUsuario;
+import studojurata_api.security.UsuarioAutenticado;
+import studojurata_api.model.enums.TipoUsuario;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import studojurata_api.exception.RecursoNaoEncontradoException;
@@ -18,8 +24,31 @@ public class ConteudoPlanoService {
 
     private final ConteudoPlanoRepository repository;
     private final AulaConteudoRepository aulaConteudoRepository;
+    private final UsuarioAutenticado usuarioAutenticado;
+    private final EscopoUsuario escopoUsuario;
 
-    public List<ConteudoPlano> listar() { return repository.findAll(); }
+    /**
+     * Escopado: ADMINISTRADOR ve tudo; PROFESSOR e ALUNO veem os conteudos dos
+     * planos dos seus vinculos. Conteudo de plano generico ou sem plano
+     * permanece visivel, mesma cautela de D-C2 ate haver levantamento de uso.
+     */
+    public List<ConteudoPlano> listar() {
+        var usuario = usuarioAutenticado.atual();
+
+        if (usuario.getTipoUsuario() == TipoUsuario.ADMINISTRADOR) {
+            return repository.findAll();
+        }
+
+        var vinculoIds = escopoUsuario.turmaDisciplinaIds();
+
+        List<ConteudoPlano> visiveis = new ArrayList<>();
+        if (!vinculoIds.isEmpty()) {
+            visiveis.addAll(repository.findByPlanoEnsino_TurmaDisciplina_IdIn(vinculoIds));
+        }
+        visiveis.addAll(repository.findByPlanoEnsino_TurmaDisciplinaIsNull());
+        visiveis.addAll(repository.findByPlanoEnsinoIsNull());
+        return visiveis;
+    }
 
     public ConteudoPlano buscar(Long id) {
         return repository.findById(id)
