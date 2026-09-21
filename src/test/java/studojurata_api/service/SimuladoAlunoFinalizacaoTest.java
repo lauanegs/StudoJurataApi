@@ -37,6 +37,7 @@ import studojurata_api.repository.SimuladoAlunoRepository;
 import studojurata_api.repository.SimuladoQuestaoRepository;
 import studojurata_api.security.AlunoAccessGuard;
 import studojurata_api.security.EscopoProfessor;
+import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.service.gamificacao.PontuacaoAlunoService;
 import studojurata_api.support.AuthorizationTestSupport;
 
@@ -67,6 +68,7 @@ class SimuladoAlunoFinalizacaoTest {
     @Mock private AuditLogService auditLogService;
     @Mock private PontuacaoAlunoService pontuacaoAlunoService;
     @Mock private RevisaoConteudoService revisaoConteudoService;
+    @Mock private SimuladoService simuladoService;
 
     private EscopoProfessor escopoProfessor;
     private SimuladoAlunoService service;
@@ -77,7 +79,7 @@ class SimuladoAlunoFinalizacaoTest {
         AlunoAccessGuard guard = new AlunoAccessGuard(escopoProfessor);
         service = new SimuladoAlunoService(repository, simuladoQuestaoRepository, questaoAlunoRepository,
                 alternativaRepository, questaoConteudoRepository, notaService, auditLogService,
-                pontuacaoAlunoService, revisaoConteudoService, guard);
+                pontuacaoAlunoService, revisaoConteudoService, guard, simuladoService, new UsuarioAutenticado());
     }
 
     @AfterEach

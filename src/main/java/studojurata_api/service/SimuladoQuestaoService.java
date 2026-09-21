@@ -1,5 +1,8 @@
 package studojurata_api.service;
 
+import studojurata_api.model.enums.TipoUsuario;
+import studojurata_api.security.UsuarioAutenticado;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +25,22 @@ public class SimuladoQuestaoService {
 
     private final SimuladoQuestaoRepository repository;
     private final QuestaoConteudoRepository questaoConteudoRepository;
+    private final UsuarioAutenticado usuarioAutenticado;
+    private final SimuladoService simuladoService;
 
-    public List<SimuladoQuestao> listar() { return repository.findAll(); }
+    /**
+     * Listagem escopada: ADMINISTRADOR ve todos os vinculos; PROFESSOR e ALUNO
+     * veem apenas os vinculos dos simulados que podem acessar (para o aluno, os
+     * simulados em que tem tentativa). Orfaos preservados por D-C1.
+     */
+    public List<SimuladoQuestao> listar() {
+        if (usuarioAutenticado.ehAdministrador()) {
+            return repository.findAll();
+        }
+
+        var simuladoIds = simuladoService.simuladoIdsVisiveis();
+        return simuladoIds.isEmpty() ? List.of() : repository.findBySimulado_IdIn(simuladoIds);
+    }
 
     /**
      * O vínculo com conteúdo só é exigido para questões de origem IA, que já

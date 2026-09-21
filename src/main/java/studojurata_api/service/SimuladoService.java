@@ -1,5 +1,14 @@
 package studojurata_api.service;
 
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import studojurata_api.model.enums.TipoUsuario;
+import studojurata_api.security.EscopoProfessor;
+import studojurata_api.security.UsuarioAutenticado;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,8 +43,71 @@ public class SimuladoService {
     private final SimuladoAlunoRepository simuladoAlunoRepository;
     private final AlunoTurmaService alunoTurmaService;
     private final AlunoRepository alunoRepository;
+    private final UsuarioAutenticado usuarioAutenticado;
+    private final EscopoProfessor escopoProfessor;
 
-    public List<Simulado> listar() { return repository.findAll(); }
+    /**
+     * Listagem escopada: ADMINISTRADOR ve tudo; PROFESSOR ve os simulados das
+     * turmas em que leciona; ALUNO ve os simulados em que tem tentativa.
+     * Simulados sem turma (orfaos) seguem visiveis por decisao D-C1.
+     */
+    public List<Simulado> listar() {
+        if (usuarioAutenticado.ehAdministrador()) {
+            return repository.findAll();
+        }
+
+        Set<Long> ids = simuladoIdsVisiveis();
+        return ids.isEmpty() ? List.of() : repository.findAllById(ids);
+    }
+
+    /**
+     * Ids dos simulados visiveis para PROFESSOR (turmas em que leciona, mais os
+     * orfaos preservados por D-C1) e ALUNO (simulados em que tem tentativa).
+     *
+     * <p>Para ADMINISTRADOR devolve conjunto vazio de proposito: quem chama
+     * trata o admin antes, e aqui vazio nunca significa "todos".
+     */
+    public Set<Long> simuladoIdsVisiveis() {
+        var usuario = usuarioAutenticado.atual();
+
+        if (usuario.getTipoUsuario() == TipoUsuario.PROFESSOR) {
+            Long professorId = usuario.getProfessor() != null ? usuario.getProfessor().getId() : null;
+            Set<Long> turmaIds = escopoProfessor.turmaIdsDoProfessor(professorId);
+
+            Set<Long> ids = new LinkedHashSet<>();
+            if (!turmaIds.isEmpty()) {
+                repository.findByTurma_IdIn(turmaIds).stream()
+                        .map(Simulado::getId)
+                        .filter(Objects::nonNull)
+                        .forEach(ids::add);
+            }
+            adicionarOrfaos(ids);
+            return ids;
+        }
+
+        if (usuario.getTipoUsuario() == TipoUsuario.ALUNO) {
+            Long alunoId = usuario.getAluno() != null ? usuario.getAluno().getId() : null;
+            if (alunoId == null) {
+                return Set.of();
+            }
+            return simuladoAlunoRepository.findByAlunoId(alunoId).stream()
+                    .map(SimuladoAluno::getSimulado)
+                    .filter(Objects::nonNull)
+                    .map(Simulado::getId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+        }
+
+        return Set.of();
+    }
+
+    /** D-C1: simulado sem turma continua visivel enquanto nao houver regra definitiva. */
+    private void adicionarOrfaos(Set<Long> destino) {
+        repository.findByTurmaIsNull().stream()
+                .map(Simulado::getId)
+                .filter(Objects::nonNull)
+                .forEach(destino::add);
+    }
 
     public Simulado buscar(Long id) {
         return repository.findById(id)

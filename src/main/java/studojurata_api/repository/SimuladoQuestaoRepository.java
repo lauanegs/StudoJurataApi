@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import studojurata_api.model.SimuladoQuestao;
 import studojurata_api.model.enums.StatusSimuladoQuestao;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface SimuladoQuestaoRepository extends JpaRepository<SimuladoQuestao, Long> {
@@ -11,4 +12,7 @@ public interface SimuladoQuestaoRepository extends JpaRepository<SimuladoQuestao
     List<SimuladoQuestao> findBySimuladoIdAndStatusOrderByOrdem(Long simuladoId, StatusSimuladoQuestao status);
 
     long countBySimuladoIdAndStatus(Long simuladoId, StatusSimuladoQuestao status);
+
+    /** Vinculos questao-simulado dos simulados informados. */
+    List<SimuladoQuestao> findBySimulado_IdIn(Collection<Long> simuladoIds);
 }

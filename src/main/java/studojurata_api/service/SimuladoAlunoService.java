@@ -1,5 +1,8 @@
 package studojurata_api.service;
 
+import studojurata_api.model.enums.TipoUsuario;
+import studojurata_api.security.UsuarioAutenticado;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,8 +51,31 @@ public class SimuladoAlunoService {
     private final PontuacaoAlunoService pontuacaoAlunoService;
     private final RevisaoConteudoService revisaoConteudoService;
     private final AlunoAccessGuard alunoAccessGuard;
+    private final SimuladoService simuladoService;
+    private final UsuarioAutenticado usuarioAutenticado;
 
-    public List<SimuladoAluno> listar() { return repository.findAll(); }
+    /**
+     * Listagem escopada: ADMINISTRADOR ve todas as tentativas; PROFESSOR ve as
+     * tentativas dos simulados das suas turmas (e dos orfaos preservados por
+     * D-C1); ALUNO ve apenas as proprias.
+     *
+     * <p>Nao filtra status: tentativas PENDENTE continuam na lista.
+     */
+    public List<SimuladoAluno> listar() {
+        var usuario = usuarioAutenticado.atual();
+
+        if (usuario.getTipoUsuario() == TipoUsuario.ADMINISTRADOR) {
+            return repository.findAll();
+        }
+
+        if (usuario.getTipoUsuario() == TipoUsuario.ALUNO) {
+            Long alunoId = usuario.getAluno() != null ? usuario.getAluno().getId() : null;
+            return alunoId == null ? List.of() : repository.findByAlunoId(alunoId);
+        }
+
+        var simuladoIds = simuladoService.simuladoIdsVisiveis();
+        return simuladoIds.isEmpty() ? List.of() : repository.findBySimulado_IdIn(simuladoIds);
+    }
 
     public SimuladoAluno buscar(Long id) {
         return repository.findById(id)
