@@ -1,5 +1,20 @@
 package studojurata_api.service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import studojurata_api.model.enums.TipoUsuario;
+import studojurata_api.security.EscopoProfessor;
+import studojurata_api.security.UsuarioAutenticado;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,8 +51,57 @@ public class NotaService {
     private final AlunoTurmaRepository alunoTurmaRepository;
     private final SimuladoAlunoRepository simuladoAlunoRepository;
     private final AuditLogService auditLogService;
+    private final UsuarioAutenticado usuarioAutenticado;
+    private final EscopoProfessor escopoProfessor;
 
-    public List<Nota> listar() { return repository.findAll(); }
+    /**
+     * Listagem escopada:
+     * <ul>
+     *   <li>ADMINISTRADOR: todas as notas (comportamento atual);</li>
+     *   <li>PROFESSOR: notas das suas turmas, mais as notas sem turma dos alunos
+     *       que estao no escopo dessas turmas;</li>
+     *   <li>ALUNO e demais perfis: 403 — o aluno consulta as proprias notas por
+     *       {@code /notas/aluno/{id}/historico};</li>
+     *   <li>sem autenticacao: 403.</li>
+     * </ul>
+     *
+     * <p>Consulta em lote (4 consultas fixas) e chave por id, para nao repetir
+     * nota que apareca nas duas origens.
+     */
+    public List<Nota> listar() {
+        var usuario = usuarioAutenticado.atual();
+
+        if (usuario.getTipoUsuario() == TipoUsuario.ADMINISTRADOR) {
+            return repository.findAll();
+        }
+        if (usuario.getTipoUsuario() != TipoUsuario.PROFESSOR) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Apenas professor ou administrador pode listar notas.");
+        }
+
+        Long professorId = usuario.getProfessor() != null ? usuario.getProfessor().getId() : null;
+        Set<Long> turmaIds = escopoProfessor.turmaIdsDoProfessor(professorId);
+        if (turmaIds.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, Nota> porId = new LinkedHashMap<>();
+        repository.findByTurma_IdIn(turmaIds).forEach(nota -> porId.putIfAbsent(nota.getId(), nota));
+
+        Set<Long> alunoIds = alunoTurmaRepository.findByTurma_IdIn(turmaIds).stream()
+                .map(AlunoTurma::getAluno)
+                .filter(Objects::nonNull)
+                .map(Aluno::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        if (!alunoIds.isEmpty()) {
+            repository.findByTurmaIsNullAndAluno_IdIn(alunoIds)
+                    .forEach(nota -> porId.putIfAbsent(nota.getId(), nota));
+        }
+
+        return new ArrayList<>(porId.values());
+    }
 
     public List<Nota> historicoPorAluno(Long alunoId) {
         return repository.findByAluno_IdOrderByCreatedAtDesc(alunoId);
