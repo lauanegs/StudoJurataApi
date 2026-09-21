@@ -5,18 +5,28 @@ import org.springframework.stereotype.Service;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
+import studojurata_api.model.AlunoTurma;
 import studojurata_api.model.CursoDisciplina;
 import studojurata_api.model.Turma;
 import studojurata_api.model.TurmaDisciplina;
+import studojurata_api.model.Usuario;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.model.enums.StatusPlano;
+import studojurata_api.model.enums.TipoUsuario;
+import studojurata_api.repository.AlunoTurmaRepository;
 import studojurata_api.repository.CursoDisciplinaRepository;
 import studojurata_api.repository.PlanoAulaRepository;
 import studojurata_api.repository.PlanoEnsinoRepository;
 import studojurata_api.repository.TurmaDisciplinaRepository;
 import studojurata_api.repository.TurmaRepository;
+import studojurata_api.security.EscopoProfessor;
+import studojurata_api.security.UsuarioAutenticado;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /** Só aceita disciplinas da grade curricular do curso da turma. */
 @Service
@@ -28,8 +38,43 @@ public class TurmaDisciplinaService {
     private final CursoDisciplinaRepository cursoDisciplinaRepository;
     private final PlanoEnsinoRepository planoEnsinoRepository;
     private final PlanoAulaRepository planoAulaRepository;
+    private final AlunoTurmaRepository alunoTurmaRepository;
+    private final EscopoProfessor escopoProfessor;
+    private final UsuarioAutenticado usuarioAutenticado;
 
-    public List<TurmaDisciplina> listar() { return repository.findAll(); }
+    /**
+     * Listagem escopada: ADMINISTRADOR vê todos os vínculos; PROFESSOR vê apenas
+     * os seus; ALUNO vê os vínculos das turmas em que está matriculado.
+     */
+    public List<TurmaDisciplina> listar() {
+        Usuario usuario = usuarioAutenticado.atual();
+
+        if (usuario.getTipoUsuario() == TipoUsuario.ADMINISTRADOR) {
+            return repository.findAll();
+        }
+
+        if (usuario.getTipoUsuario() == TipoUsuario.PROFESSOR) {
+            return usuario.getProfessor() == null ? List.of()
+                    : repository.findByProfessorId(usuario.getProfessor().getId());
+        }
+
+        return vinculosDasTurmasDoAluno(usuario);
+    }
+
+    private List<TurmaDisciplina> vinculosDasTurmasDoAluno(Usuario usuario) {
+        if (usuario.getAluno() == null || usuario.getAluno().getId() == null) {
+            return List.of();
+        }
+
+        Set<Long> turmaIds = alunoTurmaRepository.findByAluno_Id(usuario.getAluno().getId()).stream()
+                .map(AlunoTurma::getTurma)
+                .filter(Objects::nonNull)
+                .map(Turma::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        return turmaIds.isEmpty() ? List.of() : repository.findByTurma_IdIn(turmaIds);
+    }
 
     public TurmaDisciplina buscar(Long id) {
         return repository.findById(id)

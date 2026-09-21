@@ -7,16 +7,25 @@ import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
+import studojurata_api.model.AlunoTurma;
 import studojurata_api.model.Curso;
 import studojurata_api.model.Turma;
+import studojurata_api.model.Usuario;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.model.enums.StatusTurma;
+import studojurata_api.model.enums.TipoUsuario;
 import studojurata_api.repository.AlunoTurmaRepository;
 import studojurata_api.repository.CursoRepository;
 import studojurata_api.repository.TurmaRepository;
 import studojurata_api.security.EscolaContext;
+import studojurata_api.security.EscopoProfessor;
+import studojurata_api.security.UsuarioAutenticado;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * validarCurso resolve o curso pelo id e recusa curso de outra escola (403)
@@ -31,11 +40,45 @@ public class TurmaService {
     private final AlunoTurmaService alunoTurmaService;
     private final CursoRepository cursoRepository;
     private final EscolaContext escolaContext;
+    private final EscopoProfessor escopoProfessor;
+    private final UsuarioAutenticado usuarioAutenticado;
 
-    /** Sem escola resolvível (antes do cadastro inicial da escola), não filtra. */
+    /**
+     * Listagem escopada: ADMINISTRADOR mantém a visão da escola (sem escola
+     * resolvível, antes do cadastro inicial, não filtra); PROFESSOR vê as turmas
+     * em que leciona; ALUNO vê as turmas em que está matriculado.
+     */
     public List<Turma> listar() {
-        Long escolaId = escolaContext.escolaAtualId();
-        return escolaId != null ? repository.findByEscola_Id(escolaId) : repository.findAll();
+        Usuario usuario = usuarioAutenticado.atual();
+
+        if (usuario.getTipoUsuario() == TipoUsuario.ADMINISTRADOR) {
+            Long escolaId = escolaContext.escolaAtualId();
+            return escolaId != null ? repository.findByEscola_Id(escolaId) : repository.findAll();
+        }
+
+        if (usuario.getTipoUsuario() == TipoUsuario.PROFESSOR) {
+            return usuario.getProfessor() == null ? List.of()
+                    : turmasPorIds(escopoProfessor.turmaIdsDoProfessor(usuario.getProfessor().getId()));
+        }
+
+        return turmasPorIds(turmasDoAluno(usuario));
+    }
+
+    private Set<Long> turmasDoAluno(Usuario usuario) {
+        if (usuario.getAluno() == null || usuario.getAluno().getId() == null) {
+            return Set.of();
+        }
+        return alunoTurmaRepository.findByAluno_Id(usuario.getAluno().getId()).stream()
+                .map(AlunoTurma::getTurma)
+                .filter(Objects::nonNull)
+                .map(Turma::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    /** Escopo vazio não consulta o repositório. */
+    private List<Turma> turmasPorIds(Set<Long> turmaIds) {
+        return turmaIds.isEmpty() ? List.of() : repository.findAllById(turmaIds);
     }
 
     public Turma buscar(Long id) {
