@@ -40,4 +40,10 @@ public interface AlunoTurmaRepository extends JpaRepository<AlunoTurma, Long> {
      * <p>Qualquer status de matrícula: o histórico continua visível ao professor.
      */
     boolean existsByAluno_IdAndTurma_IdIn(Long alunoId, Collection<Long> turmaIds);
+
+    /**
+     * Matrículas do aluno, em qualquer status — usado para resolver as turmas
+     * que compõem o escopo de leitura dele.
+     */
+    List<AlunoTurma> findByAluno_Id(Long alunoId);
 }
