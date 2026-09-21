@@ -46,4 +46,10 @@ public interface AlunoTurmaRepository extends JpaRepository<AlunoTurma, Long> {
      * que compõem o escopo de leitura dele.
      */
     List<AlunoTurma> findByAluno_Id(Long alunoId);
+
+    /**
+     * Matrículas das turmas informadas, em qualquer status — usado para montar o
+     * escopo de alunos do professor (histórico incluído) numa única consulta.
+     */
+    List<AlunoTurma> findByTurma_IdIn(Collection<Long> turmaIds);
 }

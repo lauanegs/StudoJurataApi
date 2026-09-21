@@ -1,11 +1,21 @@
 package studojurata_api.service;
 
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import studojurata_api.model.enums.TipoUsuario;
+import studojurata_api.security.EscopoProfessor;
+import studojurata_api.security.UsuarioAutenticado;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.model.Aluno;
+import studojurata_api.model.AlunoTurma;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.repository.AlunoRepository;
 import studojurata_api.repository.AlunoTurmaRepository;
@@ -18,8 +28,44 @@ public class AlunoService {
 
     private final AlunoRepository repository;
     private final AlunoTurmaRepository alunoTurmaRepository;
+    private final UsuarioAutenticado usuarioAutenticado;
+    private final EscopoProfessor escopoProfessor;
 
-    public List<Aluno> listar() { return repository.findAll(); }
+    /**
+     * Listagem escopada: ADMINISTRADOR mantem a visao completa (Aluno/Pessoa nao
+     * tem vinculo de escola no modelo); PROFESSOR ve os alunos matriculados nas
+     * turmas em que leciona, em qualquer status de matricula (historico
+     * preservado); ALUNO ve apenas o proprio cadastro.
+     */
+    public List<Aluno> listar() {
+        var usuario = usuarioAutenticado.atual();
+
+        if (usuario.getTipoUsuario() == TipoUsuario.ADMINISTRADOR) {
+            return repository.findAll();
+        }
+
+        if (usuario.getTipoUsuario() == TipoUsuario.ALUNO) {
+            Long alunoId = usuario.getAluno() != null ? usuario.getAluno().getId() : null;
+            return alunoId == null ? List.of() : repository.findById(alunoId).map(List::of).orElseGet(List::of);
+        }
+
+        Long professorId = usuario.getProfessor() != null ? usuario.getProfessor().getId() : null;
+        Set<Long> turmaIds = escopoProfessor.turmaIdsDoProfessor(professorId);
+        if (turmaIds.isEmpty()) {
+            return List.of();
+        }
+
+        // Uma consulta de matriculas + uma de alunos; ids distintos evitam
+        // duplicidade de quem esta em mais de uma turma.
+        Set<Long> alunoIds = alunoTurmaRepository.findByTurma_IdIn(turmaIds).stream()
+                .map(AlunoTurma::getAluno)
+                .filter(Objects::nonNull)
+                .map(Aluno::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        return alunoIds.isEmpty() ? List.of() : repository.findAllById(alunoIds);
+    }
 
     public Aluno buscar(Long id) {
         return repository.findById(id)
