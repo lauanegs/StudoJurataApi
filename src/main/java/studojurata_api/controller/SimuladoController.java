@@ -27,7 +27,7 @@ public class SimuladoController {
 
     @GetMapping("/{id}")
     public SimuladoResponseDTO buscar(@PathVariable Long id) {
-        return mapper.toResponseDTO(service.buscar(id));
+        return mapper.toResponseDTO(service.buscarParaLeitura(id));
     }
 
     @PostMapping

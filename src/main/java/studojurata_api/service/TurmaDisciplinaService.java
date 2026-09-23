@@ -7,6 +7,7 @@ import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.AlunoTurma;
 import studojurata_api.model.CursoDisciplina;
+import studojurata_api.model.Disciplina;
 import studojurata_api.model.Turma;
 import studojurata_api.model.TurmaDisciplina;
 import studojurata_api.model.Usuario;
@@ -15,11 +16,12 @@ import studojurata_api.model.enums.StatusPlano;
 import studojurata_api.model.enums.TipoUsuario;
 import studojurata_api.repository.AlunoTurmaRepository;
 import studojurata_api.repository.CursoDisciplinaRepository;
+import studojurata_api.repository.DisciplinaRepository;
 import studojurata_api.repository.PlanoAulaRepository;
 import studojurata_api.repository.PlanoEnsinoRepository;
 import studojurata_api.repository.TurmaDisciplinaRepository;
 import studojurata_api.repository.TurmaRepository;
-import studojurata_api.security.EscopoProfessor;
+import studojurata_api.security.PlanejamentoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 
 import java.util.LinkedHashSet;
@@ -36,11 +38,12 @@ public class TurmaDisciplinaService {
     private final TurmaDisciplinaRepository repository;
     private final TurmaRepository turmaRepository;
     private final CursoDisciplinaRepository cursoDisciplinaRepository;
+    private final DisciplinaRepository disciplinaRepository;
     private final PlanoEnsinoRepository planoEnsinoRepository;
     private final PlanoAulaRepository planoAulaRepository;
     private final AlunoTurmaRepository alunoTurmaRepository;
-    private final EscopoProfessor escopoProfessor;
     private final UsuarioAutenticado usuarioAutenticado;
+    private final PlanejamentoAccessGuard planejamentoAccessGuard;
 
     /**
      * Listagem escopada: ADMINISTRADOR vê todos os vínculos; PROFESSOR vê apenas
@@ -82,6 +85,9 @@ public class TurmaDisciplinaService {
     }
 
     public TurmaDisciplina salvar(TurmaDisciplina obj) {
+        planejamentoAccessGuard.garantirEscritaNaTurma(
+                obj != null && obj.getTurma() != null ? obj.getTurma().getId() : null,
+                "Você só pode vincular disciplinas às suas turmas.");
         validar(obj);
         if (obj.getStatus() == null) obj.setStatus(StatusAtivoInativo.ATIVO);
         return repository.save(obj);
@@ -93,6 +99,8 @@ public class TurmaDisciplinaService {
      */
     public void deletar(Long id) {
         TurmaDisciplina turmaDisciplina = buscar(id);
+        planejamentoAccessGuard.garantirEscrita(turmaDisciplina.getId(),
+                "Você só pode desvincular disciplinas das suas turmas.");
 
         boolean temPlanoEnsinoAtivo = planoEnsinoRepository.findByTurmaDisciplina_Id(id).stream()
                 .anyMatch(plano -> plano.getStatus() == StatusPlano.ATIVO);
@@ -123,6 +131,17 @@ public class TurmaDisciplinaService {
 
         Long cursoId = turma.getCurso() != null ? turma.getCurso().getId() : null;
         Long disciplinaId = obj.getDisciplina().getId();
+
+        // Disciplina inativada não pode ser ofertada em turma nova: o vínculo
+        // ficaria inutilizável (sem plano de ensino possível). Vínculos
+        // históricos continuam válidos, porque só o cadastro de novos passa aqui.
+        Disciplina disciplinaDoVinculo = disciplinaRepository.findById(disciplinaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Disciplina " + disciplinaId + " não encontrada."));
+        if (disciplinaDoVinculo.getStatus() == StatusAtivoInativo.INATIVO) {
+            throw new RegraNegocioException(
+                    "A disciplina \"" + disciplinaDoVinculo.getTitulo() + "\" está inativa e não pode ser vinculada a uma turma.");
+        }
+        obj.setDisciplina(disciplinaDoVinculo);
 
         boolean estaNaGrade = cursoId != null && cursoDisciplinaRepository.findByCurso_Id(cursoId).stream()
                 .filter(item -> item.getStatus() == StatusAtivoInativo.ATIVO)

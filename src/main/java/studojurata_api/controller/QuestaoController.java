@@ -58,6 +58,9 @@ public class QuestaoController {
 
     @GetMapping("/{id}/conteudos")
     public List<QuestaoConteudo> listarConteudos(@PathVariable Long id) {
+        // Reaproveita o escopo de leitura da questao (404 se nao existir,
+        // 403 fora do escopo) em vez de duplicar a regra aqui.
+        service.buscar(id);
         return questaoConteudoService.listarPorQuestao(id);
     }
 

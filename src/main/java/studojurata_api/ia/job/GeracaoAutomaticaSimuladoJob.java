@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.ia.model.RevisaoConteudo;
 import studojurata_api.ia.model.enums.MotivoRecomendacao;
 import studojurata_api.ia.repository.RevisaoConteudoRepository;
@@ -51,6 +52,11 @@ public class GeracaoAutomaticaSimuladoJob {
             try {
                 geracaoSimuladoIAService.gerarParaAluno(
                         alunoId, conteudoPlanoId, null, Set.of(MotivoRecomendacao.REPETICAO_ESPACADA));
+            } catch (RegraNegocioException regra) {
+                // Regra de negócio (ex.: baixo aproveitamento coletivo pede revisão em
+                // sala) não é falha do job; fica no log informativo.
+                log.info("Geração de reforço ignorada (aluno {}, conteúdo {}): {}",
+                        alunoId, conteudoPlanoId, regra.getMessage());
             } catch (RuntimeException erro) {
                 // Uma falha pontual não pode interromper a geração das demais revisões.
                 log.error(

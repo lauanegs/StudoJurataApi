@@ -80,16 +80,26 @@ public class SecurityConfig {
                 .requestMatchers("/usuarios/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/escolas/**").hasRole("ADMINISTRADOR")
 
-                // Cadastro de perfis: escrita só do Administrador, consulta para
-                // qualquer autenticado.
+                // Cadastro de perfis: escrita só do Administrador. A consulta
+                // carrega dado pessoal (CPF, endereço, contato, data de
+                // nascimento), então não fica aberta a qualquer autenticado:
+                // /responsaveis/** é do Administrador e /pessoas/** (usado
+                // também pelos aniversariantes da Home do professor) é de
+                // professor ou administrador.
+                .requestMatchers(HttpMethod.GET, "/responsaveis/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.GET, "/pessoas/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.POST, "/pessoas/**", "/alunos/**", "/professores/**",
                         "/responsaveis/**", "/responsavel-aluno/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PUT, "/pessoas/**", "/alunos/**", "/professores/**",
                         "/responsaveis/**", "/responsavel-aluno/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/pessoas/**", "/alunos/**", "/professores/**",
                         "/responsaveis/**", "/responsavel-aluno/**").hasRole("ADMINISTRADOR")
-                // O aceite de termos é feito pelo próprio responsável.
-                .requestMatchers(HttpMethod.POST, "/responsavel-aluno/*/aceitar-termos").authenticated()
+                // Lista de dependentes de um responsável é dado de cadastro: só o
+                // administrador consulta (a tela é administrativa e o responsável não
+                // tem login no sistema). O caminho por aluno continua autenticado e é
+                // recortado pelo AlunoAccessGuard.
+                .requestMatchers(HttpMethod.GET, "/responsavel-aluno/por-responsavel/**")
+                        .hasRole("ADMINISTRADOR")
 
                 .requestMatchers(HttpMethod.GET, "/eventos/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/eventos/**").hasRole("ADMINISTRADOR")
@@ -111,6 +121,15 @@ public class SecurityConfig {
                 // Gestão pedagógica: consulta para qualquer autenticado, escrita
                 // só para quem gerencia o conteúdo. /horarios/** cobre o DELETE de
                 // HorarioTurma, que tem rota própria fora de /turmas/**.
+                // Catálogo curricular (curso, disciplina e grade do curso) é do
+                // administrador: as telas são administrativas e nenhum fluxo de
+                // professor cria ou edita esses registros.
+                .requestMatchers(HttpMethod.POST, "/cursos/**", "/disciplinas/**", "/curso-disciplina/**")
+                        .hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.PUT, "/cursos/**", "/disciplinas/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.PATCH, "/cursos/**", "/disciplinas/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/cursos/**", "/disciplinas/**", "/curso-disciplina/**")
+                        .hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.GET, "/cursos/**", "/turmas/**", "/horarios/**", "/disciplinas/**",
                         "/turma-disciplina/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/frequencia/**").authenticated()
@@ -133,6 +152,10 @@ public class SecurityConfig {
                 // Montagem, moderação e lançamento de simulados são do professor;
                 // o aluno só consulta e finaliza a própria tentativa.
                 .requestMatchers(HttpMethod.POST, "/simulado-aluno/*/finalizar").authenticated()
+                // A listagem geral traz as notas de todos os alunos; o aluno usa
+                // /simulado-aluno/aluno/{id} e /simulado-aluno/{id}.
+                .requestMatchers(HttpMethod.GET, "/simulado-aluno", "/professores/*/desempenho")
+                        .hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.GET, "/simulados/**", "/questoes/**", "/alternativas/**",
                         "/simulado-questao/**", "/simulado-aluno/**", "/questao-aluno/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/simulados/**", "/questoes/**", "/alternativas/**",
@@ -144,6 +167,11 @@ public class SecurityConfig {
                 // Desvincular conteúdo não é excluir a questão: precisa vir antes
                 // do DELETE /questoes/**, que é só do Administrador.
                 .requestMatchers(HttpMethod.DELETE, "/questoes/*/conteudos/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
+                // Desvincular questão de simulado não é excluir a questão: o
+                // professor dono do simulado em RASCUNHO também pode (escopo e
+                // status são decididos no service), então vem antes do DELETE
+                // /simulado-questao/**, que é só do Administrador.
+                .requestMatchers(HttpMethod.DELETE, "/simulado-questao/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/simulados/**", "/questoes/**", "/alternativas/**",
                         "/simulado-questao/**", "/simulado-aluno/**", "/questao-aluno/**").hasRole("ADMINISTRADOR")
 

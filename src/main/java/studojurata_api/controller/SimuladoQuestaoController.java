@@ -27,4 +27,10 @@ public class SimuladoQuestaoController {
     public SimuladoQuestaoResponseDTO salvar(@Valid @RequestBody SimuladoQuestaoRequestDTO dto) {
         return mapper.toResponseDTO(service.salvar(mapper.toEntity(dto)));
     }
+
+    /** Tira a questão do simulado; a questão em si continua existindo. */
+    @DeleteMapping("/simulado/{simuladoId}/questao/{questaoId}")
+    public void desvincular(@PathVariable Long simuladoId, @PathVariable Long questaoId) {
+        service.desvincular(simuladoId, questaoId);
+    }
 }

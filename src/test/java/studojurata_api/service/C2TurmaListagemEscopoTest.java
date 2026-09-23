@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import studojurata_api.repository.AlunoTurmaRepository;
 import studojurata_api.repository.CursoDisciplinaRepository;
+import studojurata_api.repository.DisciplinaRepository;
 import studojurata_api.repository.CursoRepository;
 import studojurata_api.repository.PlanoAulaRepository;
 import studojurata_api.repository.PlanoEnsinoRepository;
@@ -57,8 +58,10 @@ class C2TurmaListagemEscopoTest {
     @Mock private CursoRepository cursoRepository;
     @Mock private EscolaContext escolaContext;
     @Mock private EscopoProfessor escopoProfessor;
+    @Mock private studojurata_api.security.EscopoUsuario escopoUsuario;
     @Mock private TurmaDisciplinaRepository turmaDisciplinaRepository;
     @Mock private CursoDisciplinaRepository cursoDisciplinaRepository;
+    @Mock private DisciplinaRepository disciplinaRepository;
     @Mock private PlanoEnsinoRepository planoEnsinoRepository;
     @Mock private PlanoAulaRepository planoAulaRepository;
 
@@ -67,16 +70,73 @@ class C2TurmaListagemEscopoTest {
 
     @BeforeEach
     void setUp() {
+        var planejamentoAccessGuard = new studojurata_api.security.PlanejamentoAccessGuard(
+                new UsuarioAutenticado(), escopoUsuario, escopoProfessor);
         turmaService = new TurmaService(turmaRepository, alunoTurmaRepository, alunoTurmaService, cursoRepository,
-                escolaContext, escopoProfessor, new UsuarioAutenticado());
+                escolaContext, escopoProfessor, new UsuarioAutenticado(),
+                new studojurata_api.security.AlunoAccessGuard(escopoProfessor), planejamentoAccessGuard);
         turmaDisciplinaService = new TurmaDisciplinaService(turmaDisciplinaRepository, turmaRepository,
-                cursoDisciplinaRepository, planoEnsinoRepository, planoAulaRepository, alunoTurmaRepository,
-                escopoProfessor, new UsuarioAutenticado());
+                cursoDisciplinaRepository, disciplinaRepository, planoEnsinoRepository, planoAulaRepository,
+                alunoTurmaRepository, new UsuarioAutenticado(), planejamentoAccessGuard);
     }
 
     @AfterEach
     void limparContexto() {
         AuthorizationTestSupport.limparContexto();
+    }
+
+    // --- GET /turmas/{id} (leitura individual) ------------------------------
+
+    @Test
+    @DisplayName("leitura individual: professor le a turma em que leciona")
+    void professorLeTurmaPropria() {
+        AuthorizationTestSupport.autenticarComoProfessor(PROFESSOR_ID);
+        given(turmaRepository.findById(TURMA_A)).willReturn(java.util.Optional.of(turma(TURMA_A)));
+        given(escopoProfessor.turmaIdsDoProfessor(PROFESSOR_ID)).willReturn(Set.of(TURMA_A));
+
+        assertThat(turmaService.buscarParaLeitura(TURMA_A).getId()).isEqualTo(TURMA_A);
+    }
+
+    @Test
+    @DisplayName("leitura individual: professor nao le turma alheia")
+    void professorNaoLeTurmaAlheia() {
+        AuthorizationTestSupport.autenticarComoProfessor(PROFESSOR_ID);
+        given(turmaRepository.findById(TURMA_B)).willReturn(java.util.Optional.of(turma(TURMA_B)));
+        given(escopoProfessor.turmaIdsDoProfessor(PROFESSOR_ID)).willReturn(Set.of(TURMA_A));
+
+        assertForbidden(() -> turmaService.buscarParaLeitura(TURMA_B));
+    }
+
+    @Test
+    @DisplayName("leitura individual: aluno le a turma em que esta matriculado")
+    void alunoLeTurmaPropria() {
+        AuthorizationTestSupport.autenticarComoAluno(ALUNO_ID);
+        given(turmaRepository.findById(TURMA_A)).willReturn(java.util.Optional.of(turma(TURMA_A)));
+        given(alunoTurmaRepository.findByAluno_Id(ALUNO_ID))
+                .willReturn(List.of(matricula(TURMA_A)));
+
+        assertThat(turmaService.buscarParaLeitura(TURMA_A).getId()).isEqualTo(TURMA_A);
+    }
+
+    @Test
+    @DisplayName("leitura individual: aluno nao le turma de outro aluno")
+    void alunoNaoLeTurmaDeOutro() {
+        AuthorizationTestSupport.autenticarComoAluno(ALUNO_ID);
+        given(turmaRepository.findById(TURMA_B)).willReturn(java.util.Optional.of(turma(TURMA_B)));
+        given(alunoTurmaRepository.findByAluno_Id(ALUNO_ID)).willReturn(List.of());
+
+        assertForbidden(() -> turmaService.buscarParaLeitura(TURMA_B));
+    }
+
+    @Test
+    @DisplayName("leitura individual: administrador le qualquer turma sem consultar escopo")
+    void administradorLeQualquerTurma() {
+        AuthorizationTestSupport.autenticarComoAdministrador();
+        given(turmaRepository.findById(TURMA_B)).willReturn(java.util.Optional.of(turma(TURMA_B)));
+
+        assertThat(turmaService.buscarParaLeitura(TURMA_B).getId()).isEqualTo(TURMA_B);
+
+        verifyNoInteractions(escopoProfessor, alunoTurmaRepository);
     }
 
     // --- TurmaService.listar() ---------------------------------------------

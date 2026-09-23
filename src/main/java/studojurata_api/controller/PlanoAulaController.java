@@ -19,7 +19,7 @@ public class PlanoAulaController {
     public List<PlanoAula> listar() { return service.listar(); }
 
     @GetMapping("/{id}")
-    public PlanoAula buscar(@PathVariable Long id) { return service.buscar(id); }
+    public PlanoAula buscar(@PathVariable Long id) { return service.buscarParaLeitura(id); }
 
     @GetMapping("/turma-disciplina/{turmaDisciplinaId}")
     public List<PlanoAula> listarPorTurmaDisciplina(@PathVariable Long turmaDisciplinaId) {

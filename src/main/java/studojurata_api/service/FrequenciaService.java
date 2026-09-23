@@ -34,8 +34,15 @@ public class FrequenciaService {
     private final AlunoTurmaRepository alunoTurmaRepository;
     private final TurmaRepository turmaRepository;
     private final AlunoTurmaService alunoTurmaService;
+    private final studojurata_api.security.PlanejamentoAccessGuard planejamentoAccessGuard;
+    private final studojurata_api.security.AlunoAccessGuard alunoAccessGuard;
 
-    public List<Frequencia> listarPorAula(Long aulaId) { return repository.findByAula_Id(aulaId); }
+    public List<Frequencia> listarPorAula(Long aulaId) {
+        Aula aula = buscarAula(aulaId);
+        planejamentoAccessGuard.garantirLeitura(vinculoId(aula),
+                "Você só pode acessar frequência das aulas das suas turmas.");
+        return repository.findByAula_Id(aulaId);
+    }
 
     public List<Frequencia> listarPorAluno(Long alunoId) { return repository.findByAluno_IdOrderByAula_DataPrevistaDesc(alunoId); }
 
@@ -47,6 +54,7 @@ public class FrequenciaService {
      * uma disciplina removida da turma não conta mais para o aluno.
      */
     public List<ResumoFrequenciaAluno> resumoPorTurma(Long turmaId) {
+        alunoAccessGuard.garantirAcessoATurma(turmaId);
         Map<Long, List<Frequencia>> frequenciasPorAluno = repository.findByAula_PlanoAula_TurmaDisciplina_Turma_Id(turmaId)
                 .stream()
                 .filter(frequencia -> frequencia.getAula().getPlanoAula().getTurmaDisciplina().getStatus() != StatusAtivoInativo.INATIVO)
@@ -75,8 +83,9 @@ public class FrequenciaService {
             throw new RequisicaoInvalidaException("Informe ao menos um aluno para realizar a chamada.");
         }
 
-        Aula aula = aulaRepository.findById(aulaId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Aula " + aulaId + " não encontrada."));
+        Aula aula = buscarAula(aulaId);
+        planejamentoAccessGuard.garantirEscrita(vinculoId(aula),
+                "Você só pode registrar chamada nas aulas das suas turmas.");
         Long turmaId = aula.getPlanoAula().getTurmaDisciplina().getTurma().getId();
 
         return request.getAlunos().stream()
@@ -141,5 +150,16 @@ public class FrequenciaService {
         alunoTurmaRepository
                 .findFirstByAluno_IdAndTurma_IdAndStatus(alunoId, turmaId, StatusMatricula.ATIVA)
                 .ifPresent(matricula -> alunoTurmaService.concluir(matricula.getId(), LocalDate.now()));
+    }
+
+    private Aula buscarAula(Long aulaId) {
+        return aulaRepository.findById(aulaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Aula " + aulaId + " não encontrada."));
+    }
+
+    private static Long vinculoId(Aula aula) {
+        return aula.getPlanoAula() != null && aula.getPlanoAula().getTurmaDisciplina() != null
+                ? aula.getPlanoAula().getTurmaDisciplina().getId()
+                : null;
     }
 }

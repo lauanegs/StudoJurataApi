@@ -121,6 +121,24 @@ public class AlunoAccessGuard {
                 "Apenas professor ou administrador pode acessar este recurso.");
     }
 
+    /**
+     * Acesso restrito ao proprio aluno (ou ao administrador) — usado em conteudo
+     * sensivel da prova, onde nem o professor entra.
+     */
+    public void garantirDonoOuAdministrador(Long alunoId) {
+        Usuario usuario = principalAutenticado().getUsuario();
+
+        if (usuario.getTipoUsuario() == TipoUsuario.ADMINISTRADOR) {
+            return;
+        }
+        if (usuario.getTipoUsuario() == TipoUsuario.ALUNO && alunoLogadoEh(usuario, alunoId)) {
+            return;
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "Apenas o proprio aluno pode acessar o conteudo desta tentativa.");
+    }
+
     private boolean alunoLogadoEh(Usuario usuario, Long alunoId) {
         return alunoId != null
                 && usuario.getAluno() != null

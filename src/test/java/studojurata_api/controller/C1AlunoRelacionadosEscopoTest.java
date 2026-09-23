@@ -1,6 +1,8 @@
 package studojurata_api.controller;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -64,10 +66,13 @@ class C1AlunoRelacionadosEscopoTest extends AutorizacaoComEscopoTestBase {
     @DisplayName("aluno não acessa a listagem agregada de respostas")
     void alunoNaoAcessaListagemAgregadaDeRespostas() throws Exception {
         mockMvc.perform(get("/questao-aluno").with(comoAluno(ALUNO_ID))).andExpect(status().isForbidden());
+
+        // A autorização precede a consulta: aluno não chega ao service.
+        verify(questaoAlunoService, never()).listar();
     }
 
     @Test
-    @DisplayName("professor acessa a listagem agregada de respostas (escopo por turma fica no C2)")
+    @DisplayName("professor acessa a listagem agregada, já recortada pelo escopo no service")
     void professorAcessaListagemAgregadaDeRespostas() throws Exception {
         given(questaoAlunoService.listar()).willReturn(List.of());
 

@@ -1,7 +1,9 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.Curso;
@@ -32,6 +34,16 @@ public class CursoService {
     public Curso buscar(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Curso " + id + " não encontrado."));
+    }
+
+    /** Leitura individual: catálogo da mesma escola da listagem. */
+    public Curso buscarParaLeitura(Long id) {
+        Curso curso = buscar(id);
+        Long escolaId = escolaContext.escolaAtualId();
+        if (escolaId != null && curso.getEscola() != null && !escolaId.equals(curso.getEscola().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Este curso pertence a outra escola.");
+        }
+        return curso;
     }
 
     public Curso salvar(Curso obj) {

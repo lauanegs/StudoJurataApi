@@ -3,6 +3,7 @@ package studojurata_api.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -24,12 +25,17 @@ import org.springframework.web.server.ResponseStatusException;
 
 import studojurata_api.dto.FinalizarSimuladoRequest;
 import studojurata_api.ia.service.RevisaoConteudoService;
+import studojurata_api.machinelearning.service.MachineLearningRecomendacaoService;
 import studojurata_api.model.Aluno;
+import studojurata_api.model.Alternativa;
+import studojurata_api.model.Questao;
 import studojurata_api.model.Simulado;
 import studojurata_api.model.SimuladoAluno;
+import studojurata_api.model.SimuladoQuestao;
 import studojurata_api.model.enums.StatusSimulado;
 import studojurata_api.model.enums.StatusSimuladoAluno;
 import studojurata_api.model.enums.StatusSimuladoQuestao;
+import studojurata_api.model.enums.TipoQuestao;
 import studojurata_api.repository.AlternativaRepository;
 import studojurata_api.repository.QuestaoAlunoRepository;
 import studojurata_api.repository.QuestaoConteudoRepository;
@@ -58,6 +64,8 @@ class SimuladoAlunoFinalizacaoTest {
     private static final long ALUNO_ID = 7L;
     private static final long OUTRO_ALUNO_ID = 8L;
     private static final long PROFESSOR_ID = 42L;
+    private static final long QUESTAO_ID = 900L;
+    private static final long ALTERNATIVA_ID = 901L;
 
     @Mock private SimuladoAlunoRepository repository;
     @Mock private SimuladoQuestaoRepository simuladoQuestaoRepository;
@@ -69,6 +77,7 @@ class SimuladoAlunoFinalizacaoTest {
     @Mock private PontuacaoAlunoService pontuacaoAlunoService;
     @Mock private RevisaoConteudoService revisaoConteudoService;
     @Mock private SimuladoService simuladoService;
+    @Mock private MachineLearningRecomendacaoService machineLearningRecomendacaoService;
 
     private EscopoProfessor escopoProfessor;
     private SimuladoAlunoService service;
@@ -79,7 +88,8 @@ class SimuladoAlunoFinalizacaoTest {
         AlunoAccessGuard guard = new AlunoAccessGuard(escopoProfessor);
         service = new SimuladoAlunoService(repository, simuladoQuestaoRepository, questaoAlunoRepository,
                 alternativaRepository, questaoConteudoRepository, notaService, auditLogService,
-                pontuacaoAlunoService, revisaoConteudoService, guard, simuladoService, new UsuarioAutenticado());
+                pontuacaoAlunoService, revisaoConteudoService, guard, simuladoService, new UsuarioAutenticado(),
+                machineLearningRecomendacaoService);
     }
 
     @AfterEach
@@ -109,6 +119,39 @@ class SimuladoAlunoFinalizacaoTest {
 
         assertForbidden(() -> service.finalizar(TENTATIVA_ID, new FinalizarSimuladoRequest()));
         assertNadaPersistido();
+    }
+
+    @Test
+    @DisplayName("tentativa sem nenhuma resposta não gera rótulo de treino")
+    void tentativaEmBrancoNaoGeraRotulo() {
+        AuthorizationTestSupport.autenticarComoAluno(ALUNO_ID);
+        prepararFluxoLegitimo(ALUNO_ID);
+
+        service.finalizar(TENTATIVA_ID, new FinalizarSimuladoRequest());
+
+        // Tudo em branco não é desempenho observável: a recomendação continua aberta.
+        verify(machineLearningRecomendacaoService, never()).registrarResultado(any(), any(), anyDouble(), any());
+    }
+
+    @Test
+    @DisplayName("tentativa respondida registra o desfecho uma vez, com o simulado correto")
+    void tentativaRespondidaRegistraDesfecho() {
+        AuthorizationTestSupport.autenticarComoAluno(ALUNO_ID);
+        prepararFluxoLegitimo(ALUNO_ID, questaoComAlternativaCorreta());
+
+        FinalizarSimuladoRequest request = new FinalizarSimuladoRequest();
+        FinalizarSimuladoRequest.Item resposta = new FinalizarSimuladoRequest.Item();
+        resposta.setQuestaoId(QUESTAO_ID);
+        resposta.setAlternativaId(ALTERNATIVA_ID);
+        resposta.setTempoResposta(30);
+        request.setRespostas(List.of(resposta));
+        request.setTempoGastoTotal(60);
+
+        service.finalizar(TENTATIVA_ID, request);
+
+        // Percentual real da tentativa (acertou a única questão) e vínculo com o simulado.
+        verify(machineLearningRecomendacaoService)
+                .registrarResultado(ALUNO_ID, SIMULADO_ID, 1.0, List.of(QUESTAO_ID));
     }
 
     @Test
@@ -145,10 +188,33 @@ class SimuladoAlunoFinalizacaoTest {
 
     /** Fluxo legítimo: tentativa do dono, simulado aberto e sem questões ativas. */
     private void prepararFluxoLegitimo(long alunoId) {
+        prepararFluxoLegitimo(alunoId, null);
+    }
+
+    private void prepararFluxoLegitimo(long alunoId, SimuladoQuestao vinculo) {
         given(repository.findById(TENTATIVA_ID)).willReturn(Optional.of(tentativaDoAluno(alunoId)));
         given(repository.save(any(SimuladoAluno.class))).willAnswer(invocacao -> invocacao.getArgument(0));
         given(simuladoQuestaoRepository.findBySimuladoIdAndStatusOrderByOrdem(SIMULADO_ID, StatusSimuladoQuestao.ATIVA))
-                .willReturn(List.of());
+                .willReturn(vinculo == null ? List.of() : List.of(vinculo));
+    }
+
+    /** Questão ALTERNATIVAS com alternativa correta, para a tentativa ter resposta real. */
+    private SimuladoQuestao questaoComAlternativaCorreta() {
+        Questao questao = new Questao();
+        questao.setId(QUESTAO_ID);
+        questao.setTipo(TipoQuestao.ALTERNATIVAS);
+
+        Alternativa alternativa = new Alternativa();
+        alternativa.setId(ALTERNATIVA_ID);
+        alternativa.setQuestao(questao);
+        alternativa.setCorreta(true);
+        given(alternativaRepository.findById(ALTERNATIVA_ID)).willReturn(Optional.of(alternativa));
+
+        SimuladoQuestao vinculo = new SimuladoQuestao();
+        vinculo.setSimulado(tentativaDoAluno(ALUNO_ID).getSimulado());
+        vinculo.setQuestao(questao);
+        vinculo.setStatus(StatusSimuladoQuestao.ATIVA);
+        return vinculo;
     }
 
     private void assertNadaPersistido() {

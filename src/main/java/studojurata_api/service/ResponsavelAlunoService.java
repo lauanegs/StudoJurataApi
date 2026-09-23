@@ -6,7 +6,6 @@ import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.ResponsavelAluno;
 import studojurata_api.repository.ResponsavelAlunoRepository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -29,14 +28,6 @@ public class ResponsavelAlunoService {
     public ResponsavelAluno atualizar(Long id, ResponsavelAluno obj) {
         obj.setId(id);
         return repository.save(obj);
-    }
-
-    public ResponsavelAluno aceitarTermos(Long id, String textoVersao) {
-        ResponsavelAluno vinculo = buscar(id);
-        vinculo.setAceitouTermos(true);
-        vinculo.setDataAceite(LocalDateTime.now());
-        vinculo.setTextoVersao(textoVersao);
-        return repository.save(vinculo);
     }
 
     /** Exclusão física é aceitável: o vínculo não guarda histórico pedagógico. */

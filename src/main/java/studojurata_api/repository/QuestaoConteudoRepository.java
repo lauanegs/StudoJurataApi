@@ -3,6 +3,7 @@ package studojurata_api.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import studojurata_api.model.QuestaoConteudo;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface QuestaoConteudoRepository extends JpaRepository<QuestaoConteudo, Long> {
@@ -10,6 +11,9 @@ public interface QuestaoConteudoRepository extends JpaRepository<QuestaoConteudo
     boolean existsByQuestaoId(Long questaoId);
 
     List<QuestaoConteudo> findByConteudoPlano_Id(Long conteudoPlanoId);
+
+    /** Vínculos dos conteúdos informados — seleção de questões em lote, sem N+1. */
+    List<QuestaoConteudo> findByConteudoPlano_IdIn(Collection<Long> conteudoPlanoIds);
 
     List<QuestaoConteudo> findByQuestao_IdIn(List<Long> questaoIds);
 

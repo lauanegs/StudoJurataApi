@@ -15,7 +15,7 @@ public class PlanoEnsinoController {
     private final PlanoEnsinoService service;
 
     @GetMapping public List<PlanoEnsino> listar(){ return service.listar(); }
-    @GetMapping("/{id}") public PlanoEnsino buscar(@PathVariable Long id){ return service.buscar(id); }
+    @GetMapping("/{id}") public PlanoEnsino buscar(@PathVariable Long id){ return service.buscarParaLeitura(id); }
     @PostMapping public PlanoEnsino salvar(@RequestBody PlanoEnsino o){ return service.salvar(o); }
     @PutMapping("/{id}") public PlanoEnsino atualizar(@PathVariable Long id,@RequestBody PlanoEnsino o){ return service.atualizar(id, o); }
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }

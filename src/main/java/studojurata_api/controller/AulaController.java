@@ -25,7 +25,7 @@ public class AulaController {
     private final FrequenciaService frequenciaService;
 
     @GetMapping("/{id}")
-    public Aula buscar(@PathVariable Long id) { return service.buscar(id); }
+    public Aula buscar(@PathVariable Long id) { return service.buscarParaLeitura(id); }
 
     /** Aulas de um plano de aula, na ordem em que devem ser ministradas. */
     @GetMapping("/plano-aula/{planoAulaId}")

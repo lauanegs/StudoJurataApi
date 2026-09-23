@@ -34,6 +34,7 @@ import studojurata_api.repository.AlunoTurmaRepository;
 import studojurata_api.repository.AulaConteudoRepository;
 import studojurata_api.repository.AulaRepository;
 import studojurata_api.repository.ConteudoPlanoRepository;
+import studojurata_api.repository.CursoDisciplinaRepository;
 import studojurata_api.repository.CursoRepository;
 import studojurata_api.repository.HorarioTurmaRepository;
 import studojurata_api.repository.PlanoAulaRepository;
@@ -43,6 +44,7 @@ import studojurata_api.security.EscolaContext;
 import studojurata_api.security.EscopoAluno;
 import studojurata_api.security.EscopoProfessor;
 import studojurata_api.security.EscopoUsuario;
+import studojurata_api.security.PlanejamentoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
 
@@ -79,6 +81,7 @@ class C2PlanoAulaEscopoTest {
     @Mock private AulaConteudoRepository aulaConteudoRepository;
     @Mock private AlunoTurmaRepository alunoTurmaRepository;
     @Mock private TurmaDisciplinaRepository turmaDisciplinaRepository;
+    @Mock private CursoDisciplinaRepository cursoDisciplinaRepository;
     @Mock private EscopoProfessor escopoProfessor;
 
     private UsuarioAutenticado usuarioAutenticado;
@@ -90,13 +93,17 @@ class C2PlanoAulaEscopoTest {
     @BeforeEach
     void setUp() {
         usuarioAutenticado = new UsuarioAutenticado();
-        planoEnsinoService = new PlanoEnsinoService(planoEnsinoRepository, cursoRepository, planoAulaService,
-                escolaContext, usuarioAutenticado, escopoUsuario);
-        servicoPlanoAula = new PlanoAulaService(planoAulaRepository, aulaRepository, usuarioAutenticado, escopoUsuario);
+        PlanejamentoAccessGuard planejamentoAccessGuard =
+                new PlanejamentoAccessGuard(usuarioAutenticado, escopoUsuario, escopoProfessor);
+        planoEnsinoService = new PlanoEnsinoService(planoEnsinoRepository, cursoRepository, turmaDisciplinaRepository,
+                cursoDisciplinaRepository, planoAulaService, escolaContext, usuarioAutenticado, escopoUsuario,
+                planejamentoAccessGuard);
+        servicoPlanoAula = new PlanoAulaService(planoAulaRepository, aulaRepository, planoEnsinoRepository,
+                usuarioAutenticado, escopoUsuario, planejamentoAccessGuard);
         conteudoPlanoService = new ConteudoPlanoService(conteudoPlanoRepository, aulaConteudoRepository,
-                usuarioAutenticado, escopoUsuario);
+                usuarioAutenticado, escopoUsuario, planejamentoAccessGuard);
         aulaService = new AulaService(aulaRepository, planoAulaRepository, planoEnsinoRepository,
-                horarioTurmaRepository, auditLogService, usuarioAutenticado, escopoUsuario);
+                horarioTurmaRepository, auditLogService, usuarioAutenticado, escopoUsuario, planejamentoAccessGuard);
     }
 
     @AfterEach

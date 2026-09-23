@@ -17,7 +17,7 @@ public class TurmaController {
     private final FrequenciaService frequenciaService;
 
     @GetMapping public List<Turma> listar(){ return service.listar(); }
-    @GetMapping("/{id}") public Turma buscar(@PathVariable Long id){ return service.buscar(id); }
+    @GetMapping("/{id}") public Turma buscar(@PathVariable Long id){ return service.buscarParaLeitura(id); }
     @PostMapping public Turma salvar(@RequestBody Turma o){ return service.salvar(o); }
     @PutMapping("/{id}") public Turma atualizar(@PathVariable Long id,@RequestBody Turma o){ return service.atualizar(id, o); }
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }

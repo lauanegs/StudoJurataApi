@@ -11,6 +11,7 @@ import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.ia.model.enums.NivelDominio;
 import studojurata_api.ia.service.RevisaoConteudoService;
+import studojurata_api.machinelearning.service.MachineLearningRecomendacaoService;
 import studojurata_api.model.Alternativa;
 import studojurata_api.model.Questao;
 import studojurata_api.model.QuestaoAluno;
@@ -53,6 +54,7 @@ public class SimuladoAlunoService {
     private final AlunoAccessGuard alunoAccessGuard;
     private final SimuladoService simuladoService;
     private final UsuarioAutenticado usuarioAutenticado;
+    private final MachineLearningRecomendacaoService machineLearningRecomendacaoService;
 
     /**
      * Listagem escopada: ADMINISTRADOR ve todas as tentativas; PROFESSOR ve as
@@ -95,9 +97,72 @@ public class SimuladoAlunoService {
         return simuladoAluno.getAluno() != null ? simuladoAluno.getAluno().getId() : null;
     }
 
+    /**
+     * Questoes da tentativa para o proprio aluno (ou ADMIN): vinculos ATIVA do
+     * simulado, na ordem, com alternativas em lote e sem gabarito enquanto a
+     * tentativa estiver PENDENTE. Professor recebe 403 neste endpoint.
+     *
+     * <p>Nao usa nada do que o cliente envia: a correcao continua sendo feita no
+     * servidor em {@link #finalizar}.
+     */
+    @Transactional(readOnly = true)
+    public studojurata_api.dto.QuestaoDaTentativaDTO questoesDaTentativa(Long simuladoAlunoId) {
+        SimuladoAluno tentativa = buscar(simuladoAlunoId);
+        alunoAccessGuard.garantirDonoOuAdministrador(alunoDaTentativa(tentativa));
+
+        List<SimuladoQuestao> vinculos = simuladoQuestaoRepository.findBySimuladoIdAndStatusOrderByOrdem(
+                tentativa.getSimulado().getId(), StatusSimuladoQuestao.ATIVA);
+
+        List<Long> questaoIds = vinculos.stream()
+                .map(vinculo -> vinculo.getQuestao().getId())
+                .filter(java.util.Objects::nonNull)
+                .toList();
+
+        Map<Long, List<Alternativa>> alternativasPorQuestao = questaoIds.isEmpty()
+                ? Map.of()
+                : alternativaRepository.findByQuestao_IdIn(questaoIds).stream()
+                        .collect(java.util.stream.Collectors.groupingBy(
+                                alternativa -> alternativa.getQuestao().getId(),
+                                java.util.LinkedHashMap::new,
+                                java.util.stream.Collectors.toList()));
+
+        boolean concluida = tentativa.getStatus() == StatusSimuladoAluno.CONCLUIDO;
+
+        List<studojurata_api.dto.QuestaoDaTentativaDTO.Item> itens = new java.util.ArrayList<>();
+        Map<Long, Boolean> gabarito = new java.util.LinkedHashMap<>();
+
+        for (SimuladoQuestao vinculo : vinculos) {
+            Questao questao = vinculo.getQuestao();
+            List<Alternativa> alternativas = alternativasPorQuestao.getOrDefault(questao.getId(), List.of());
+
+            List<studojurata_api.dto.AlternativaDaTentativaDTO> alternativasDTO = alternativas.stream()
+                    .sorted(java.util.Comparator.comparing(Alternativa::getOrdem,
+                            java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())))
+                    .map(alternativa -> new studojurata_api.dto.AlternativaDaTentativaDTO(
+                            alternativa.getId(), alternativa.getTexto(), alternativa.getOrdem()))
+                    .toList();
+
+            itens.add(new studojurata_api.dto.QuestaoDaTentativaDTO.Item(
+                    questao.getId(), questao.getEnunciado(), questao.getTipo(), alternativasDTO));
+
+            if (concluida) {
+                alternativas.forEach(alternativa ->
+                        gabarito.put(alternativa.getId(), Boolean.TRUE.equals(alternativa.getCorreta())));
+            }
+        }
+
+        var dto = new studojurata_api.dto.QuestaoDaTentativaDTO();
+        dto.setSimuladoAlunoId(tentativa.getId());
+        dto.setStatus(tentativa.getStatus());
+        dto.setQuestoes(itens);
+        dto.setGabarito(concluida ? gabarito : null);
+        return dto;
+    }
+
     public record ResultadoFinalizacao(SimuladoAluno simuladoAluno, Integer diasProximaRevisao) {}
 
-    private record ResultadoCorrecao(int acertos, double pontuacaoObtida, double pontuacaoTotal) {}
+    /** respondidas = questões efetivamente respondidas (em branco não conta). */
+    private record ResultadoCorrecao(int acertos, int respondidas, double pontuacaoObtida, double pontuacaoTotal) {}
 
     /**
      * Aceita respostas parciais: questões ausentes contam como em branco (erro).
@@ -129,6 +194,11 @@ public class SimuladoAlunoService {
 
         recalcularNotaDaDisciplina(salvo);
 
+        // Aprendizado progressivo: o desempenho real desta tentativa vira o
+        // desfecho das recomendações ainda em aberto que tocaram estas questões —
+        // é esse número que serve de rótulo para o próximo treino do modelo.
+        registrarDesfechoDaRecomendacao(salvo, correcao, questoes);
+
         // Moedas por concluir, independente da nota: não é bonificação por acerto.
         pontuacaoAlunoService.concederMoedas(salvo.getAluno().getId(),
                 PontuacaoAlunoService.MOEDAS_POR_SIMULADO_CONCLUIDO);
@@ -136,6 +206,29 @@ public class SimuladoAlunoService {
         Integer diasProximaRevisao = registrarRevisaoEspacada(salvo.getAluno().getId(), questoes, correcao);
 
         return new ResultadoFinalizacao(salvo, diasProximaRevisao);
+    }
+
+    /**
+     * Percentual real de acerto da tentativa, associado à recomendação que a
+     * explica. Tentativa sem nenhuma resposta (tudo em branco) não gera rótulo:
+     * não houve desempenho observável, e um zero artificial ensinaria o modelo a
+     * tratar abandono como falta de domínio.
+     */
+    private void registrarDesfechoDaRecomendacao(
+            SimuladoAluno simuladoAluno, ResultadoCorrecao correcao, List<SimuladoQuestao> questoes) {
+
+        if (correcao.respondidas() == 0) {
+            return;
+        }
+
+        double percentual = correcao.pontuacaoTotal() > 0
+                ? correcao.pontuacaoObtida() / correcao.pontuacaoTotal()
+                : 0;
+        List<Long> questaoIds = questoes.stream().map(vinculo -> vinculo.getQuestao().getId()).toList();
+        Long simuladoId = simuladoAluno.getSimulado() != null ? simuladoAluno.getSimulado().getId() : null;
+
+        machineLearningRecomendacaoService.registrarResultado(
+                simuladoAluno.getAluno().getId(), simuladoId, percentual, questaoIds);
     }
 
     /**
@@ -155,6 +248,7 @@ public class SimuladoAlunoService {
         }
 
         int acertos = 0;
+        int respondidas = 0;
         double pontuacaoObtida = 0d;
         double pontuacaoTotal = 0d;
 
@@ -179,13 +273,16 @@ public class SimuladoAlunoService {
             questaoAluno.setTempoResposta(resposta != null ? resposta.getTempoResposta() : null);
             questaoAlunoRepository.save(questaoAluno);
 
+            if (Boolean.TRUE.equals(questaoAluno.getRespondida())) {
+                respondidas++;
+            }
             if (acertou) {
                 acertos++;
                 pontuacaoObtida += pontuacao;
             }
         }
 
-        return new ResultadoCorrecao(acertos, pontuacaoObtida, pontuacaoTotal);
+        return new ResultadoCorrecao(acertos, respondidas, pontuacaoObtida, pontuacaoTotal);
     }
 
     private SimuladoAluno salvarResultado(

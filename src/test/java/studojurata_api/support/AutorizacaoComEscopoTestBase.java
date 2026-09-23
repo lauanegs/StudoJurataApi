@@ -26,6 +26,8 @@ import studojurata_api.repository.TurmaDisciplinaRepository;
 import studojurata_api.security.AlunoAccessGuard;
 import studojurata_api.security.CustomUserDetailsService;
 import studojurata_api.security.EscopoProfessor;
+import studojurata_api.security.SimuladoAccessGuard;
+import studojurata_api.security.UsuarioAutenticado;
 
 /**
  * Base das fatias que exercitam o C1 com os <b>guardas reais</b>.
@@ -39,7 +41,8 @@ import studojurata_api.security.EscopoProfessor;
  * <p>As subclasses devem declarar
  * {@code @WebMvcTest(controllers = ...)} e dublar os services do controller.
  */
-@Import({ SecurityConfig.class, AlunoAccessGuard.class, EscopoProfessor.class })
+@Import({ SecurityConfig.class, AlunoAccessGuard.class, EscopoProfessor.class, SimuladoAccessGuard.class,
+        UsuarioAutenticado.class })
 public abstract class AutorizacaoComEscopoTestBase {
 
     protected static final MediaType JSON = MediaType.APPLICATION_JSON;

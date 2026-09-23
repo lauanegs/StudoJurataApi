@@ -123,6 +123,9 @@ public class DevDataResetSeeder implements CommandLineRunner {
     private final HistoricoGeracaoIARepository historicoGeracaoIARepository;
     private final SimuladoGeradoIARepository simuladoGeradoIARepository;
 
+    /** Recomendações do machine learning: precisam sair antes de aluno/simulado/conteúdo. */
+    private final studojurata_api.machinelearning.repository.RecomendacaoSimuladoRepository recomendacaoSimuladoRepository;
+
     @Override
     @Transactional
     public void run(String... args) {
@@ -134,6 +137,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
     // 1) LIMPEZA — ordem do "filho" para o "pai", respeitando as FKs
     // =========================================================================
     private void limparBanco() {
+        recomendacaoSimuladoRepository.deleteAllInBatch();
         questaoAlunoRepository.deleteAllInBatch();
         skinAlunoRepository.deleteAllInBatch();
         pontuacaoAlunoRepository.deleteAllInBatch();
@@ -717,9 +721,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         ra.setResponsavel(responsavel);
         ra.setAluno(aluno);
         ra.setParentesco(seed.parentesco());
-        ra.setAceitouTermos(true);
-        ra.setDataAceite(LocalDateTime.now());
-        ra.setTextoVersao("Aceito o uso dos dados do meu dependente na plataforma Studo Jurata.");
         responsavelAlunoRepository.save(ra);
 
         return aluno;

@@ -2,7 +2,9 @@ package studojurata_api.security;
 
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
@@ -84,6 +86,20 @@ public class EscopoProfessor {
         }
 
         return alunoTurmaRepository.existsByAluno_IdAndTurma_IdIn(alunoId, turmaIds);
+    }
+
+    /**
+     * Ids das disciplinas que o professor leciona, sem duplicidade — uma unica
+     * consulta nos vinculos (sem N+1). Questoes sem disciplina nao entram aqui:
+     * elas ficam restritas ao administrador.
+     */
+    public Set<Long> disciplinaIdsDoProfessor(Long professorId) {
+        return vinculosDoProfessor(professorId).stream()
+                .map(TurmaDisciplina::getDisciplina)
+                .filter(Objects::nonNull)
+                .map(studojurata_api.model.Disciplina::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**

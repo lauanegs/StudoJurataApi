@@ -3,6 +3,8 @@ package studojurata_api.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -190,24 +192,26 @@ class C1SimuladoAlunoEscopoTest extends AutorizacaoComEscopoTestBase {
     }
 
     @Test
-    @DisplayName("EXCEÇÃO DOCUMENTADA: simulado órfão mantém o comportamento atual para professor fora de escopo")
-    void simuladoOrfaoMantemComportamentoAtualParaProfessor() throws Exception {
+    @DisplayName("simulado órfão: professor é bloqueado (só o administrador consulta)")
+    void simuladoOrfaoBloqueiaProfessor() throws Exception {
         given(simuladoService.buscar(SIMULADO_ID)).willReturn(simulado(SIMULADO_ID, null));
-        given(simuladoAlunoService.listarPorSimulado(SIMULADO_ID)).willReturn(List.of());
         professorEhTitular(PROFESSOR_ID, OUTRA_TURMA_ID);
 
         mockMvc.perform(get("/simulado-aluno/simulado/{simuladoId}", SIMULADO_ID).with(comoProfessor(PROFESSOR_ID)))
-                .andExpect(status().isOk());
+                .andExpect(status().isForbidden());
+
+        verify(simuladoAlunoService, never()).listarPorSimulado(any());
     }
 
     @Test
-    @DisplayName("EXCEÇÃO DOCUMENTADA: simulado órfão mantém o comportamento atual para aluno")
-    void simuladoOrfaoMantemComportamentoAtualParaAluno() throws Exception {
+    @DisplayName("simulado órfão: aluno é bloqueado (só o administrador consulta)")
+    void simuladoOrfaoBloqueiaAluno() throws Exception {
         given(simuladoService.buscar(SIMULADO_ID)).willReturn(simulado(SIMULADO_ID, null));
-        given(simuladoAlunoService.listarPorSimulado(SIMULADO_ID)).willReturn(List.of());
 
         mockMvc.perform(get("/simulado-aluno/simulado/{simuladoId}", SIMULADO_ID).with(comoAluno(ALUNO_ID)))
-                .andExpect(status().isOk());
+                .andExpect(status().isForbidden());
+
+        verify(simuladoAlunoService, never()).listarPorSimulado(any());
     }
 
     @Test

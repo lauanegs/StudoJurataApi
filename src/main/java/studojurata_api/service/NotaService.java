@@ -8,11 +8,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
-
 import studojurata_api.model.enums.TipoUsuario;
 import studojurata_api.security.EscopoProfessor;
+import studojurata_api.security.PerfilDeGestao;
 import studojurata_api.security.UsuarioAutenticado;
 
 import lombok.RequiredArgsConstructor;
@@ -54,6 +52,10 @@ public class NotaService {
     private final UsuarioAutenticado usuarioAutenticado;
     private final EscopoProfessor escopoProfessor;
 
+    /** 403 de perfil — mensagem do domínio de nota, preservada. */
+    private static final String MENSAGEM_PERFIL_DE_GESTAO =
+            "Apenas professor ou administrador pode listar notas.";
+
     /**
      * Listagem escopada:
      * <ul>
@@ -74,10 +76,7 @@ public class NotaService {
         if (usuario.getTipoUsuario() == TipoUsuario.ADMINISTRADOR) {
             return repository.findAll();
         }
-        if (usuario.getTipoUsuario() != TipoUsuario.PROFESSOR) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Apenas professor ou administrador pode listar notas.");
-        }
+        PerfilDeGestao.exigir(usuario, MENSAGEM_PERFIL_DE_GESTAO);
 
         Long professorId = usuario.getProfessor() != null ? usuario.getProfessor().getId() : null;
         Set<Long> turmaIds = escopoProfessor.turmaIdsDoProfessor(professorId);

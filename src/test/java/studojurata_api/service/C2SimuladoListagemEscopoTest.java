@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
@@ -25,6 +26,7 @@ import studojurata_api.model.Aluno;
 import studojurata_api.model.Simulado;
 import studojurata_api.model.SimuladoAluno;
 import studojurata_api.model.SimuladoQuestao;
+import studojurata_api.model.Turma;
 import studojurata_api.model.enums.StatusSimuladoAluno;
 import studojurata_api.repository.AlunoRepository;
 import studojurata_api.repository.AlternativaRepository;
@@ -35,14 +37,20 @@ import studojurata_api.repository.SimuladoQuestaoRepository;
 import studojurata_api.repository.SimuladoRepository;
 import studojurata_api.security.AlunoAccessGuard;
 import studojurata_api.security.EscopoProfessor;
+import studojurata_api.security.SimuladoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.service.gamificacao.PontuacaoAlunoService;
 import studojurata_api.ia.service.RevisaoConteudoService;
+import studojurata_api.machinelearning.service.MachineLearningRecomendacaoService;
 import studojurata_api.support.AuthorizationTestSupport;
 
 /**
  * C2.4 — escopo das listagens de simulado, de tentativa e de vinculo
- * questao-simulado. Orfaos (simulado sem turma) seguem preservados por D-C1.
+ * questao-simulado.
+ *
+ * <p>Simulado sem turma (orfao) fica fora do alcance de professor e aluno: sem
+ * vinculo verificavel nao ha como atribuir posse, entao so o ADMINISTRADOR le —
+ * os orfaos continuam no banco, apenas nao entram nas listagens deles.
  */
 @ExtendWith(MockitoExtension.class)
 class C2SimuladoListagemEscopoTest {
@@ -50,6 +58,7 @@ class C2SimuladoListagemEscopoTest {
     private static final long ALUNO_ID = 7L;
     private static final long PROFESSOR_ID = 42L;
     private static final long TURMA_ID = 10L;
+    private static final long OUTRA_TURMA_ID = 99L;
     private static final long SIMULADO_ID = 300L;
     private static final long ORFAO_ID = 900L;
 
@@ -76,14 +85,16 @@ class C2SimuladoListagemEscopoTest {
     @BeforeEach
     void setUp() {
         usuarioAutenticado = new UsuarioAutenticado();
+        SimuladoAccessGuard simuladoAccessGuard = new SimuladoAccessGuard(usuarioAutenticado, escopoProfessor);
         simuladoService = new SimuladoService(simuladoRepository, simuladoQuestaoRepository,
-                simuladoAlunoRepository, alunoTurmaService, alunoRepository, usuarioAutenticado, escopoProfessor);
+                simuladoAlunoRepository, mock(studojurata_api.ia.repository.SimuladoGeradoIARepository.class),
+                alunoTurmaService, alunoRepository, usuarioAutenticado, escopoProfessor, simuladoAccessGuard);
         simuladoAlunoService = new SimuladoAlunoService(simuladoAlunoRepository, simuladoQuestaoRepository,
                 questaoAlunoRepository, alternativaRepository, questaoConteudoRepository, notaService,
                 auditLogService, pontuacaoAlunoService, revisaoConteudoService, mock(AlunoAccessGuard.class),
-                simuladoServiceDublado, usuarioAutenticado);
+                simuladoServiceDublado, usuarioAutenticado, mock(MachineLearningRecomendacaoService.class));
         simuladoQuestaoService = new SimuladoQuestaoService(simuladoQuestaoRepository, questaoConteudoRepository,
-                usuarioAutenticado, simuladoServiceDublado);
+                usuarioAutenticado, simuladoServiceDublado, simuladoAccessGuard);
     }
 
     @AfterEach
@@ -94,41 +105,40 @@ class C2SimuladoListagemEscopoTest {
     // --- GET /simulados -----------------------------------------------------
 
     @Test
-    @DisplayName("administrador lista todos os simulados")
+    @DisplayName("administrador lista todos os simulados, orfao inclusive")
     void administradorListaTodosOsSimulados() {
         AuthorizationTestSupport.autenticarComoAdministrador();
         given(simuladoRepository.findAll()).willReturn(List.of(simulado(SIMULADO_ID), simulado(ORFAO_ID)));
 
-        assertThat(simuladoService.listar()).hasSize(2);
+        assertThat(simuladoService.listar()).extracting(Simulado::getId)
+                .containsExactlyInAnyOrder(SIMULADO_ID, ORFAO_ID);
     }
 
     @Test
-    @DisplayName("professor ve os simulados das suas turmas e preserva os orfaos (D-C1)")
-    void professorVeTurmasEOrfaos() {
+    @DisplayName("professor ve apenas os simulados das suas turmas (orfao fica com o administrador)")
+    void professorVeApenasAsSuasTurmas() {
         AuthorizationTestSupport.autenticarComoProfessor(PROFESSOR_ID);
         given(escopoProfessor.turmaIdsDoProfessor(PROFESSOR_ID)).willReturn(Set.of(TURMA_ID));
         given(simuladoRepository.findByTurma_IdIn(Set.of(TURMA_ID))).willReturn(List.of(simulado(SIMULADO_ID)));
-        given(simuladoRepository.findByTurmaIsNull()).willReturn(List.of(simulado(ORFAO_ID)));
-        given(simuladoRepository.findAllById(Set.of(SIMULADO_ID, ORFAO_ID)))
-                .willReturn(List.of(simulado(SIMULADO_ID), simulado(ORFAO_ID)));
+        given(simuladoRepository.findAllById(Set.of(SIMULADO_ID))).willReturn(List.of(simulado(SIMULADO_ID)));
 
         assertThat(simuladoService.listar()).extracting(Simulado::getId)
-                .containsExactlyInAnyOrder(SIMULADO_ID, ORFAO_ID);
+                .containsExactly(SIMULADO_ID);
 
         verify(simuladoRepository, never()).findAll();
     }
 
     @Test
-    @DisplayName("professor sem turmas continua vendo os orfaos, sem consultar vinculos")
-    void professorSemTurmasVeOrfaos() {
+    @DisplayName("professor sem turmas recebe lista vazia, sem consultar vinculos nem orfaos")
+    void professorSemTurmasRecebeListaVazia() {
         AuthorizationTestSupport.autenticarComoProfessor(PROFESSOR_ID);
         given(escopoProfessor.turmaIdsDoProfessor(PROFESSOR_ID)).willReturn(Set.of());
-        given(simuladoRepository.findByTurmaIsNull()).willReturn(List.of(simulado(ORFAO_ID)));
-        given(simuladoRepository.findAllById(Set.of(ORFAO_ID))).willReturn(List.of(simulado(ORFAO_ID)));
 
-        assertThat(simuladoService.listar()).extracting(Simulado::getId).containsExactly(ORFAO_ID);
+        assertThat(simuladoService.listar()).isEmpty();
 
         verify(simuladoRepository, never()).findByTurma_IdIn(org.mockito.ArgumentMatchers.any());
+        verify(simuladoRepository, never()).findAll();
+        verify(simuladoRepository, never()).findAllById(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -253,6 +263,88 @@ class C2SimuladoListagemEscopoTest {
         verifyNoInteractions(simuladoQuestaoRepository);
     }
 
+    // --- GET /simulados/{id} (leitura individual) ---------------------------
+
+    @Test
+    @DisplayName("leitura individual: professor le o simulado da sua turma")
+    void professorLeSimuladoDaPropriaTurma() {
+        AuthorizationTestSupport.autenticarComoProfessor(PROFESSOR_ID);
+        given(simuladoRepository.findById(SIMULADO_ID)).willReturn(Optional.of(simulado(SIMULADO_ID, TURMA_ID)));
+        given(escopoProfessor.turmaIdsDoProfessor(PROFESSOR_ID)).willReturn(Set.of(TURMA_ID));
+        given(simuladoRepository.findByTurma_IdIn(Set.of(TURMA_ID)))
+                .willReturn(List.of(simulado(SIMULADO_ID, TURMA_ID)));
+
+        assertThat(simuladoService.buscarParaLeitura(SIMULADO_ID).getId()).isEqualTo(SIMULADO_ID);
+    }
+
+    @Test
+    @DisplayName("leitura individual: professor nao le simulado de turma alheia")
+    void professorNaoLeSimuladoDeTurmaAlheia() {
+        AuthorizationTestSupport.autenticarComoProfessor(PROFESSOR_ID);
+        given(simuladoRepository.findById(SIMULADO_ID)).willReturn(Optional.of(simulado(SIMULADO_ID, OUTRA_TURMA_ID)));
+        given(escopoProfessor.turmaIdsDoProfessor(PROFESSOR_ID)).willReturn(Set.of(TURMA_ID));
+        given(simuladoRepository.findByTurma_IdIn(Set.of(TURMA_ID))).willReturn(List.of());
+
+        assertForbidden(() -> simuladoService.buscarParaLeitura(SIMULADO_ID));
+    }
+
+    @Test
+    @DisplayName("leitura individual: simulado orfao nao e visivel ao professor")
+    void professorNaoLeSimuladoOrfao() {
+        AuthorizationTestSupport.autenticarComoProfessor(PROFESSOR_ID);
+        given(simuladoRepository.findById(ORFAO_ID)).willReturn(Optional.of(simulado(ORFAO_ID)));
+        given(escopoProfessor.turmaIdsDoProfessor(PROFESSOR_ID)).willReturn(Set.of());
+
+        assertForbidden(() -> simuladoService.buscarParaLeitura(ORFAO_ID));
+
+        verify(simuladoRepository, never()).findByTurma_IdIn(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    @DisplayName("leitura individual: aluno le o simulado em que tem tentativa")
+    void alunoLeSimuladoDaPropriaTentativa() {
+        AuthorizationTestSupport.autenticarComoAluno(ALUNO_ID);
+        given(simuladoRepository.findById(SIMULADO_ID)).willReturn(Optional.of(simulado(SIMULADO_ID, TURMA_ID)));
+        given(simuladoAlunoRepository.findByAlunoId(ALUNO_ID))
+                .willReturn(List.of(tentativa(SIMULADO_ID, StatusSimuladoAluno.PENDENTE)));
+
+        assertThat(simuladoService.buscarParaLeitura(SIMULADO_ID).getId()).isEqualTo(SIMULADO_ID);
+    }
+
+    @Test
+    @DisplayName("leitura individual: aluno nao le simulado em que nao tem tentativa")
+    void alunoNaoLeSimuladoSemTentativa() {
+        AuthorizationTestSupport.autenticarComoAluno(ALUNO_ID);
+        given(simuladoRepository.findById(SIMULADO_ID)).willReturn(Optional.of(simulado(SIMULADO_ID, TURMA_ID)));
+        given(simuladoAlunoRepository.findByAlunoId(ALUNO_ID)).willReturn(List.of());
+
+        assertForbidden(() -> simuladoService.buscarParaLeitura(SIMULADO_ID));
+    }
+
+    @Test
+    @DisplayName("leitura individual: administrador le qualquer simulado sem consultar escopo")
+    void administradorLeQualquerSimulado() {
+        AuthorizationTestSupport.autenticarComoAdministrador();
+        given(simuladoRepository.findById(SIMULADO_ID)).willReturn(Optional.of(simulado(SIMULADO_ID, OUTRA_TURMA_ID)));
+
+        assertThat(simuladoService.buscarParaLeitura(SIMULADO_ID).getId()).isEqualTo(SIMULADO_ID);
+
+        verifyNoInteractions(escopoProfessor);
+    }
+
+    @Test
+    @DisplayName("leitura individual: administrador le simulado orfao; aluno sem tentativa nao le")
+    void administradorLeSimuladoOrfao() {
+        given(simuladoRepository.findById(ORFAO_ID)).willReturn(Optional.of(simulado(ORFAO_ID)));
+
+        AuthorizationTestSupport.autenticarComoAdministrador();
+        assertThat(simuladoService.buscarParaLeitura(ORFAO_ID).getId()).isEqualTo(ORFAO_ID);
+
+        AuthorizationTestSupport.autenticarComoAluno(ALUNO_ID);
+        given(simuladoAlunoRepository.findByAlunoId(ALUNO_ID)).willReturn(List.of());
+        assertForbidden(() -> simuladoService.buscarParaLeitura(ORFAO_ID));
+    }
+
     // --- helpers -----------------------------------------------------------
 
     private void assertForbidden(Runnable acao) {
@@ -268,6 +360,14 @@ class C2SimuladoListagemEscopoTest {
     private static Simulado simulado(long id) {
         Simulado simulado = new Simulado();
         simulado.setId(id);
+        return simulado;
+    }
+
+    private static Simulado simulado(long id, long turmaId) {
+        Simulado simulado = simulado(id);
+        Turma turma = new Turma();
+        turma.setId(turmaId);
+        simulado.setTurma(turma);
         return simulado;
     }
 

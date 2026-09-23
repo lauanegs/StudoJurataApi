@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import studojurata_api.security.EscopoUsuario;
+import studojurata_api.security.PlanejamentoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import studojurata_api.model.Aula;
 import studojurata_api.model.HorarioTurma;
 import studojurata_api.model.PlanoAula;
 import studojurata_api.model.PlanoEnsino;
+import studojurata_api.model.TurmaDisciplina;
 import studojurata_api.model.enums.AcaoAuditoria;
 import studojurata_api.model.enums.DiaSemana;
 import studojurata_api.model.enums.StatusAtivoInativo;
@@ -45,10 +47,19 @@ public class AulaService {
     private final AuditLogService auditLogService;
     private final UsuarioAutenticado usuarioAutenticado;
     private final EscopoUsuario escopoUsuario;
+    private final PlanejamentoAccessGuard planejamentoAccessGuard;
 
     public Aula buscar(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Aula " + id + " não encontrada."));
+    }
+
+    /** Leitura individual com a mesma regra de {@code listarPorPlanoAula}. */
+    public Aula buscarParaLeitura(Long id) {
+        Aula aula = buscar(id);
+        planejamentoAccessGuard.garantirLeitura(vinculoId(aula),
+                "Você só pode acessar aulas das suas turmas.");
+        return aula;
     }
 
     public List<Aula> listarPorPlanoAula(Long planoAulaId) {
@@ -76,6 +87,8 @@ public class AulaService {
 
     @Transactional
     public Aula salvar(Aula obj) {
+        planejamentoAccessGuard.garantirEscrita(vinculoIdDoPlanoAula(obj),
+                "Você só pode criar aulas nas suas turmas.");
         validar(obj);
         if (obj.getStatus() == null) {
             obj.setStatus(StatusAtivoInativo.ATIVO);
@@ -87,7 +100,10 @@ public class AulaService {
 
     @Transactional
     public Aula atualizar(Long id, Aula obj) {
-        buscar(id);
+        planejamentoAccessGuard.garantirEscrita(vinculoId(buscar(id)),
+                "Você só pode alterar aulas das suas turmas.");
+        planejamentoAccessGuard.garantirEscrita(vinculoIdDoPlanoAula(obj),
+                "Você só pode mover aulas para as suas turmas.");
         obj.setId(id);
         validar(obj);
         Aula salva = repository.save(obj);
@@ -99,6 +115,13 @@ public class AulaService {
     @Transactional
     public Aula publicar(Long id, LocalDate dataPublicacao) {
         Aula aula = buscar(id);
+        planejamentoAccessGuard.garantirEscrita(vinculoId(aula),
+                "Você só pode publicar aulas das suas turmas.");
+        // "Ministrada" é o que sustenta as estatísticas do plano e a liberação de
+        // conteúdo para reforço: data futura não pode contar como realizada.
+        if (dataPublicacao != null && dataPublicacao.isAfter(LocalDate.now())) {
+            throw new RequisicaoInvalidaException("A data de publicação não pode ser futura.");
+        }
         aula.setDataPublicacao(dataPublicacao != null ? dataPublicacao : LocalDate.now());
         Aula salva = repository.save(aula);
 
@@ -136,6 +159,8 @@ public class AulaService {
     public List<Aula> gerarLote(Long planoAulaId, GerarAulasLoteRequest pedido) {
         PlanoAula planoAula = planoAulaRepository.findById(planoAulaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Plano de aula " + planoAulaId + " não encontrado."));
+        planejamentoAccessGuard.garantirEscrita(vinculoId(planoAula.getTurmaDisciplina()),
+                "Você só pode gerar aulas nas suas turmas.");
 
         if (pedido.getQuantidade() == null || pedido.getQuantidade() <= 0) {
             throw new RequisicaoInvalidaException("Informe uma quantidade de aulas maior que zero.");
@@ -226,6 +251,8 @@ public class AulaService {
     @Transactional
     public void deletar(Long id) {
         Aula obj = buscar(id);
+        planejamentoAccessGuard.garantirEscrita(vinculoId(obj),
+                "Você só pode inativar aulas das suas turmas.");
         obj.setStatus(StatusAtivoInativo.INATIVO);
         repository.save(obj);
         auditLogService.registrar("Aula", id, AcaoAuditoria.EXCLUSAO, "Aula marcada como INATIVA (soft-delete).");
@@ -277,6 +304,25 @@ public class AulaService {
                                 + "h). Restam " + restante + "h disponíveis para este plano.");
             }
         }
+    }
+
+    /** Vínculo da aula (via plano de aula), já carregado do banco. */
+    private static Long vinculoId(Aula aula) {
+        return aula != null && aula.getPlanoAula() != null ? vinculoId(aula.getPlanoAula().getTurmaDisciplina()) : null;
+    }
+
+    /** Vínculo do plano de aula informado no corpo, antes de validar a aula. */
+    private Long vinculoIdDoPlanoAula(Aula aula) {
+        if (aula == null || aula.getPlanoAula() == null || aula.getPlanoAula().getId() == null) {
+            return null;
+        }
+        return planoAulaRepository.findById(aula.getPlanoAula().getId())
+                .map(planoAula -> vinculoId(planoAula.getTurmaDisciplina()))
+                .orElse(null);
+    }
+
+    private static Long vinculoId(TurmaDisciplina vinculo) {
+        return vinculo != null ? vinculo.getId() : null;
     }
 
     /** Soma a carga horária das aulas ATIVAS do plano, opcionalmente excluindo uma (edição de aula existente). */

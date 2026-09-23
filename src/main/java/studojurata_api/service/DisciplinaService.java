@@ -1,7 +1,9 @@
 package studojurata_api.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.Disciplina;
 import studojurata_api.model.enums.StatusAtivoInativo;
@@ -26,6 +28,16 @@ public class DisciplinaService {
     public Disciplina buscar(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Disciplina " + id + " não encontrada."));
+    }
+
+    /** Leitura individual: catálogo da mesma escola da listagem (disciplina não é dado pessoal). */
+    public Disciplina buscarParaLeitura(Long id) {
+        Disciplina disciplina = buscar(id);
+        Long escolaId = escolaContext.escolaAtualId();
+        if (escolaId != null && disciplina.getEscola() != null && !escolaId.equals(disciplina.getEscola().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Esta disciplina pertence a outra escola.");
+        }
+        return disciplina;
     }
 
     public Disciplina salvar(Disciplina obj) {

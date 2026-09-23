@@ -17,5 +17,9 @@ public class QuestaoRequestDTO {
     private TipoQuestao tipo;
     private Long disciplinaId;
     private NivelDificuldade nivelDificuldade;
+    /**
+     * Aceito para não quebrar o cliente, mas ignorado na escrita: origem e
+     * status de moderação são decididos pelo servidor (QuestaoService).
+     */
     private OrigemQuestao origem;
 }

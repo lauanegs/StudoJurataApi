@@ -15,13 +15,17 @@ public class QuestaoMapper {
 
     private final DisciplinaRepository disciplinaRepository;
 
+    /**
+     * Nao copia {@code origem}: quem decide origem e status de moderacao e o
+     * servidor ({@code QuestaoService.salvar}/{@code atualizar}). O campo
+     * continua aceito no corpo para nao quebrar o cliente, mas e ignorado.
+     */
     public Questao toEntity(QuestaoRequestDTO dto) {
         if (dto == null) return null;
         Questao questao = new Questao();
         questao.setEnunciado(dto.getEnunciado());
         questao.setTipo(dto.getTipo());
         questao.setNivelDificuldade(dto.getNivelDificuldade());
-        questao.setOrigem(dto.getOrigem());
         if (dto.getDisciplinaId() != null) {
             Disciplina disciplina = disciplinaRepository.findById(dto.getDisciplinaId())
                     .orElseThrow(() -> new RecursoNaoEncontradoException("Disciplina " + dto.getDisciplinaId() + " não encontrada."));

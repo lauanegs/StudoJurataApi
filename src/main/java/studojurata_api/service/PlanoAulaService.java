@@ -1,6 +1,7 @@
 package studojurata_api.service;
 
 import studojurata_api.security.EscopoUsuario;
+import studojurata_api.security.PlanejamentoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.model.enums.TipoUsuario;
 
@@ -11,9 +12,11 @@ import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.PlanoAula;
 import studojurata_api.model.PlanoEnsino;
+import studojurata_api.model.TurmaDisciplina;
 import studojurata_api.model.enums.StatusPlano;
 import studojurata_api.repository.AulaRepository;
 import studojurata_api.repository.PlanoAulaRepository;
+import studojurata_api.repository.PlanoEnsinoRepository;
 
 import java.util.List;
 import java.util.Map;
@@ -24,8 +27,10 @@ public class PlanoAulaService {
 
     private final PlanoAulaRepository repository;
     private final AulaRepository aulaRepository;
+    private final PlanoEnsinoRepository planoEnsinoRepository;
     private final UsuarioAutenticado usuarioAutenticado;
     private final EscopoUsuario escopoUsuario;
+    private final PlanejamentoAccessGuard planejamentoAccessGuard;
 
     /**
      * Escopado: ADMINISTRADOR ve tudo; PROFESSOR e ALUNO veem apenas os planos
@@ -48,11 +53,25 @@ public class PlanoAulaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Plano de aula " + id + " não encontrado."));
     }
 
+    /** Leitura individual com a mesma visibilidade da listagem. */
+    public PlanoAula buscarParaLeitura(Long id) {
+        PlanoAula planoAula = buscar(id);
+        planejamentoAccessGuard.garantirLeitura(vinculoId(planoAula),
+                "Você só pode acessar planos de aula das suas turmas.");
+        return planoAula;
+    }
+
     public List<PlanoAula> listarPorTurmaDisciplina(Long turmaDisciplinaId) {
+        planejamentoAccessGuard.garantirLeitura(turmaDisciplinaId,
+                "Você só pode acessar planos de aula das suas turmas.");
         return repository.findByTurmaDisciplina_Id(turmaDisciplinaId);
     }
 
     public List<PlanoAula> listarPorPlanoEnsino(Long planoEnsinoId) {
+        PlanoEnsino planoEnsino = planoEnsinoRepository.findById(planoEnsinoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Plano de ensino " + planoEnsinoId + " não encontrado."));
+        planejamentoAccessGuard.garantirLeitura(vinculoId(planoEnsino.getTurmaDisciplina()),
+                "Você só pode acessar planos de aula das suas turmas.");
         return repository.findByPlanoEnsino_Id(planoEnsinoId);
     }
 
@@ -67,7 +86,10 @@ public class PlanoAulaService {
 
     @Transactional
     public PlanoAula atualizar(Long id, PlanoAula obj) {
-        buscar(id);
+        planejamentoAccessGuard.garantirEscrita(vinculoId(buscar(id)),
+                "Você só pode alterar planos de aula das suas turmas.");
+        planejamentoAccessGuard.garantirEscrita(vinculoId(obj.getTurmaDisciplina()),
+                "Você só pode mover planos de aula para as suas turmas.");
         obj.setId(id);
         validar(obj);
         return repository.save(obj);
@@ -92,12 +114,16 @@ public class PlanoAulaService {
     @Transactional
     public void deletar(Long id) {
         PlanoAula obj = buscar(id);
+        planejamentoAccessGuard.garantirEscrita(vinculoId(obj),
+                "Você só pode encerrar planos de aula das suas turmas.");
         obj.setStatus(StatusPlano.CONCLUIDO);
         repository.save(obj);
     }
 
     public Map<String, Object> estatisticas(Long planoAulaId) {
         PlanoAula planoAula = buscar(planoAulaId);
+        planejamentoAccessGuard.garantirLeitura(vinculoId(planoAula),
+                "Você só pode acessar estatísticas das suas turmas.");
         long totalPrevisto = aulaRepository.countByPlanoAula_Id(planoAulaId);
         long realizadas = aulaRepository.countByPlanoAula_IdAndDataPublicacaoIsNotNull(planoAulaId);
         double cargaHorariaRealizada = aulaRepository.somarCargaHorariaRealizada(planoAulaId);
@@ -142,5 +168,13 @@ public class PlanoAulaService {
                         "Esta turma já tem um plano de aula ativo para esta disciplina.");
             }
         }
+    }
+
+    private static Long vinculoId(PlanoAula planoAula) {
+        return planoAula != null && planoAula.getTurmaDisciplina() != null ? planoAula.getTurmaDisciplina().getId() : null;
+    }
+
+    private static Long vinculoId(TurmaDisciplina vinculo) {
+        return vinculo != null ? vinculo.getId() : null;
     }
 }

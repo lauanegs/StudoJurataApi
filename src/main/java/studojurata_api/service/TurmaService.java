@@ -19,6 +19,8 @@ import studojurata_api.repository.CursoRepository;
 import studojurata_api.repository.TurmaRepository;
 import studojurata_api.security.EscolaContext;
 import studojurata_api.security.EscopoProfessor;
+import studojurata_api.security.AlunoAccessGuard;
+import studojurata_api.security.PlanejamentoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 
 import java.util.LinkedHashSet;
@@ -30,6 +32,12 @@ import java.util.stream.Collectors;
 /**
  * validarCurso resolve o curso pelo id e recusa curso de outra escola (403)
  * ou inativo (409).
+ *
+ * <p>Escrita: o escopo de um professor vem do vinculo {@code TurmaDisciplina}
+ * (a mesma fonte do {@code EscopoProfessor}), entao atualizar, inativar e ativar
+ * exigem a turma nesse escopo — validado antes de ler ou gravar qualquer dado da
+ * turma. Criar turma e ato do administrador: a turma nova ainda nao tem vinculo
+ * de onde tirar a posse.
  */
 @Service
 @RequiredArgsConstructor
@@ -42,6 +50,8 @@ public class TurmaService {
     private final EscolaContext escolaContext;
     private final EscopoProfessor escopoProfessor;
     private final UsuarioAutenticado usuarioAutenticado;
+    private final AlunoAccessGuard alunoAccessGuard;
+    private final PlanejamentoAccessGuard planejamentoAccessGuard;
 
     /**
      * Listagem escopada: ADMINISTRADOR mantém a visão da escola (sem escola
@@ -86,17 +96,58 @@ public class TurmaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Turma " + id + " não encontrada."));
     }
 
+    /**
+     * Leitura individual (GET /turmas/{id}) com a <b>mesma visibilidade da
+     * listagem</b>: ADMIN vê todas (dentro da escola já resolvida), PROFESSOR as
+     * turmas em que leciona e ALUNO as turmas em que está matriculado. Sem isso,
+     * qualquer autenticado leria por id os dados de uma turma alheia.
+     *
+     * <p>O uso interno continua em {@link #buscar}: as operações de escrita têm
+     * seu próprio caminho e não dependem deste recorte.
+     */
+    public Turma buscarParaLeitura(Long id) {
+        Turma turma = buscar(id);
+
+        Usuario usuario = usuarioAutenticado.atual();
+
+        if (usuario.getTipoUsuario() == TipoUsuario.ADMINISTRADOR) {
+            return turma;
+        }
+
+        if (usuario.getTipoUsuario() == TipoUsuario.PROFESSOR) {
+            Long professorId = usuario.getProfessor() != null ? usuario.getProfessor().getId() : null;
+            if (professorId != null && escopoProfessor.turmaIdsDoProfessor(professorId).contains(turma.getId())) {
+                return turma;
+            }
+        } else if (usuario.getTipoUsuario() == TipoUsuario.ALUNO && turmasDoAluno(usuario).contains(turma.getId())) {
+            return turma;
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você só pode acessar as suas turmas.");
+    }
+
     public Turma salvar(Turma obj) {
+        exigirAdministradorParaCriarTurma();
         validarCapacidadeMaxima(obj);
+        validarPeriodo(obj);
         validarCurso(obj);
         if (obj.getStatus() == null) obj.setStatus(StatusTurma.ATIVA);
         return repository.save(obj);
     }
 
     public Turma atualizar(Long id, Turma obj) {
+        // Autorizacao antes de qualquer leitura/alteracao: o professor so altera as
+        // turmas em que leciona (o vinculo turma-disciplina e a fonte do escopo).
+        planejamentoAccessGuard.garantirEscritaNaTurma(id,
+                "Você só pode alterar as suas turmas.");
+        Turma existente = buscar(id);
         validarCapacidadeMaxima(obj);
+        validarPeriodo(obj);
         validarCurso(obj);
         obj.setId(id);
+        // A escola da turma nao muda pelo corpo da requisicao (mesma regra do
+        // CursoService atualizar): o corpo nao escolhe o tenant.
+        obj.setEscola(existente.getEscola());
 
         if (obj.getCapacidadeMaxima() != null) {
             long ativos = alunoTurmaService.contarAtivosPorTurma(id);
@@ -111,6 +162,8 @@ public class TurmaService {
     }
 
     public long contarAlunosAtivos(Long turmaId) {
+        // Contagem de alunos da turma é dado de gestão: dono da turma ou admin.
+        alunoAccessGuard.garantirAcessoATurma(turmaId);
         return alunoTurmaService.contarAtivosPorTurma(turmaId);
     }
 
@@ -119,6 +172,9 @@ public class TurmaService {
      * criada por engano; para encerrar, a turma é inativada.
      */
     public void deletar(Long id) {
+        // Escopo antes da consulta: turma de outro professor/escola nem revela se existe.
+        planejamentoAccessGuard.garantirEscritaNaTurma(id,
+                "Você só pode inativar as suas turmas.");
         Turma turma = buscar(id);
         if (alunoTurmaRepository.existsByTurma_Id(id)) {
             throw new RegraNegocioException(
@@ -130,14 +186,44 @@ public class TurmaService {
     }
 
     public Turma ativar(Long id) {
+        planejamentoAccessGuard.garantirEscritaNaTurma(id,
+                "Você só pode ativar as suas turmas.");
         Turma turma = buscar(id);
         turma.setStatus(StatusTurma.ATIVA);
         return repository.save(turma);
     }
 
+    /**
+     * Criar turma e ato de gestao: o escopo do professor nasce do vinculo
+     * turma-disciplina, e a turma nova ainda nao tem vinculo nenhum. Sem vinculo
+     * nao ha como provar posse — nem o proprio professor conseguiria criar o
+     * vinculo depois, porque {@code garantirEscritaNaTurma} ja exigiria a posse da
+     * turma. As demais operacoes seguem permitidas ao professor no proprio escopo.
+     */
+    private void exigirAdministradorParaCriarTurma() {
+        if (!usuarioAutenticado.ehAdministrador()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Apenas administrador pode criar turmas.");
+        }
+    }
+
+    /** Capacidade é obrigatória desde a criação: é ela que avisa quando a turma lota. */
     private void validarCapacidadeMaxima(Turma obj) {
-        if (obj.getCapacidadeMaxima() != null && obj.getCapacidadeMaxima() <= 0) {
+        if (obj.getCapacidadeMaxima() == null) {
+            throw new RequisicaoInvalidaException("Capacidade máxima é obrigatória.");
+        }
+        if (obj.getCapacidadeMaxima() <= 0) {
             throw new RequisicaoInvalidaException("Capacidade máxima deve ser maior que zero.");
+        }
+    }
+
+    /** Data de início obrigatória, e a de término (quando houver) nunca anterior a ela. */
+    private void validarPeriodo(Turma obj) {
+        if (obj.getDataInicio() == null) {
+            throw new RequisicaoInvalidaException("Data de início é obrigatória.");
+        }
+        if (obj.getDataFim() != null && obj.getDataFim().isBefore(obj.getDataInicio())) {
+            throw new RequisicaoInvalidaException("A data de término não pode ser anterior à data de início.");
         }
     }
 

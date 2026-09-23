@@ -30,7 +30,8 @@ public class SimuladoMapper {
         simulado.setDataFim(dto.getDataFim());
         simulado.setTempoLimite(dto.getTempoLimite());
         simulado.setNotaMaxima(dto.getNotaMaxima());
-        simulado.setQuantidadeQuestoes(dto.getQuantidadeQuestoes());
+        // quantidadeQuestoes não vem do cliente: o service grava a contagem real
+        // de vínculos ativos (ver SimuladoService.sincronizarQuantidadeDeQuestoes).
 
         if (dto.getDisciplinaId() != null) {
             Disciplina disciplina = disciplinaRepository.findById(dto.getDisciplinaId())

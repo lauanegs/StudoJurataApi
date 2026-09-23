@@ -30,6 +30,12 @@ public class EventoService {
 
     public Evento atualizar(Long id, Evento obj) {
         obj.setId(id);
+        // criadoPor e dado do servidor e nao aparece na resposta de GET /eventos,
+        // entao o cliente nunca o devolve: preservar o registro atual evita que uma
+        // edicao apague quem criou o evento.
+        if (obj.getCriadoPor() == null) {
+            repository.findById(id).ifPresent(existente -> obj.setCriadoPor(existente.getCriadoPor()));
+        }
         return repository.save(obj);
     }
 

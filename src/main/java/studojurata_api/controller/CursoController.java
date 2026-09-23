@@ -18,7 +18,7 @@ public class CursoController {
     private final CursoDisciplinaService cursoDisciplinaService;
 
     @GetMapping public List<Curso> listar(){ return service.listar(); }
-    @GetMapping("/{id}") public Curso buscar(@PathVariable Long id){ return service.buscar(id); }
+    @GetMapping("/{id}") public Curso buscar(@PathVariable Long id){ return service.buscarParaLeitura(id); }
     @PostMapping public Curso salvar(@RequestBody Curso o){ return service.salvar(o); }
     @PutMapping("/{id}") public Curso atualizar(@PathVariable Long id, @RequestBody Curso o){ return service.atualizar(id, o); }
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }

@@ -7,23 +7,48 @@ import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.AlunoTurma;
+import studojurata_api.model.Aluno;
 import studojurata_api.model.Turma;
 import studojurata_api.model.enums.StatusMatricula;
 import studojurata_api.model.enums.StatusTurma;
 import studojurata_api.repository.AlunoTurmaRepository;
+import studojurata_api.repository.AlunoRepository;
+import studojurata_api.repository.ResponsavelAlunoRepository;
 import studojurata_api.repository.TurmaRepository;
+import studojurata_api.security.EscopoProfessor;
+import studojurata_api.security.PlanejamentoAccessGuard;
+import studojurata_api.security.UsuarioAutenticado;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class AlunoTurmaService {
 
     private final AlunoTurmaRepository repository;
+    private final AlunoRepository alunoRepository;
+    private final ResponsavelAlunoRepository responsavelAlunoRepository;
     private final TurmaRepository turmaRepository;
+    private final UsuarioAutenticado usuarioAutenticado;
+    private final EscopoProfessor escopoProfessor;
+    private final PlanejamentoAccessGuard planejamentoAccessGuard;
 
-    public List<AlunoTurma> listar() { return repository.findAll(); }
+    /**
+     * Listagem escopada: ADMINISTRADOR vê todas as matrículas; PROFESSOR vê
+     * apenas as das turmas em que leciona. O controller só chega aqui depois de
+     * {@code AlunoAccessGuard.garantirAcessoDeGestao()}, então ALUNO não passa.
+     */
+    public List<AlunoTurma> listar() {
+        if (usuarioAutenticado.ehAdministrador()) {
+            return repository.findAll();
+        }
+
+        Set<Long> turmaIds = escopoProfessor.turmaIdsDoProfessor(usuarioAutenticado.professorId());
+        return turmaIds.isEmpty() ? List.of() : repository.findByTurma_IdIn(turmaIds);
+    }
 
     public AlunoTurma buscar(Long id) {
         return repository.findById(id)
@@ -63,6 +88,11 @@ public class AlunoTurmaService {
             obj.setDataInicio(LocalDate.now());
         }
 
+        // Antes das regras de negócio: o professor só matricula nas próprias turmas.
+        planejamentoAccessGuard.garantirEscritaNaTurma(obj.getTurma().getId(),
+                "Você só pode matricular alunos nas suas turmas.");
+        exigirResponsavelParaMenor(obj.getAluno().getId());
+
         if (obj.getStatus() == StatusMatricula.ATIVA) {
             validarTurmaAtiva(obj.getTurma().getId());
             validarMatriculaAtivaUnica(obj.getAluno().getId(), obj.getTurma().getId(), null);
@@ -76,6 +106,18 @@ public class AlunoTurmaService {
     public AlunoTurma atualizar(Long id, AlunoTurma obj) {
         AlunoTurma existente = buscar(id);
         obj.setId(id);
+
+        // A matrícula atual e a turma de destino precisam estar no escopo: sem
+        // isso, o id da URL deixaria um professor mexer na matrícula de outro.
+        Long turmaAtualId = existente.getTurma() != null ? existente.getTurma().getId() : null;
+        Long turmaDestinoId = obj.getTurma() != null ? obj.getTurma().getId() : turmaAtualId;
+
+        planejamentoAccessGuard.garantirEscritaNaTurma(turmaAtualId,
+                "Você só pode alterar matrículas das suas turmas.");
+        if (!Objects.equals(turmaAtualId, turmaDestinoId)) {
+            planejamentoAccessGuard.garantirEscritaNaTurma(turmaDestinoId,
+                    "Você só pode matricular alunos nas suas turmas.");
+        }
 
         if (obj.getStatus() == StatusMatricula.ATIVA) {
             Long alunoId = obj.getAluno() != null ? obj.getAluno().getId() : existente.getAluno().getId();
@@ -128,6 +170,28 @@ public class AlunoTurmaService {
                 throw new RegraNegocioException(
                         "Capacidade máxima da turma atingida (" + turma.getCapacidadeMaxima() + " alunos).");
             }
+        }
+    }
+
+    /**
+     * Aluno menor de idade precisa de ao menos um responsável vinculado: é a
+     * escola que responde por ele. A tela de matrícula já exige esse cadastro
+     * quando o aluno é novo; aqui a mesma regra vale para quem chama a API
+     * direto. Aluno sem data de nascimento (cadastro antigo) não é bloqueado.
+     */
+    private void exigirResponsavelParaMenor(Long alunoId) {
+        Aluno aluno = alunoRepository.findById(alunoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Aluno " + alunoId + " não encontrado."));
+
+        LocalDate nascimento = aluno.getPessoa() != null ? aluno.getPessoa().getDataNascimento() : null;
+        boolean menorDeIdade = nascimento != null && nascimento.isAfter(LocalDate.now().minusYears(18));
+        if (!menorDeIdade) {
+            return;
+        }
+
+        if (responsavelAlunoRepository.findByAlunoId(alunoId).isEmpty()) {
+            throw new RegraNegocioException(
+                    "Aluno menor de idade precisa de um responsável vinculado antes da matrícula.");
         }
     }
 }

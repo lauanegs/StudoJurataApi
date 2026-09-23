@@ -3,6 +3,7 @@ package studojurata_api.service;
 import java.util.ArrayList;
 
 import studojurata_api.security.EscopoUsuario;
+import studojurata_api.security.PlanejamentoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.model.enums.TipoUsuario;
 
@@ -26,6 +27,7 @@ public class ConteudoPlanoService {
     private final AulaConteudoRepository aulaConteudoRepository;
     private final UsuarioAutenticado usuarioAutenticado;
     private final EscopoUsuario escopoUsuario;
+    private final PlanejamentoAccessGuard planejamentoAccessGuard;
 
     /**
      * Escopado: ADMINISTRADOR ve tudo; PROFESSOR e ALUNO veem os conteudos dos
@@ -55,12 +57,27 @@ public class ConteudoPlanoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Conteúdo do plano " + id + " não encontrado."));
     }
 
+    /** Leitura individual com a mesma visibilidade da listagem (genéricos e sem plano por D-C2). */
+    public ConteudoPlano buscarParaLeitura(Long id) {
+        ConteudoPlano conteudo = buscar(id);
+        planejamentoAccessGuard.garantirLeitura(vinculoId(conteudo),
+                "Você só pode acessar conteúdos das suas turmas.");
+        return conteudo;
+    }
+
     public ConteudoPlano salvar(ConteudoPlano obj) {
+        planejamentoAccessGuard.garantirEscrita(vinculoId(obj),
+                "Você só pode criar conteúdos em planos de ensino das suas turmas.");
         if (obj.getStatus() == null) obj.setStatus(StatusAtivoInativo.ATIVO);
         return repository.save(obj);
     }
 
     public ConteudoPlano atualizar(Long id, ConteudoPlano obj) {
+        // Escopo das duas pontas: o conteúdo atual e o plano enviado.
+        planejamentoAccessGuard.garantirEscrita(vinculoId(buscar(id)),
+                "Você só pode alterar conteúdos das suas turmas.");
+        planejamentoAccessGuard.garantirEscrita(vinculoId(obj),
+                "Você só pode mover conteúdos para planos de ensino das suas turmas.");
         obj.setId(id);
         return repository.save(obj);
     }
@@ -71,6 +88,8 @@ public class ConteudoPlanoService {
      */
     public void deletar(Long id) {
         ConteudoPlano conteudo = buscar(id);
+        planejamentoAccessGuard.garantirEscrita(vinculoId(conteudo),
+                "Você só pode inativar conteúdos das suas turmas.");
 
         boolean jaMinistrado = aulaConteudoRepository.findByConteudoPlano_Id(id).stream()
                 .map(AulaConteudo::getAula)
@@ -83,5 +102,11 @@ public class ConteudoPlanoService {
 
         conteudo.setStatus(StatusAtivoInativo.INATIVO);
         repository.save(conteudo);
+    }
+
+    private static Long vinculoId(ConteudoPlano conteudo) {
+        return conteudo != null && conteudo.getPlanoEnsino() != null && conteudo.getPlanoEnsino().getTurmaDisciplina() != null
+                ? conteudo.getPlanoEnsino().getTurmaDisciplina().getId()
+                : null;
     }
 }

@@ -60,8 +60,23 @@ public class CursoDisciplinaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Curso " + obj.getCurso().getId() + " não encontrado."));
         Disciplina disciplina = disciplinaRepository.findById(obj.getDisciplina().getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Disciplina " + obj.getDisciplina().getId() + " não encontrada."));
+        // Disciplina inativada não entra em grade nova: o professor não pode
+        // ofertá-la em turma/plano de ensino, então vinculá-la seria criar uma
+        // linha que nunca vira aula. Grades históricas seguem intactas.
+        if (disciplina.getStatus() == StatusAtivoInativo.INATIVO) {
+            throw new RegraNegocioException(
+                    "A disciplina \"" + disciplina.getTitulo() + "\" está inativa e não pode entrar na grade curricular.");
+        }
         obj.setCurso(curso);
         obj.setDisciplina(disciplina);
+        validarCargaHoraria(obj);
+    }
+
+    /** Carga horária é obrigatória: é ela que soma a carga total do curso. */
+    private void validarCargaHoraria(CursoDisciplina obj) {
+        if (obj.getCargaHoraria() == null || obj.getCargaHoraria() <= 0) {
+            throw new RequisicaoInvalidaException("Informe uma carga horária maior que zero.");
+        }
     }
 
     private void validarDuplicidade(CursoDisciplina obj) {

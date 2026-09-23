@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.ia.dto.RecomendacaoDTO;
 import studojurata_api.ia.model.SimuladoGeradoIA;
 import studojurata_api.ia.model.enums.MotivoRecomendacao;
@@ -50,6 +51,11 @@ public class GeracaoAutomaticaBaixoAproveitamentoJob {
                             recomendacao.getConteudoPlanoId(),
                             recomendacao.getNivelPrioritario(),
                             recomendacao.getMotivos());
+                } catch (RegraNegocioException regra) {
+                    // Regra de negócio (ex.: baixo aproveitamento coletivo pede revisão em
+                    // sala) não é falha do job; fica no log informativo.
+                    log.info("Geração por baixo aproveitamento ignorada (aluno {}, conteúdo {}): {}",
+                            alunoId, recomendacao.getConteudoPlanoId(), regra.getMessage());
                 } catch (RuntimeException erro) {
                     // Uma falha pontual não pode interromper a geração dos demais alunos.
                     log.error(

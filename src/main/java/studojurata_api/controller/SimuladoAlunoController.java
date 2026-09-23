@@ -8,6 +8,7 @@ import studojurata_api.mapper.SimuladoAlunoMapper;
 import studojurata_api.model.Simulado;
 import studojurata_api.model.SimuladoAluno;
 import studojurata_api.security.AlunoAccessGuard;
+import studojurata_api.security.SimuladoAccessGuard;
 import studojurata_api.service.SimuladoAlunoService;
 import studojurata_api.service.SimuladoService;
 
@@ -22,6 +23,7 @@ public class SimuladoAlunoController {
     private final SimuladoAlunoMapper mapper;
     private final SimuladoService simuladoService;
     private final AlunoAccessGuard alunoAccessGuard;
+    private final SimuladoAccessGuard simuladoAccessGuard;
 
     @GetMapping
     public List<SimuladoAlunoResponseDTO> listar() {
@@ -45,14 +47,24 @@ public class SimuladoAlunoController {
     public List<SimuladoAlunoResponseDTO> listarPorSimulado(@PathVariable Long simuladoId) {
         Simulado simulado = simuladoService.buscar(simuladoId);
 
-        // Simulado órfão (sem turma) mantém o comportamento atual, sem regra
-        // definitiva nesta etapa — decisão registrada para o levantamento de uso
-        // no C2. Simulado com turma é escopado ao professor dono dela.
+        // Simulado sem turma não tem escopo verificável: só o administrador
+        // consulta as tentativas dele. Com turma, vale o escopo da turma — o que
+        // já barra o aluno, que só vê as próprias tentativas pelas rotas dele.
+        simuladoAccessGuard.garantirLeituraDeOrfao(simulado);
         if (simulado.getTurma() != null) {
             alunoAccessGuard.garantirAcessoATurma(simulado.getTurma().getId());
         }
 
         return service.listarPorSimulado(simuladoId).stream().map(mapper::toResponseDTO).toList();
+    }
+
+    /**
+     * Conteudo da prova para o proprio aluno: questoes e alternativas da
+     * tentativa, com gabarito apenas quando ela ja foi concluida.
+     */
+    @GetMapping("/{id}/questoes")
+    public studojurata_api.dto.QuestaoDaTentativaDTO questoesDaTentativa(@PathVariable Long id) {
+        return service.questoesDaTentativa(id);
     }
 
     /** Id do aluno dono da tentativa; null vira recusa no guard (falha fechado). */
