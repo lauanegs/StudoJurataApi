@@ -90,6 +90,7 @@ class MachineLearningRecomendacaoServiceTest {
                 baixoAproveitamentoColetivoService,
                 recomendacaoService,
                 recomendacaoSimuladoRepository,
+                new RegistroDeRecomendacao(recomendacaoSimuladoRepository),
                 alunoRepository,
                 conteudoPlanoRepository,
                 questaoAlunoRepository,
