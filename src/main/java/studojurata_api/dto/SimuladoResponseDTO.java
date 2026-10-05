@@ -22,4 +22,6 @@ public class SimuladoResponseDTO {
     private Double notaMaxima;
     private Integer quantidadeQuestoes;
     private StatusSimulado status;
+    /** Quem elaborou: "Studo Jurata" quando gerado pela IA, senão o professor da turma/disciplina. */
+    private String autor;
 }

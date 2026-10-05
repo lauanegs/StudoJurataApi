@@ -30,8 +30,12 @@ public class PlanoEnsino extends BaseEntity {
 
     private Integer cargaHoraria;
 
+    @Column(columnDefinition = "TEXT")
+
     private String ementa;
+    @Column(columnDefinition = "TEXT")
     private String objetivoGeral;
+    @Column(columnDefinition = "TEXT")
     private String metodologia;
     private LocalDate dataInicio;
     private LocalDate dataFim;

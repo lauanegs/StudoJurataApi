@@ -5,11 +5,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 import java.util.Optional;
 
@@ -26,9 +29,13 @@ import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.model.Aula;
+import studojurata_api.model.AulaConteudo;
+import studojurata_api.model.ConteudoPlano;
 import studojurata_api.model.Disciplina;
 import studojurata_api.model.PlanoEnsino;
 import studojurata_api.model.Questao;
+import studojurata_api.model.QuestaoConteudo;
 import studojurata_api.model.Simulado;
 import studojurata_api.model.SimuladoQuestao;
 import studojurata_api.model.Turma;
@@ -36,6 +43,7 @@ import studojurata_api.model.TurmaDisciplina;
 import studojurata_api.model.enums.OrigemQuestao;
 import studojurata_api.model.enums.StatusSimulado;
 import studojurata_api.model.enums.StatusSimuladoQuestao;
+import studojurata_api.repository.AulaConteudoRepository;
 import studojurata_api.repository.QuestaoConteudoRepository;
 import studojurata_api.repository.SimuladoQuestaoRepository;
 import studojurata_api.security.EscopoProfessor;
@@ -66,9 +74,11 @@ class C2SimuladoQuestaoVinculoTest {
     private static final long PLANO_ID = 70L;
     private static final long SIMULADO_ID = 100L;
     private static final long QUESTAO_ID = 200L;
+    private static final long CONTEUDO_ID = 300L;
 
     @Mock private SimuladoQuestaoRepository repository;
     @Mock private QuestaoConteudoRepository questaoConteudoRepository;
+    @Mock private AulaConteudoRepository aulaConteudoRepository;
     @Mock private SimuladoService simuladoService;
     @Mock private EscopoProfessor escopoProfessor;
 
@@ -78,7 +88,13 @@ class C2SimuladoQuestaoVinculoTest {
     void setUp() {
         UsuarioAutenticado usuarioAutenticado = new UsuarioAutenticado();
         SimuladoAccessGuard simuladoAccessGuard = new SimuladoAccessGuard(usuarioAutenticado, escopoProfessor);
-        simuladoQuestaoService = new SimuladoQuestaoService(repository, questaoConteudoRepository,
+        // Padrão: a questão tem um conteúdo com aula realizada ontem; os testes de conteúdo sobrescrevem.
+        lenient().when(questaoConteudoRepository.findByQuestao_Id(QUESTAO_ID))
+                .thenReturn(List.of(questaoConteudo(CONTEUDO_ID, "Sensores")));
+        lenient().when(aulaConteudoRepository.findByConteudoPlano_IdIn(any()))
+                .thenReturn(List.of(aulaConteudo(CONTEUDO_ID, LocalDate.now().minusDays(1))));
+
+        simuladoQuestaoService = new SimuladoQuestaoService(repository, questaoConteudoRepository, aulaConteudoRepository,
                 usuarioAutenticado, simuladoService, simuladoAccessGuard);
     }
 
@@ -506,7 +522,7 @@ class C2SimuladoQuestaoVinculoTest {
     void questaoIaSemConteudoContinuaRecusada() {
         autenticarProfessorComTurmas(TURMA_ID);
         professorTemDisciplinas(DISC_A);
-        given(questaoConteudoRepository.existsByQuestaoId(QUESTAO_ID)).willReturn(false);
+        given(questaoConteudoRepository.findByQuestao_Id(QUESTAO_ID)).willReturn(List.of());
 
         SimuladoQuestao enviado = vinculo(
                 simulado(SIMULADO_ID, TURMA_ID, DISC_A), questao(QUESTAO_ID, DISC_A, OrigemQuestao.IA));
@@ -522,11 +538,82 @@ class C2SimuladoQuestaoVinculoTest {
     void questaoIaComConteudoContinuaEntrando() {
         autenticarProfessorComTurmas(TURMA_ID);
         professorTemDisciplinas(DISC_A);
-        given(questaoConteudoRepository.existsByQuestaoId(QUESTAO_ID)).willReturn(true);
         given(repository.save(any())).willAnswer(chamada -> chamada.getArgument(0));
 
         SimuladoQuestao salvo = simuladoQuestaoService.salvar(vinculo(
                 simulado(SIMULADO_ID, TURMA_ID, DISC_A), questao(QUESTAO_ID, DISC_A, OrigemQuestao.IA)));
+
+        assertThat(salvo.getStatus()).isEqualTo(StatusSimuladoQuestao.ATIVA);
+    }
+
+    @Test
+    @DisplayName("questão manual sem conteúdo vinculado é recusada")
+    void questaoManualSemConteudoEhRecusada() {
+        autenticarProfessorComTurmas(TURMA_ID);
+        professorTemDisciplinas(DISC_A);
+        given(questaoConteudoRepository.findByQuestao_Id(QUESTAO_ID)).willReturn(List.of());
+
+        SimuladoQuestao enviado = vinculo(simulado(SIMULADO_ID, TURMA_ID, DISC_A), questao(QUESTAO_ID, DISC_A));
+
+        assertThatThrownBy(() -> simuladoQuestaoService.salvar(enviado)).isInstanceOf(RegraNegocioException.class);
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("conteúdo sem nenhuma aula realizada é recusado")
+    void conteudoSemAulaRealizadaEhRecusado() {
+        autenticarProfessorComTurmas(TURMA_ID);
+        professorTemDisciplinas(DISC_A);
+        given(aulaConteudoRepository.findByConteudoPlano_IdIn(any())).willReturn(List.of());
+
+        SimuladoQuestao enviado = vinculo(simulado(SIMULADO_ID, TURMA_ID, DISC_A), questao(QUESTAO_ID, DISC_A));
+
+        assertThatThrownBy(() -> simuladoQuestaoService.salvar(enviado))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessageContaining("Sensores");
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("conteúdo cuja única aula está no futuro é recusado")
+    void conteudoComAulaFuturaEhRecusado() {
+        autenticarProfessorComTurmas(TURMA_ID);
+        professorTemDisciplinas(DISC_A);
+        given(aulaConteudoRepository.findByConteudoPlano_IdIn(any()))
+                .willReturn(List.of(aulaConteudo(CONTEUDO_ID, LocalDate.now().plusDays(3))));
+
+        SimuladoQuestao enviado = vinculo(simulado(SIMULADO_ID, TURMA_ID, DISC_A), questao(QUESTAO_ID, DISC_A));
+
+        assertThatThrownBy(() -> simuladoQuestaoService.salvar(enviado)).isInstanceOf(RegraNegocioException.class);
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("com dois conteúdos, basta um não ministrado para recusar")
+    void umConteudoNaoMinistradoEntreDoisRecusa() {
+        autenticarProfessorComTurmas(TURMA_ID);
+        professorTemDisciplinas(DISC_A);
+        given(questaoConteudoRepository.findByQuestao_Id(QUESTAO_ID)).willReturn(
+                List.of(questaoConteudo(CONTEUDO_ID, "Sensores"), questaoConteudo(CONTEUDO_ID + 1, "Motores")));
+
+        SimuladoQuestao enviado = vinculo(simulado(SIMULADO_ID, TURMA_ID, DISC_A), questao(QUESTAO_ID, DISC_A));
+
+        assertThatThrownBy(() -> simuladoQuestaoService.salvar(enviado))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessageContaining("Motores");
+    }
+
+    @Test
+    @DisplayName("conteúdo com aula realizada hoje entra no simulado")
+    void conteudoComAulaRealizadaHojeEntra() {
+        autenticarProfessorComTurmas(TURMA_ID);
+        professorTemDisciplinas(DISC_A);
+        given(aulaConteudoRepository.findByConteudoPlano_IdIn(any()))
+                .willReturn(List.of(aulaConteudo(CONTEUDO_ID, LocalDate.now())));
+        given(repository.save(any())).willAnswer(chamada -> chamada.getArgument(0));
+
+        SimuladoQuestao salvo = simuladoQuestaoService.salvar(
+                vinculo(simulado(SIMULADO_ID, TURMA_ID, DISC_A), questao(QUESTAO_ID, DISC_A)));
 
         assertThat(salvo.getStatus()).isEqualTo(StatusSimuladoQuestao.ATIVA);
     }
@@ -707,6 +794,26 @@ class C2SimuladoQuestaoVinculoTest {
 
     private static Questao questao(Long id, Long disciplinaId) {
         return questao(id, disciplinaId, OrigemQuestao.PROFESSOR);
+    }
+
+    private static QuestaoConteudo questaoConteudo(long conteudoId, String titulo) {
+        ConteudoPlano conteudo = new ConteudoPlano();
+        conteudo.setId(conteudoId);
+        conteudo.setTitulo(titulo);
+        QuestaoConteudo vinculo = new QuestaoConteudo();
+        vinculo.setConteudoPlano(conteudo);
+        return vinculo;
+    }
+
+    private static AulaConteudo aulaConteudo(long conteudoId, LocalDate dataPublicacao) {
+        ConteudoPlano conteudo = new ConteudoPlano();
+        conteudo.setId(conteudoId);
+        Aula aula = new Aula();
+        aula.setDataPublicacao(dataPublicacao);
+        AulaConteudo vinculo = new AulaConteudo();
+        vinculo.setAula(aula);
+        vinculo.setConteudoPlano(conteudo);
+        return vinculo;
     }
 
     private static Questao questao(Long id, Long disciplinaId, OrigemQuestao origem) {

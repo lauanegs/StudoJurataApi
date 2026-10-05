@@ -53,6 +53,7 @@ class C2SimuladoEscritaWebTest extends AutorizacaoComEscopoTestBase {
     @MockBean private DisciplinaRepository disciplinaRepository;
     @MockBean private PlanoEnsinoRepository planoEnsinoRepository;
     @MockBean private TurmaRepository turmaRepository;
+    @MockBean private studojurata_api.ia.repository.SimuladoGeradoIARepository simuladoGeradoIARepository;
 
     @AfterEach
     void limparContexto() {

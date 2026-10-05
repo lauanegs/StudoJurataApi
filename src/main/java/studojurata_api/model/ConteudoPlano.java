@@ -16,6 +16,7 @@ public class ConteudoPlano extends BaseEntity {
     private PlanoEnsino planoEnsino;
 
     private String titulo;
+    @Column(columnDefinition = "TEXT")
     private String descricao;
     private Integer ordem;
 

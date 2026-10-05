@@ -18,6 +18,8 @@ public class Curso extends BaseEntity {
     @Column(nullable = false)
     private String nome;
 
+    @Column(columnDefinition = "TEXT")
+
     private String descricao;
 
     /** Soma das cargas horárias ativas da grade (CursoDisciplinaService); não é editável. */

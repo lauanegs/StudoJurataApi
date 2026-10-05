@@ -14,6 +14,8 @@ public class Alternativa extends BaseEntity {
     @ManyToOne(optional = false)
     private Questao questao;
 
+    @Column(columnDefinition = "TEXT")
+
     private String texto;
     private Boolean correta;
     private Integer ordem;

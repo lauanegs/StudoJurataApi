@@ -11,6 +11,8 @@ public interface AulaConteudoRepository extends JpaRepository<AulaConteudo, Long
 
     List<AulaConteudo> findByConteudoPlano_Id(Long conteudoPlanoId);
 
+    List<AulaConteudo> findByConteudoPlano_IdIn(java.util.Collection<Long> conteudoPlanoIds);
+
     boolean existsByAula_IdAndConteudoPlano_Id(Long aulaId, Long conteudoPlanoId);
 
     void deleteByAula_IdAndConteudoPlano_Id(Long aulaId, Long conteudoPlanoId);

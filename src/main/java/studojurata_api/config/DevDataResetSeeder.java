@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import studojurata_api.ia.model.HistoricoGeracaoIA;
+import studojurata_api.ia.model.SimuladoGeradoIA;
+import studojurata_api.ia.model.enums.MotivoRecomendacao;
 import studojurata_api.ia.model.RevisaoConteudo;
 import studojurata_api.ia.model.enums.NivelDominio;
 import studojurata_api.ia.model.enums.OrigemResultadoGeracao;
@@ -115,6 +117,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
 
     // --- gamificação ---
     private final SkinRepository skinRepository;
+    private int sequenciaMatricula;
     private final PontuacaoAlunoRepository pontuacaoAlunoRepository;
     private final SkinAlunoRepository skinAlunoRepository;
 
@@ -458,8 +461,10 @@ public class DevDataResetSeeder implements CommandLineRunner {
         // ---- Questões de IA pendentes de revisão ("simulados a revisar") -----------
         // Vinculadas a um simulado ainda em RASCUNHO por disciplina, cobrindo a tela
         // de revisão de questões geradas por IA antes de irem para um simulado real.
-        Simulado revisaoRobotica = criarSimuladoRascunho("Revisão IA — Robótica", discRobotica, turmaRobotica, 2);
-        Simulado revisaoProgGamificada = criarSimuladoRascunho("Revisão IA — Programação Gamificada", discProgGamificada, turmaProgGamificada, 2);
+        Simulado revisaoRobotica = criarSimuladoRascunhoIA("Revisão IA — Robótica", discRobotica, peRobotica, turmaRobotica, 2,
+                alunosRobotica.get(1), conteudosRobotica.get(1));
+        Simulado revisaoProgGamificada = criarSimuladoRascunhoIA("Revisão IA — Programação Gamificada", discProgGamificada, peProgGamificada,
+                turmaProgGamificada, 2, alunosProgGamificada.get(0), conteudosProgGamificada.get(1));
 
         Questao questaoIaRobotica1 = criarQuestaoIaPendente(discRobotica, conteudosRobotica.get(0),
                 "Qual componente converte energia elétrica em movimento no robô?", NivelDificuldade.FACIL,
@@ -501,9 +506,9 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarAuditLog("SimuladoAluno", 1L, AcaoAuditoria.CRIACAO, "rafael.mendes", "tentativa finalizada pelo aluno");
 
         // ---- Gamificação -------------------------------------------------------------
-        Skin skinClassico = criarSkin("Mascote Clássico", "Visual padrão do mascote Studo Jurata.", 0, "skins/classico.png");
-        Skin skinExplorador = criarSkin("Mascote Explorador", "Traje de explorador, desbloqueado com moedas de reforço.", 50, "skins/explorador.png");
-        criarSkin("Mascote Cientista", "Jaleco de cientista, para quem completa muitos simulados.", 80, "skins/cientista.png");
+        Skin skinClassico = criarSkin("Jura", "Jura, o visual padrão do mascote Studo Jurata.", 0, "skins/classico.png");
+        Skin skinExplorador = criarSkin("Bit", "Traje de explorador, desbloqueado com moedas de reforço.", 50, "skins/explorador.png");
+        criarSkin("Lia", "Jaleco de cientista, para quem completa muitos simulados.", 80, "skins/cientista.png");
 
         criarPontuacao(alunosGeekJunior.get(0), 120);
         criarPontuacao(alunosGeekJunior.get(2), 40);
@@ -521,7 +526,15 @@ public class DevDataResetSeeder implements CommandLineRunner {
         // Revisão já devida hoje, para testar a geração sem esperar o cron.
         // O conteúdo tem só 1 questão aprovada por nível: pedir 5 de nível MEDIA
         // obriga ao menos 2 a virem do Gemini, não só do cache.
+        // Este caso é de propósito o do alerta coletivo: 3 de 5 alunos de Robótica estão
+        // abaixo de 60% em "Sensores e Atuadores", então "Gerar agora" avisa o professor
+        // para revisar em sala em vez de gerar simulado individual.
         criarRevisaoDevidaHoje(alunosRobotica.get(0), conteudosRobotica.get(0), NivelDominio.BAIXO);
+
+        // Devidas hoje que PODEM ser geradas (sem alerta coletivo), uma por professor.
+        criarRevisaoDevidaHoje(alunosGeekJunior.get(0), conteudosGeekJuniorRobotica.get(0), NivelDominio.MEDIO);
+        criarRevisaoDevidaHoje(alunosGeekJunior.get(1), conteudosGeekJuniorRobotica.get(1), NivelDominio.BAIXO);
+        criarRevisaoDevidaHoje(alunosProgGamificada.get(0), conteudosProgGamificada.get(1), NivelDominio.BAIXO);
     }
 
     // =========================================================================
@@ -703,7 +716,8 @@ public class DevDataResetSeeder implements CommandLineRunner {
 
         Aluno aluno = new Aluno();
         aluno.setPessoa(pessoaAluno);
-        aluno.setMatricula("MAT-" + pessoaAluno.getId());
+        // Mesmo formato gerado pela API (AAAA9999), em sequência.
+        aluno.setMatricula(LocalDate.now().getYear() + String.format("%04d", ++sequenciaMatricula));
         aluno = alunoRepository.save(aluno);
 
         criarUsuario(escola, pessoaAluno, seed.username(), "senha123", TipoUsuario.ALUNO, aluno, null);
@@ -1036,6 +1050,34 @@ public class DevDataResetSeeder implements CommandLineRunner {
      * Simulado em RASCUNHO com as questões de IA aguardando aprovação.
      * `quantidadeQuestoes` precisa bater com quantas o chamador vincula depois.
      */
+    /**
+     * Rascunho como a geração por IA o produz: destinado a um aluno, dentro do plano
+     * de ensino da turma, com o vínculo SimuladoGeradoIA (por isso aparece em
+     * "Aguardando aprovação" e mostra "Studo Jurata" como autor).
+     */
+    private Simulado criarSimuladoRascunhoIA(String titulo, Disciplina disciplina, PlanoEnsino planoEnsino, Turma turma,
+                                             int quantidadeQuestoes, Aluno aluno, ConteudoPlano conteudo) {
+        Simulado s = new Simulado();
+        s.setTitulo(titulo);
+        s.setDisciplina(disciplina);
+        s.setPlanoEnsino(planoEnsino);
+        s.setTurma(turma);
+        s.setTipoDestinacao(TipoDestinacaoSimulado.ESPECIFICO);
+        s.setNotaMaxima(10.0);
+        s.setQuantidadeQuestoes(quantidadeQuestoes);
+        s.setStatus(StatusSimulado.RASCUNHO);
+        s = simuladoRepository.save(s);
+
+        SimuladoGeradoIA vinculo = new SimuladoGeradoIA();
+        vinculo.setSimulado(s);
+        vinculo.setAluno(aluno);
+        vinculo.setConteudoPlano(conteudo);
+        vinculo.setMotivos(new java.util.LinkedHashSet<>(java.util.Set.of(MotivoRecomendacao.REPETICAO_ESPACADA)));
+        vinculo.setPrazoLancamento(LocalDate.now().plusDays(3));
+        simuladoGeradoIARepository.save(vinculo);
+        return s;
+    }
+
     private Simulado criarSimuladoRascunho(String titulo, Disciplina disciplina, Turma turma, int quantidadeQuestoes) {
         Simulado s = new Simulado();
         s.setTitulo(titulo);

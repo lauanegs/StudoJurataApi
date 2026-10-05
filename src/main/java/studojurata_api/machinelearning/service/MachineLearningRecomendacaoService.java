@@ -258,7 +258,7 @@ public class MachineLearningRecomendacaoService {
         registro.setDadosInsuficientes(dadosInsuficientes);
         registro.setMotivos(motivos != null ? new LinkedHashSet<>(motivos) : new LinkedHashSet<>());
         registro.setMotivo(motivo);
-        registro.setQuestoesSelecionadas(List.copyOf(selecao.selecionadas()));
+        registro.setQuestoesSelecionadas(new java.util.ArrayList<>(selecao.selecionadas()));
 
         return recomendacaoSimuladoRepository.save(registro);
     }

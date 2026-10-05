@@ -9,6 +9,7 @@ import studojurata_api.model.Disciplina;
 import studojurata_api.model.PlanoEnsino;
 import studojurata_api.model.Simulado;
 import studojurata_api.model.Turma;
+import studojurata_api.ia.repository.SimuladoGeradoIARepository;
 import studojurata_api.repository.DisciplinaRepository;
 import studojurata_api.repository.PlanoEnsinoRepository;
 import studojurata_api.repository.TurmaRepository;
@@ -20,6 +21,7 @@ public class SimuladoMapper {
     private final DisciplinaRepository disciplinaRepository;
     private final PlanoEnsinoRepository planoEnsinoRepository;
     private final TurmaRepository turmaRepository;
+    private final SimuladoGeradoIARepository simuladoGeradoIARepository;
 
     public Simulado toEntity(SimuladoRequestDTO dto) {
         if (dto == null) return null;
@@ -66,6 +68,20 @@ public class SimuladoMapper {
         dto.setNotaMaxima(simulado.getNotaMaxima());
         dto.setQuantidadeQuestoes(simulado.getQuantidadeQuestoes());
         dto.setStatus(simulado.getStatus());
+        dto.setAutor(autorDe(simulado));
         return dto;
+    }
+
+    private String autorDe(Simulado simulado) {
+        if (simulado.getId() != null && simuladoGeradoIARepository.existsBySimulado_Id(simulado.getId())) {
+            return "Studo Jurata";
+        }
+        PlanoEnsino plano = simulado.getPlanoEnsino();
+        if (plano != null && plano.getTurmaDisciplina() != null
+                && plano.getTurmaDisciplina().getProfessor() != null
+                && plano.getTurmaDisciplina().getProfessor().getPessoa() != null) {
+            return plano.getTurmaDisciplina().getProfessor().getPessoa().getNome();
+        }
+        return "Professor";
     }
 }

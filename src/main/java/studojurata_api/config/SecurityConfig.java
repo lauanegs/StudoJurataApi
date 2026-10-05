@@ -152,6 +152,7 @@ public class SecurityConfig {
                 // Montagem, moderação e lançamento de simulados são do professor;
                 // o aluno só consulta e finaliza a própria tentativa.
                 .requestMatchers(HttpMethod.POST, "/simulado-aluno/*/finalizar").authenticated()
+                .requestMatchers(HttpMethod.POST, "/simulado-aluno/*/conferir-questao").authenticated()
                 // A listagem geral traz as notas de todos os alunos; o aluno usa
                 // /simulado-aluno/aluno/{id} e /simulado-aluno/{id}.
                 .requestMatchers(HttpMethod.GET, "/simulado-aluno", "/professores/*/desempenho")

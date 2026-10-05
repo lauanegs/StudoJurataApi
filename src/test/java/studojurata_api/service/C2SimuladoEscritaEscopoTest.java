@@ -512,6 +512,51 @@ class C2SimuladoEscritaEscopoTest {
     }
 
     @Test
+    @DisplayName("publicação automática (job, sem sessão) lança o simulado TODOS para os alunos ativos da turma")
+    void publicacaoAutomaticaSemSessao() {
+        AuthorizationTestSupport.limparContexto();
+        Simulado rascunho = simulado(SIMULADO_ID, TURMA_ID, DISC_A);
+        rascunho.setTipoDestinacao(TipoDestinacaoSimulado.TODOS);
+        given(repository.findById(SIMULADO_ID)).willReturn(Optional.of(rascunho));
+        given(simuladoQuestaoRepository.findBySimuladoIdAndStatusOrderByOrdem(SIMULADO_ID, StatusSimuladoQuestao.ATIVA))
+                .willReturn(List.of(vinculo(questao(QUESTAO_ID, StatusQuestao.APROVADA))));
+        given(alunoTurmaService.ativosPorTurma(TURMA_ID)).willReturn(List.of(matriculaDoAluno(ALUNO_ID)));
+        given(repository.save(any())).willAnswer(chamada -> chamada.getArgument(0));
+
+        Simulado lancado = simuladoService.lancarAutomaticamente(SIMULADO_ID);
+
+        assertThat(lancado.getStatus()).isEqualTo(StatusSimulado.PUBLICADO);
+        verify(simuladoAlunoRepository).save(any());
+    }
+
+    @Test
+    @DisplayName("publicação automática não lança simulado com questão pendente de revisão")
+    void publicacaoAutomaticaRecusaQuestaoPendente() {
+        AuthorizationTestSupport.limparContexto();
+        Simulado rascunho = simulado(SIMULADO_ID, TURMA_ID, DISC_A);
+        rascunho.setTipoDestinacao(TipoDestinacaoSimulado.TODOS);
+        given(repository.findById(SIMULADO_ID)).willReturn(Optional.of(rascunho));
+        given(simuladoQuestaoRepository.findBySimuladoIdAndStatusOrderByOrdem(SIMULADO_ID, StatusSimuladoQuestao.ATIVA))
+                .willReturn(List.of(vinculo(questao(QUESTAO_ID, StatusQuestao.PENDENTE))));
+
+        assertThatThrownBy(() -> simuladoService.lancarAutomaticamente(SIMULADO_ID))
+                .isInstanceOf(RegraNegocioException.class);
+        verify(simuladoAlunoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("encerramento automático (job, sem sessão) encerra o simulado publicado")
+    void encerramentoAutomaticoSemSessao() {
+        AuthorizationTestSupport.limparContexto();
+        Simulado publicado = simulado(SIMULADO_ID, TURMA_ID, DISC_A);
+        publicado.setStatus(StatusSimulado.PUBLICADO);
+        given(repository.findById(SIMULADO_ID)).willReturn(Optional.of(publicado));
+        given(repository.save(any())).willAnswer(chamada -> chamada.getArgument(0));
+
+        assertThat(simuladoService.encerrarAutomaticamente(SIMULADO_ID).getStatus()).isEqualTo(StatusSimulado.ENCERRADO);
+    }
+
+    @Test
     @DisplayName("professor não lança simulado de outro professor, sem efeito colateral")
     void professorNaoLancaSimuladoAlheio() {
         autenticarProfessorComTurmas(TURMA_ID);

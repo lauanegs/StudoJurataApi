@@ -1,6 +1,7 @@
 package studojurata_api.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -23,6 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
+import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.model.Escola;
 import studojurata_api.model.Usuario;
@@ -195,6 +197,31 @@ class C2UsuarioEscolaIsolamentoTest {
 
         assertThat(salvo.getSenha()).isEqualTo("hash");
         assertThat(salvo.getEscola().getId()).isEqualTo(ESCOLA_A);
+    }
+
+    @Test
+    @DisplayName("nome de usuário já existente não é aceito no cadastro")
+    void cadastroComUsernameRepetidoEhRecusado() {
+        AuthorizationTestSupport.autenticarComoAdministrador();
+        Usuario novo = usuarioComSenha("senha");
+        novo.setEscola(escolaDa(ESCOLA_A));
+        given(repository.existsByUsernameIgnoreCase(novo.getUsername())).willReturn(true);
+
+        assertThatThrownBy(() -> service.salvar(novo)).isInstanceOf(RegraNegocioException.class);
+        verify(repository, never()).save(any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("edição não troca o nome de usuário por um já usado por outra pessoa")
+    void atualizacaoComUsernameRepetidoEhRecusada() {
+        AuthorizationTestSupport.autenticarComoAdministrador();
+        given(repository.findById(USUARIO_ID)).willReturn(Optional.of(usuario(USUARIO_ID, ESCOLA_A)));
+        Usuario alteracao = usuario(USUARIO_ID, ESCOLA_A);
+        alteracao.setUsername("outro.usuario");
+        given(repository.existsByUsernameIgnoreCaseAndIdNot("outro.usuario", USUARIO_ID)).willReturn(true);
+
+        assertThatThrownBy(() -> service.atualizar(USUARIO_ID, alteracao)).isInstanceOf(RegraNegocioException.class);
+        verify(repository, never()).save(any(Usuario.class));
     }
 
     // --- apoio --------------------------------------------------------------

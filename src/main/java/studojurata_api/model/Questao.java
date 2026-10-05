@@ -20,6 +20,8 @@ import studojurata_api.model.enums.TipoQuestao;
 @EqualsAndHashCode(callSuper = true)
 public class Questao extends BaseEntity {
 
+    @Column(columnDefinition = "TEXT")
+
     private String enunciado;
 
     @Enumerated(EnumType.STRING)

@@ -60,6 +60,33 @@ class C1AlunoRelacionadosEscopoTest extends AutorizacaoComEscopoTestBase {
         AuthorizationTestSupport.limparContexto();
     }
 
+    // --- GET /aluno-turma/aluno/{id} (escolha do curso no portal do aluno) ---
+
+    @Test
+    @DisplayName("aluno lista as próprias matrículas")
+    void alunoListaAsProprias() throws Exception {
+        given(alunoTurmaService.matriculasDoAluno(ALUNO_ID)).willReturn(List.of());
+
+        mockMvc.perform(get("/aluno-turma/aluno/{id}", ALUNO_ID).with(comoAluno(ALUNO_ID))).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("aluno não lista matrículas de outro aluno")
+    void alunoNaoListaMatriculasDeOutro() throws Exception {
+        mockMvc.perform(get("/aluno-turma/aluno/{id}", OUTRO_ALUNO_ID).with(comoAluno(ALUNO_ID)))
+                .andExpect(status().isForbidden());
+
+        verify(alunoTurmaService, never()).matriculasDoAluno(OUTRO_ALUNO_ID);
+    }
+
+    @Test
+    @DisplayName("administrador lista matrículas de qualquer aluno")
+    void administradorListaMatriculas() throws Exception {
+        given(alunoTurmaService.matriculasDoAluno(ALUNO_ID)).willReturn(List.of());
+
+        mockMvc.perform(get("/aluno-turma/aluno/{id}", ALUNO_ID).with(comoAdministrador())).andExpect(status().isOk());
+    }
+
     // --- GET /questao-aluno (listagem agregada de respostas) ---------------
 
     @Test

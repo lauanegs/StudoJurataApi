@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.model.Usuario;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.repository.UsuarioRepository;
@@ -42,6 +43,9 @@ public class UsuarioService {
 
     public Usuario salvar(Usuario obj) {
         exigirEscolaDoCorpo(obj);
+        if (obj.getUsername() != null && repository.existsByUsernameIgnoreCase(obj.getUsername().trim())) {
+            throw new RegraNegocioException("Já existe um usuário com este nome de usuário.");
+        }
         obj.setSenha(passwordEncoder.encode(obj.getSenha()));
         if (obj.getStatus() == null) obj.setStatus(StatusAtivoInativo.ATIVO);
         return repository.save(obj);
@@ -50,6 +54,9 @@ public class UsuarioService {
     /** Só gera hash quando uma nova senha foi enviada, para não aplicar hash sobre hash. */
     public Usuario atualizar(Long id, Usuario obj) {
         Usuario existente = buscar(id);
+        if (obj.getUsername() != null && repository.existsByUsernameIgnoreCaseAndIdNot(obj.getUsername().trim(), id)) {
+            throw new RegraNegocioException("Já existe um usuário com este nome de usuário.");
+        }
         obj.setId(id);
         // Um usuário nunca muda de escola (mesma regra do CursoService), então a
         // escola do corpo não é aceita como origem de escrita.

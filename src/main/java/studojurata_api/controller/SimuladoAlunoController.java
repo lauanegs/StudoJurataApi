@@ -80,4 +80,11 @@ public class SimuladoAlunoController {
         dto.setDiasProximaRevisao(resultado.diasProximaRevisao());
         return dto;
     }
+
+    /** Feedback imediato: confere a resposta da questão e a trava para a finalização. */
+    @PostMapping("/{id}/conferir-questao")
+    public SimuladoAlunoService.ConferenciaQuestao conferirQuestao(
+            @PathVariable Long id, @RequestBody FinalizarSimuladoRequest.Item resposta) {
+        return service.conferirQuestao(id, resposta);
+    }
 }

@@ -86,9 +86,15 @@ public class SimuladoService {
             Long professorId = usuario.getProfessor() != null ? usuario.getProfessor().getId() : null;
             Set<Long> turmaIds = escopoProfessor.turmaIdsDoProfessor(professorId);
 
+            Set<EscopoProfessor.ParTurmaDisciplina> pares = escopoProfessor.paresTurmaDisciplinaDoProfessor(professorId);
+
             Set<Long> ids = new LinkedHashSet<>();
             if (!turmaIds.isEmpty()) {
                 repository.findByTurma_IdIn(turmaIds).stream()
+                        // Turma não basta: a disciplina do simulado também precisa ser dele naquela turma.
+                        .filter(simulado -> simulado.getDisciplina() != null && pares.contains(
+                                new EscopoProfessor.ParTurmaDisciplina(
+                                        simulado.getTurma().getId(), simulado.getDisciplina().getId())))
                         .map(Simulado::getId)
                         .filter(Objects::nonNull)
                         .forEach(ids::add);
@@ -251,6 +257,23 @@ public class SimuladoService {
         simuladoAccessGuard.garantirPerfilDeEscrita();
         Simulado simulado = buscar(simuladoId);
         simuladoAccessGuard.garantirEscrita(simulado);
+
+        return publicar(simulado, alunoIdsEspecificos);
+    }
+
+    /**
+     * Publicação na data de início, feita pelo job agendado (sem sessão): o
+     * simulado já passou pelo escopo do professor quando foi criado. Não lança
+     * quando faltam condições (sem questões, questões pendentes, destinatários
+     * indefinidos) — nesse caso a regra de negócio explica o motivo.
+     */
+    @Transactional
+    public Simulado lancarAutomaticamente(Long simuladoId) {
+        return publicar(buscar(simuladoId), null);
+    }
+
+    private Simulado publicar(Simulado simulado, List<Long> alunoIdsEspecificos) {
+        Long simuladoId = simulado.getId();
 
         if (simulado.getStatus() != StatusSimulado.RASCUNHO) {
             throw new RegraNegocioException("Este simulado já foi lançado ou está encerrado.");
@@ -424,6 +447,16 @@ public class SimuladoService {
         Simulado simulado = buscar(simuladoId);
         simuladoAccessGuard.garantirEscrita(simulado);
 
+        return encerrarSimulado(simulado);
+    }
+
+    /** Encerramento na data final, feito pelo job agendado (sem sessão). */
+    @Transactional
+    public Simulado encerrarAutomaticamente(Long simuladoId) {
+        return encerrarSimulado(buscar(simuladoId));
+    }
+
+    private Simulado encerrarSimulado(Simulado simulado) {
         if (simulado.getStatus() != StatusSimulado.PUBLICADO) {
             throw new RegraNegocioException("Só é possível encerrar um simulado que esteja PUBLICADO.");
         }

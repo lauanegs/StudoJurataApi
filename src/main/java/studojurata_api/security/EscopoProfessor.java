@@ -52,6 +52,20 @@ public class EscopoProfessor {
         return turmaIdsDosVinculos(vinculosDoProfessor(professorId));
     }
 
+    /** Par turma + disciplina em que o professor é titular. */
+    public record ParTurmaDisciplina(Long turmaId, Long disciplinaId) {}
+
+    /**
+     * Pares turma+disciplina do professor. Duas pessoas podem lecionar na mesma
+     * turma disciplinas diferentes: o simulado de uma não é escopo da outra.
+     */
+    public Set<ParTurmaDisciplina> paresTurmaDisciplinaDoProfessor(Long professorId) {
+        return vinculosDoProfessor(professorId).stream()
+                .filter(vinculo -> vinculo.getTurma() != null && vinculo.getDisciplina() != null)
+                .map(vinculo -> new ParTurmaDisciplina(vinculo.getTurma().getId(), vinculo.getDisciplina().getId()))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
     /** Ids dos vínculos turma+disciplina do professor. */
     public Set<Long> turmaDisciplinaIdsDoProfessor(Long professorId) {
         Set<Long> vinculoIds = new LinkedHashSet<>();

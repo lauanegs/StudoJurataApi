@@ -26,6 +26,7 @@ import studojurata_api.model.Aluno;
 import studojurata_api.model.Simulado;
 import studojurata_api.model.SimuladoAluno;
 import studojurata_api.model.SimuladoQuestao;
+import studojurata_api.model.Disciplina;
 import studojurata_api.model.Turma;
 import studojurata_api.model.enums.StatusSimuladoAluno;
 import studojurata_api.repository.AlunoRepository;
@@ -58,6 +59,7 @@ class C2SimuladoListagemEscopoTest {
     private static final long ALUNO_ID = 7L;
     private static final long PROFESSOR_ID = 42L;
     private static final long TURMA_ID = 10L;
+    private static final long DISCIPLINA_ID = 5L;
     private static final long OUTRA_TURMA_ID = 99L;
     private static final long SIMULADO_ID = 300L;
     private static final long ORFAO_ID = 900L;
@@ -94,7 +96,7 @@ class C2SimuladoListagemEscopoTest {
                 auditLogService, pontuacaoAlunoService, revisaoConteudoService, mock(AlunoAccessGuard.class),
                 simuladoServiceDublado, usuarioAutenticado, mock(MachineLearningRecomendacaoService.class));
         simuladoQuestaoService = new SimuladoQuestaoService(simuladoQuestaoRepository, questaoConteudoRepository,
-                usuarioAutenticado, simuladoServiceDublado, simuladoAccessGuard);
+                mock(studojurata_api.repository.AulaConteudoRepository.class), usuarioAutenticado, simuladoServiceDublado, simuladoAccessGuard);
     }
 
     @AfterEach
@@ -119,13 +121,30 @@ class C2SimuladoListagemEscopoTest {
     void professorVeApenasAsSuasTurmas() {
         AuthorizationTestSupport.autenticarComoProfessor(PROFESSOR_ID);
         given(escopoProfessor.turmaIdsDoProfessor(PROFESSOR_ID)).willReturn(Set.of(TURMA_ID));
-        given(simuladoRepository.findByTurma_IdIn(Set.of(TURMA_ID))).willReturn(List.of(simulado(SIMULADO_ID)));
+        given(escopoProfessor.paresTurmaDisciplinaDoProfessor(PROFESSOR_ID))
+                .willReturn(Set.of(new EscopoProfessor.ParTurmaDisciplina(TURMA_ID, DISCIPLINA_ID)));
+        given(simuladoRepository.findByTurma_IdIn(Set.of(TURMA_ID)))
+                .willReturn(List.of(simulado(SIMULADO_ID, TURMA_ID)));
         given(simuladoRepository.findAllById(Set.of(SIMULADO_ID))).willReturn(List.of(simulado(SIMULADO_ID)));
 
         assertThat(simuladoService.listar()).extracting(Simulado::getId)
                 .containsExactly(SIMULADO_ID);
 
         verify(simuladoRepository, never()).findAll();
+    }
+
+    @Test
+    @DisplayName("professor nao ve simulado de outra disciplina na mesma turma")
+    void professorNaoVeSimuladoDeOutraDisciplinaNaMesmaTurma() {
+        AuthorizationTestSupport.autenticarComoProfessor(PROFESSOR_ID);
+        given(escopoProfessor.turmaIdsDoProfessor(PROFESSOR_ID)).willReturn(Set.of(TURMA_ID));
+        given(escopoProfessor.paresTurmaDisciplinaDoProfessor(PROFESSOR_ID))
+                .willReturn(Set.of(new EscopoProfessor.ParTurmaDisciplina(TURMA_ID, DISCIPLINA_ID)));
+        Simulado deOutroProfessor = simulado(ORFAO_ID, TURMA_ID);
+        deOutroProfessor.getDisciplina().setId(DISCIPLINA_ID + 1);
+        given(simuladoRepository.findByTurma_IdIn(Set.of(TURMA_ID))).willReturn(List.of(deOutroProfessor));
+
+        assertThat(simuladoService.listar()).isEmpty();
     }
 
     @Test
@@ -271,6 +290,8 @@ class C2SimuladoListagemEscopoTest {
         AuthorizationTestSupport.autenticarComoProfessor(PROFESSOR_ID);
         given(simuladoRepository.findById(SIMULADO_ID)).willReturn(Optional.of(simulado(SIMULADO_ID, TURMA_ID)));
         given(escopoProfessor.turmaIdsDoProfessor(PROFESSOR_ID)).willReturn(Set.of(TURMA_ID));
+        given(escopoProfessor.paresTurmaDisciplinaDoProfessor(PROFESSOR_ID))
+                .willReturn(Set.of(new EscopoProfessor.ParTurmaDisciplina(TURMA_ID, DISCIPLINA_ID)));
         given(simuladoRepository.findByTurma_IdIn(Set.of(TURMA_ID)))
                 .willReturn(List.of(simulado(SIMULADO_ID, TURMA_ID)));
 
@@ -368,6 +389,9 @@ class C2SimuladoListagemEscopoTest {
         Turma turma = new Turma();
         turma.setId(turmaId);
         simulado.setTurma(turma);
+        Disciplina disciplina = new Disciplina();
+        disciplina.setId(DISCIPLINA_ID);
+        simulado.setDisciplina(disciplina);
         return simulado;
     }
 

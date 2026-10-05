@@ -50,6 +50,10 @@ public class AlunoTurmaService {
         return turmaIds.isEmpty() ? List.of() : repository.findByTurma_IdIn(turmaIds);
     }
 
+    public List<AlunoTurma> matriculasDoAluno(Long alunoId) {
+        return repository.findByAluno_Id(alunoId);
+    }
+
     public AlunoTurma buscar(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Matrícula " + id + " não encontrada."));

@@ -108,7 +108,13 @@ public class SimuladoAlunoService {
     @Transactional(readOnly = true)
     public studojurata_api.dto.QuestaoDaTentativaDTO questoesDaTentativa(Long simuladoAlunoId) {
         SimuladoAluno tentativa = buscar(simuladoAlunoId);
-        alunoAccessGuard.garantirDonoOuAdministrador(alunoDaTentativa(tentativa));
+        // Em andamento, a prova é só do aluno; depois de concluída, o professor
+        // que leciona para ele também lê a correção (questões + gabarito).
+        if (tentativa.getStatus() == StatusSimuladoAluno.CONCLUIDO) {
+            alunoAccessGuard.garantir(alunoDaTentativa(tentativa));
+        } else {
+            alunoAccessGuard.garantirDonoOuAdministrador(alunoDaTentativa(tentativa));
+        }
 
         List<SimuladoQuestao> vinculos = simuladoQuestaoRepository.findBySimuladoIdAndStatusOrderByOrdem(
                 tentativa.getSimulado().getId(), StatusSimuladoQuestao.ATIVA);
@@ -159,6 +165,60 @@ public class SimuladoAlunoService {
         return dto;
     }
 
+    /** Resultado da conferência imediata: se acertou e quais alternativas da questão são as corretas. */
+    public record ConferenciaQuestao(boolean acertou, List<Long> alternativasCorretasIds) {}
+
+    /**
+     * Feedback imediato durante a prova. A resposta é gravada e fica travada:
+     * uma questão só pode ser conferida uma vez (senão o aluno testaria
+     * alternativa por alternativa) e a finalização respeita o que foi gravado.
+     */
+    @Transactional
+    public ConferenciaQuestao conferirQuestao(Long simuladoAlunoId, FinalizarSimuladoRequest.Item resposta) {
+        SimuladoAluno simuladoAluno = buscar(simuladoAlunoId);
+        alunoAccessGuard.garantirEscritaDoAluno(alunoDaTentativa(simuladoAluno));
+
+        if (simuladoAluno.getStatus() == StatusSimuladoAluno.CONCLUIDO) {
+            throw new RegraNegocioException("Esta tentativa já foi finalizada.");
+        }
+        if (simuladoAluno.getSimulado().getStatus() == StatusSimulado.ENCERRADO) {
+            throw new RegraNegocioException("Este simulado já está encerrado.");
+        }
+
+        Questao questao = simuladoQuestaoRepository
+                .findBySimuladoIdAndStatusOrderByOrdem(simuladoAluno.getSimulado().getId(), StatusSimuladoQuestao.ATIVA)
+                .stream()
+                .map(SimuladoQuestao::getQuestao)
+                .filter(candidata -> candidata.getId().equals(resposta.getQuestaoId()))
+                .findFirst()
+                .orElseThrow(() -> new RegraNegocioException("Esta questão não pertence ao simulado."));
+
+        QuestaoAluno questaoAluno = questaoAlunoRepository
+                .findFirstBySimuladoAlunoIdAndQuestaoId(simuladoAluno.getId(), questao.getId())
+                .orElseGet(QuestaoAluno::new);
+        if (Boolean.TRUE.equals(questaoAluno.getRespondida())) {
+            throw new RegraNegocioException("Esta questão já foi respondida.");
+        }
+
+        questaoAluno.setSimuladoAluno(simuladoAluno);
+        questaoAluno.setQuestao(questao);
+        boolean acertou = questao.getTipo() == TipoQuestao.VERDADEIRO_FALSO
+                ? julgarVerdadeiroFalso(questao, resposta, questaoAluno)
+                : julgarAlternativas(resposta, questaoAluno);
+        if (!Boolean.TRUE.equals(questaoAluno.getRespondida())) {
+            throw new RegraNegocioException("Selecione uma resposta antes de confirmar.");
+        }
+        questaoAluno.setAcertou(acertou);
+        questaoAluno.setTempoResposta(resposta.getTempoResposta());
+        questaoAlunoRepository.save(questaoAluno);
+
+        List<Long> corretas = alternativaRepository.findByQuestaoIdOrderByOrdem(questao.getId()).stream()
+                .filter(alternativa -> Boolean.TRUE.equals(alternativa.getCorreta()))
+                .map(Alternativa::getId)
+                .toList();
+        return new ConferenciaQuestao(acertou, corretas);
+    }
+
     public record ResultadoFinalizacao(SimuladoAluno simuladoAluno, Integer diasProximaRevisao) {}
 
     /** respondidas = questões efetivamente respondidas (em branco não conta). */
@@ -199,9 +259,12 @@ public class SimuladoAlunoService {
         // é esse número que serve de rótulo para o próximo treino do modelo.
         registrarDesfechoDaRecomendacao(salvo, correcao, questoes);
 
-        // Moedas por concluir, independente da nota: não é bonificação por acerto.
-        pontuacaoAlunoService.concederMoedas(salvo.getAluno().getId(),
-                PontuacaoAlunoService.MOEDAS_POR_SIMULADO_CONCLUIDO);
+        // Moedas por concluir, independente da nota — mas só quando o aluno
+        // respondeu todas as questões: prova entregue em branco/incompleta não rende moedas.
+        if (!questoes.isEmpty() && correcao.respondidas() == questoes.size()) {
+            pontuacaoAlunoService.concederMoedas(salvo.getAluno().getId(),
+                    PontuacaoAlunoService.MOEDAS_POR_SIMULADO_CONCLUIDO);
+        }
 
         Integer diasProximaRevisao = registrarRevisaoEspacada(salvo.getAluno().getId(), questoes, correcao);
 
@@ -265,12 +328,18 @@ public class SimuladoAlunoService {
             questaoAluno.setSimuladoAluno(simuladoAluno);
             questaoAluno.setQuestao(questao);
 
-            boolean acertou = questao.getTipo() == TipoQuestao.VERDADEIRO_FALSO
-                    ? julgarVerdadeiroFalso(questao, resposta, questaoAluno)
-                    : julgarAlternativas(resposta, questaoAluno);
+            // Questão já conferida durante a prova: vale a resposta gravada, não a do request.
+            boolean jaConferida = Boolean.TRUE.equals(questaoAluno.getRespondida());
+            boolean acertou = jaConferida
+                    ? Boolean.TRUE.equals(questaoAluno.getAcertou())
+                    : questao.getTipo() == TipoQuestao.VERDADEIRO_FALSO
+                            ? julgarVerdadeiroFalso(questao, resposta, questaoAluno)
+                            : julgarAlternativas(resposta, questaoAluno);
 
             questaoAluno.setAcertou(acertou);
-            questaoAluno.setTempoResposta(resposta != null ? resposta.getTempoResposta() : null);
+            if (!jaConferida) {
+                questaoAluno.setTempoResposta(resposta != null ? resposta.getTempoResposta() : null);
+            }
             questaoAlunoRepository.save(questaoAluno);
 
             if (Boolean.TRUE.equals(questaoAluno.getRespondida())) {

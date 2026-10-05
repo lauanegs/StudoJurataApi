@@ -18,11 +18,8 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class PontuacaoAlunoService {
 
-    /** Independente da nota: não é bonificação por acerto. */
+    /** Independente da nota, mas só quando todas as questões foram respondidas. */
     public static final int MOEDAS_POR_SIMULADO_CONCLUIDO = 10;
-
-    /** Mesma quantidade por reforço registrado — quem revisa é beneficiado tanto quanto quem acerta de primeira. */
-    public static final int MOEDAS_POR_REFORCO = 10;
 
     private final PontuacaoAlunoRepository repository;
     private final AlunoRepository alunoRepository;

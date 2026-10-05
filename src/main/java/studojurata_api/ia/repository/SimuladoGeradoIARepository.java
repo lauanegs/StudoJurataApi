@@ -18,4 +18,6 @@ public interface SimuladoGeradoIARepository extends JpaRepository<SimuladoGerado
 
     /** Vínculo(s) de IA de um simulado — fonte do aluno destinatário no lançamento. */
     List<SimuladoGeradoIA> findBySimulado_Id(Long simuladoId);
+
+    boolean existsBySimulado_Id(Long simuladoId);
 }

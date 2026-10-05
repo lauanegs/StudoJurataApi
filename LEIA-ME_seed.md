@@ -19,7 +19,7 @@ Arquivo: `src/main/java/studojurata_api/config/DevDataResetSeeder.java`
      **ATIVA em duas turmas de cursos diferentes ao mesmo tempo** (Geek
      Júnior + Robótica), 1 com matrícula **CONCLUIDA** e 1 **CANCELADA** —
      cobrindo as situações de matrícula
-   - 1 responsável por aluno (com aceite de termos)
+   - 1 responsável por aluno
    - Plano de ensino, conteúdos, planos de aula e aulas para cada
      disciplina/turma — cada plano de ensino sempre vinculado a um plano de
      aula, e nenhuma turma fica sem um plano de ensino/plano de aula

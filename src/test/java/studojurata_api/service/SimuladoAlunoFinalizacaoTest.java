@@ -1,10 +1,13 @@
 package studojurata_api.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,6 +31,8 @@ import studojurata_api.ia.service.RevisaoConteudoService;
 import studojurata_api.machinelearning.service.MachineLearningRecomendacaoService;
 import studojurata_api.model.Aluno;
 import studojurata_api.model.Alternativa;
+import studojurata_api.exception.RegraNegocioException;
+import studojurata_api.model.QuestaoAluno;
 import studojurata_api.model.Questao;
 import studojurata_api.model.Simulado;
 import studojurata_api.model.SimuladoAluno;
@@ -98,7 +103,7 @@ class SimuladoAlunoFinalizacaoTest {
     }
 
     @Test
-    @DisplayName("aluno dono finaliza a própria tentativa e os efeitos acontecem")
+    @DisplayName("aluno dono finaliza a própria tentativa; prova em branco não rende moedas")
     void alunoDonoFinaliza() {
         AuthorizationTestSupport.autenticarComoAluno(ALUNO_ID);
         prepararFluxoLegitimo(ALUNO_ID);
@@ -108,7 +113,7 @@ class SimuladoAlunoFinalizacaoTest {
 
         assertThat(resultado.simuladoAluno().getStatus()).isEqualTo(StatusSimuladoAluno.CONCLUIDO);
         verify(repository).save(any(SimuladoAluno.class));
-        verify(pontuacaoAlunoService).concederMoedas(ALUNO_ID, PontuacaoAlunoService.MOEDAS_POR_SIMULADO_CONCLUIDO);
+        verify(pontuacaoAlunoService, never()).concederMoedas(any(), anyInt());
     }
 
     @Test
@@ -152,6 +157,62 @@ class SimuladoAlunoFinalizacaoTest {
         // Percentual real da tentativa (acertou a única questão) e vínculo com o simulado.
         verify(machineLearningRecomendacaoService)
                 .registrarResultado(ALUNO_ID, SIMULADO_ID, 1.0, List.of(QUESTAO_ID));
+        // Todas as questões respondidas: as moedas são concedidas uma única vez.
+        verify(pontuacaoAlunoService).concederMoedas(ALUNO_ID, PontuacaoAlunoService.MOEDAS_POR_SIMULADO_CONCLUIDO);
+    }
+
+    @Test
+    @DisplayName("conferir questão grava a resposta e devolve acerto e alternativas corretas")
+    void conferirQuestaoGravaEDevolveGabarito() {
+        AuthorizationTestSupport.autenticarComoAluno(ALUNO_ID);
+        prepararFluxoLegitimo(ALUNO_ID, questaoComAlternativaCorreta());
+        given(questaoAlunoRepository.findFirstBySimuladoAlunoIdAndQuestaoId(TENTATIVA_ID, QUESTAO_ID))
+                .willReturn(Optional.empty());
+        Alternativa correta = new Alternativa();
+        correta.setId(ALTERNATIVA_ID);
+        correta.setCorreta(true);
+        given(alternativaRepository.findByQuestaoIdOrderByOrdem(QUESTAO_ID)).willReturn(List.of(correta));
+
+        FinalizarSimuladoRequest.Item resposta = new FinalizarSimuladoRequest.Item();
+        resposta.setQuestaoId(QUESTAO_ID);
+        resposta.setAlternativaId(ALTERNATIVA_ID);
+
+        SimuladoAlunoService.ConferenciaQuestao conferencia = service.conferirQuestao(TENTATIVA_ID, resposta);
+
+        assertThat(conferencia.acertou()).isTrue();
+        assertThat(conferencia.alternativasCorretasIds()).containsExactly(ALTERNATIVA_ID);
+        verify(questaoAlunoRepository).save(any(QuestaoAluno.class));
+        // Conferir não finaliza: nada de nota, moedas ou status concluído.
+        verify(pontuacaoAlunoService, never()).concederMoedas(any(), anyInt());
+    }
+
+    @Test
+    @DisplayName("questão já conferida não pode ser conferida de novo (não dá para testar alternativa por alternativa)")
+    void conferirQuestaoJaRespondidaEhRecusado() {
+        AuthorizationTestSupport.autenticarComoAluno(ALUNO_ID);
+        prepararFluxoLegitimo(ALUNO_ID, questaoComAlternativaCorreta());
+        QuestaoAluno jaRespondida = new QuestaoAluno();
+        jaRespondida.setRespondida(true);
+        given(questaoAlunoRepository.findFirstBySimuladoAlunoIdAndQuestaoId(TENTATIVA_ID, QUESTAO_ID))
+                .willReturn(Optional.of(jaRespondida));
+
+        FinalizarSimuladoRequest.Item resposta = new FinalizarSimuladoRequest.Item();
+        resposta.setQuestaoId(QUESTAO_ID);
+        resposta.setAlternativaId(ALTERNATIVA_ID);
+
+        assertThatThrownBy(() -> service.conferirQuestao(TENTATIVA_ID, resposta))
+                .isInstanceOf(RegraNegocioException.class);
+        verify(questaoAlunoRepository, never()).save(any(QuestaoAluno.class));
+    }
+
+    @Test
+    @DisplayName("aluno não confere questão da tentativa de outro aluno")
+    void conferirQuestaoDeOutroAlunoEhRecusado() {
+        AuthorizationTestSupport.autenticarComoAluno(OUTRO_ALUNO_ID);
+        given(repository.findById(TENTATIVA_ID)).willReturn(Optional.of(tentativaDoAluno(ALUNO_ID)));
+
+        assertForbidden(() -> service.conferirQuestao(TENTATIVA_ID, new FinalizarSimuladoRequest.Item()));
+        verify(questaoAlunoRepository, never()).save(any(QuestaoAluno.class));
     }
 
     @Test
@@ -193,7 +254,7 @@ class SimuladoAlunoFinalizacaoTest {
 
     private void prepararFluxoLegitimo(long alunoId, SimuladoQuestao vinculo) {
         given(repository.findById(TENTATIVA_ID)).willReturn(Optional.of(tentativaDoAluno(alunoId)));
-        given(repository.save(any(SimuladoAluno.class))).willAnswer(invocacao -> invocacao.getArgument(0));
+        lenient().when(repository.save(any(SimuladoAluno.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
         given(simuladoQuestaoRepository.findBySimuladoIdAndStatusOrderByOrdem(SIMULADO_ID, StatusSimuladoQuestao.ATIVA))
                 .willReturn(vinculo == null ? List.of() : List.of(vinculo));
     }
@@ -208,7 +269,7 @@ class SimuladoAlunoFinalizacaoTest {
         alternativa.setId(ALTERNATIVA_ID);
         alternativa.setQuestao(questao);
         alternativa.setCorreta(true);
-        given(alternativaRepository.findById(ALTERNATIVA_ID)).willReturn(Optional.of(alternativa));
+        lenient().when(alternativaRepository.findById(ALTERNATIVA_ID)).thenReturn(Optional.of(alternativa));
 
         SimuladoQuestao vinculo = new SimuladoQuestao();
         vinculo.setSimulado(tentativaDoAluno(ALUNO_ID).getSimulado());

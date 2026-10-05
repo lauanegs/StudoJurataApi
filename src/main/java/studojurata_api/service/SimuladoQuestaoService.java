@@ -1,5 +1,11 @@
 package studojurata_api.service;
 
+import java.time.LocalDate;
+import java.util.Set;
+import java.util.stream.Collectors;
+import studojurata_api.model.ConteudoPlano;
+import studojurata_api.model.QuestaoConteudo;
+import studojurata_api.repository.AulaConteudoRepository;
 import studojurata_api.security.SimuladoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 
@@ -30,6 +36,7 @@ public class SimuladoQuestaoService {
 
     private final SimuladoQuestaoRepository repository;
     private final QuestaoConteudoRepository questaoConteudoRepository;
+    private final AulaConteudoRepository aulaConteudoRepository;
     private final UsuarioAutenticado usuarioAutenticado;
     private final SimuladoService simuladoService;
     private final SimuladoAccessGuard simuladoAccessGuard;
@@ -173,16 +180,43 @@ public class SimuladoQuestaoService {
         }
     }
 
+    /**
+     * Toda questão de simulado precisa de conteúdo, e todo conteúdo vinculado
+     * precisa ter sido ministrado (ao menos uma aula realizada, com data de
+     * publicação até hoje). Sem isso o aluno seria cobrado em matéria que ainda
+     * não viu e a repetição espaçada não teria o que rastrear.
+     */
     private void validarQuestaoVinculadaAoConteudo(SimuladoQuestao obj) {
         if (obj.getQuestao() == null || obj.getQuestao().getId() == null) {
             throw new RequisicaoInvalidaException("Questão é obrigatória.");
         }
-        if (obj.getQuestao().getOrigem() == OrigemQuestao.PROFESSOR) {
-            return;
-        }
-        if (!questaoConteudoRepository.existsByQuestaoId(obj.getQuestao().getId())) {
+
+        List<QuestaoConteudo> vinculos = questaoConteudoRepository.findByQuestao_Id(obj.getQuestao().getId());
+        if (vinculos.isEmpty()) {
             throw new RegraNegocioException(
                     "A questão precisa estar vinculada a um conteúdo antes de compor um simulado.");
+        }
+
+        List<Long> conteudoIds = vinculos.stream()
+                .map(vinculo -> vinculo.getConteudoPlano().getId())
+                .toList();
+        LocalDate hoje = LocalDate.now();
+        Set<Long> ministrados = aulaConteudoRepository.findByConteudoPlano_IdIn(conteudoIds).stream()
+                .filter(aulaConteudo -> aulaConteudo.getAula() != null
+                        && aulaConteudo.getAula().getDataPublicacao() != null
+                        && !aulaConteudo.getAula().getDataPublicacao().isAfter(hoje))
+                .map(aulaConteudo -> aulaConteudo.getConteudoPlano().getId())
+                .collect(Collectors.toSet());
+
+        List<String> naoMinistrados = vinculos.stream()
+                .map(QuestaoConteudo::getConteudoPlano)
+                .filter(conteudo -> !ministrados.contains(conteudo.getId()))
+                .map(ConteudoPlano::getTitulo)
+                .toList();
+        if (!naoMinistrados.isEmpty()) {
+            throw new RegraNegocioException(
+                    "Só é possível usar conteúdo já ministrado (com aula realizada). Ainda não ministrado: "
+                            + String.join(", ", naoMinistrados) + ".");
         }
     }
 }

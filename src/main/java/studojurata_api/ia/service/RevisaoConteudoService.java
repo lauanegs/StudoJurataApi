@@ -9,7 +9,6 @@ import studojurata_api.ia.model.enums.NivelDominio;
 import studojurata_api.ia.repository.RevisaoConteudoRepository;
 import studojurata_api.repository.AlunoRepository;
 import studojurata_api.repository.ConteudoPlanoRepository;
-import studojurata_api.service.gamificacao.PontuacaoAlunoService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -29,7 +28,6 @@ public class RevisaoConteudoService {
     private final RevisaoConteudoRepository repository;
     private final AlunoRepository alunoRepository;
     private final ConteudoPlanoRepository conteudoPlanoRepository;
-    private final PontuacaoAlunoService pontuacaoAlunoService;
 
     public List<RevisaoConteudo> listarPorAluno(Long alunoId) {
         return repository.findByAlunoId(alunoId);
@@ -56,11 +54,7 @@ public class RevisaoConteudoService {
         revisao.setDataProximoReforco(dominado ? null : hoje.plusDays(diasAteProximoReforco(quantidade)));
         revisao.setNivelDominio(dominado ? NivelDominio.ALTO : nivelDominioObservado != null ? nivelDominioObservado : revisao.getNivelDominio());
 
-        RevisaoConteudo salva = repository.save(revisao);
-
-        pontuacaoAlunoService.concederMoedas(alunoId, PontuacaoAlunoService.MOEDAS_POR_REFORCO);
-
-        return salva;
+        return repository.save(revisao);
     }
 
     /** 7 dias após o 1º reforço, 14 após o 2º, 3 meses (90 dias) após o 3º. */

@@ -15,9 +15,9 @@ public class GamificacaoSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        criarSeNaoExistir("Mascote Clássico", "Visual padrão do mascote Studo Jurata.", 0, "skins/classico.png");
-        criarSeNaoExistir("Mascote Explorador", "Traje de explorador, desbloqueado com moedas de reforço.", 50, "skins/explorador.png");
-        criarSeNaoExistir("Mascote Cientista", "Jaleco de cientista, para quem completa muitos simulados.", 80, "skins/cientista.png");
+        criarSeNaoExistir("Jura", "Jura, o visual padrão do mascote Studo Jurata.", 0, "skins/classico.png");
+        criarSeNaoExistir("Bit", "Traje de explorador, desbloqueado com moedas de reforço.", 50, "skins/explorador.png");
+        criarSeNaoExistir("Lia", "Jaleco de cientista, para quem completa muitos simulados.", 80, "skins/cientista.png");
     }
 
     private void criarSeNaoExistir(String nome, String descricao, int custoMoedas, String urlAsset) {
