@@ -45,7 +45,9 @@ ia/           — módulo de IA (Gemini), organizado por feature própria
 
 **Build:** Maven (`./mvnw compile`, `./mvnw test`, `./mvnw spring-boot:run`). Subir a aplicação completa de dentro de um sandbox de ferramenta pode falhar por um erro de baixo nível de loopback socket do JVM/Windows (não relacionado ao código) — se acontecer após 2-3 tentativas, pedir para o usuário subir manualmente em vez de insistir com variações de flags de JVM.
 
-**Testes:** JUnit 5 + `spring-boot-starter-test` + `spring-security-test` no `pom.xml`, mas cobertura real hoje é **essencialmente zero** (só existe `StudojurataApiApplicationTests.contextLoads()`). Ao alterar comportamento sem teste correspondente, compensar com verificação manual documentada (chamada real à API, Swagger, script) — ver `docs/refactoring-guidelines.md`.
+**Testes:** removidos de propósito (`src/test` não existe). Validar com `./mvnw compile` e verificação manual contra a API.
+
+**Pacotes:** cada camada (`controller`, `dto`, `mapper`, `model`, `repository`, `service`) é dividida em subpacotes por domínio: `pessoa`, `curriculo`, `turma`, `planejamento`, `simulado`, `nota`, `institucional`, `auditoria`, `autenticacao` (e `gamificacao`). Classe nova entra no subpacote do seu domínio.
 
 ## Regra fundamental: simplicidade acima de tudo
 
