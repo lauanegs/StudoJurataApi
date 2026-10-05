@@ -1,8 +1,11 @@
 package studojurata_api.config;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,6 +23,9 @@ import studojurata_api.security.CustomUserDetailsService;
 
 @Configuration
 public class SecurityConfig {
+
+    @Value("${studojurata.cors.allowed-origins:}")
+    private String origensExtras;
 
     @Bean
     PasswordEncoder passwordEncoder() {
@@ -47,12 +53,18 @@ public class SecurityConfig {
      * Aceita localhost em qualquer porta porque o Vite troca sozinho de porta
      * (5174, 5175...) quando a 5173 está ocupada — com origem fixa, o login
      * falharia com 403 sem nenhuma pista de que o problema é CORS. As origens
-     * de produção precisam ser adicionadas aqui antes do deploy.
+     * extras (domínio do front em produção, caso a API seja chamada por outro
+     * domínio) entram por studojurata.cors.allowed-origins.
      */
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
+        List<String> origens = new ArrayList<>(List.of("http://localhost:*", "http://127.0.0.1:*"));
+        Arrays.stream(origensExtras.split(","))
+                .map(String::trim)
+                .filter(origem -> !origem.isEmpty())
+                .forEach(origens::add);
+        configuration.setAllowedOriginPatterns(origens);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

@@ -32,7 +32,6 @@ import studojurata_api.model.gamificacao.PontuacaoAluno;
 import studojurata_api.model.gamificacao.Skin;
 import studojurata_api.model.gamificacao.SkinAluno;
 
-import studojurata_api.repository.*;
 import studojurata_api.repository.gamificacao.PontuacaoAlunoRepository;
 import studojurata_api.repository.gamificacao.SkinAlunoRepository;
 import studojurata_api.repository.gamificacao.SkinRepository;
