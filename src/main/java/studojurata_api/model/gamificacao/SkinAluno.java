@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import studojurata_api.model.Aluno;
+import studojurata_api.model.pessoa.Aluno;
 import studojurata_api.model.BaseEntity;
 
 @Entity

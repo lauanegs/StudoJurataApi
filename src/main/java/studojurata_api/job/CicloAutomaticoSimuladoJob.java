@@ -7,10 +7,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
-import studojurata_api.model.Simulado;
+import studojurata_api.model.simulado.Simulado;
 import studojurata_api.model.enums.StatusSimulado;
-import studojurata_api.repository.SimuladoRepository;
-import studojurata_api.service.SimuladoService;
+import studojurata_api.repository.simulado.SimuladoRepository;
+import studojurata_api.service.simulado.SimuladoService;
 
 import java.time.LocalDateTime;
 

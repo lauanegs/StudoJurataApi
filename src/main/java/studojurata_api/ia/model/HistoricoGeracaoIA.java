@@ -8,9 +8,9 @@ import lombok.Getter;
 import lombok.Setter;
 import studojurata_api.ia.model.enums.OrigemResultadoGeracao;
 import studojurata_api.model.BaseEntity;
-import studojurata_api.model.ConteudoPlano;
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.Simulado;
+import studojurata_api.model.planejamento.ConteudoPlano;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.simulado.Simulado;
 import studojurata_api.model.enums.NivelDificuldade;
 import studojurata_api.model.enums.TipoQuestao;
 

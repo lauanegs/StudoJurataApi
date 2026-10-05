@@ -1,0 +1,38 @@
+package studojurata_api.service.pessoa;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.model.pessoa.ResponsavelAluno;
+import studojurata_api.repository.pessoa.ResponsavelAlunoRepository;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class ResponsavelAlunoService {
+
+    private final ResponsavelAlunoRepository repository;
+
+    public ResponsavelAluno buscar(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Vínculo responsável-aluno " + id + " não encontrado."));
+    }
+
+    public List<ResponsavelAluno> porAluno(Long alunoId) { return repository.findByAlunoId(alunoId); }
+
+    public List<ResponsavelAluno> porResponsavel(Long responsavelId) { return repository.findByResponsavelId(responsavelId); }
+
+    public ResponsavelAluno salvar(ResponsavelAluno obj) { return repository.save(obj); }
+
+    public ResponsavelAluno atualizar(Long id, ResponsavelAluno obj) {
+        obj.setId(id);
+        return repository.save(obj);
+    }
+
+    /** Exclusão física é aceitável: o vínculo não guarda histórico pedagógico. */
+    public void deletar(Long id) {
+        buscar(id);
+        repository.deleteById(id);
+    }
+}

@@ -1,0 +1,30 @@
+package studojurata_api.controller.turma;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+import studojurata_api.model.turma.HorarioTurma;
+import studojurata_api.service.turma.HorarioTurmaService;
+
+import java.util.List;
+
+@RestController
+@RequiredArgsConstructor
+public class HorarioTurmaController {
+
+    private final HorarioTurmaService service;
+
+    @GetMapping("/turmas/{turmaId}/horarios")
+    public List<HorarioTurma> listarPorTurma(@PathVariable Long turmaId) {
+        return service.listarPorTurma(turmaId);
+    }
+
+    @PostMapping("/turmas/{turmaId}/horarios")
+    public HorarioTurma adicionar(@PathVariable Long turmaId, @RequestBody HorarioTurma obj) {
+        return service.adicionar(turmaId, obj);
+    }
+
+    @DeleteMapping("/horarios/{id}")
+    public void remover(@PathVariable Long id) {
+        service.remover(id);
+    }
+}

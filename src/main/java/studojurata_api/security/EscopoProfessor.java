@@ -10,11 +10,11 @@ import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
 
-import studojurata_api.model.AlunoTurma;
-import studojurata_api.model.TurmaDisciplina;
+import studojurata_api.model.turma.AlunoTurma;
+import studojurata_api.model.turma.TurmaDisciplina;
 import studojurata_api.model.enums.StatusMatricula;
-import studojurata_api.repository.AlunoTurmaRepository;
-import studojurata_api.repository.TurmaDisciplinaRepository;
+import studojurata_api.repository.turma.AlunoTurmaRepository;
+import studojurata_api.repository.turma.TurmaDisciplinaRepository;
 
 /**
  * Resolve o escopo de leitura de um professor: <b>quais ids ele pode
@@ -111,7 +111,7 @@ public class EscopoProfessor {
         return vinculosDoProfessor(professorId).stream()
                 .map(TurmaDisciplina::getDisciplina)
                 .filter(Objects::nonNull)
-                .map(studojurata_api.model.Disciplina::getId)
+                .map(studojurata_api.model.curriculo.Disciplina::getId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }

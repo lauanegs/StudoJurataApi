@@ -18,14 +18,15 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 
-import studojurata_api.mapper.QuestaoMapper;
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.Questao;
-import studojurata_api.repository.DisciplinaRepository;
-import studojurata_api.service.QuestaoConteudoService;
-import studojurata_api.service.QuestaoService;
+import studojurata_api.mapper.simulado.QuestaoMapper;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.simulado.Questao;
+import studojurata_api.repository.curriculo.DisciplinaRepository;
+import studojurata_api.service.simulado.QuestaoConteudoService;
+import studojurata_api.service.simulado.QuestaoService;
 import studojurata_api.support.AuthorizationTestSupport;
 import studojurata_api.support.AutorizacaoComEscopoTestBase;
+import studojurata_api.controller.simulado.QuestaoController;
 
 /**
  * C2.7d — a escrita de questão vista pela rota, com o {@code SecurityConfig}

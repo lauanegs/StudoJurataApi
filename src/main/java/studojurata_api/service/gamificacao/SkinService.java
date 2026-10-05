@@ -7,11 +7,11 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
-import studojurata_api.model.Aluno;
+import studojurata_api.model.pessoa.Aluno;
 import studojurata_api.model.gamificacao.PontuacaoAluno;
 import studojurata_api.model.gamificacao.Skin;
 import studojurata_api.model.gamificacao.SkinAluno;
-import studojurata_api.repository.AlunoRepository;
+import studojurata_api.repository.pessoa.AlunoRepository;
 import studojurata_api.repository.gamificacao.SkinAlunoRepository;
 import studojurata_api.repository.gamificacao.SkinRepository;
 

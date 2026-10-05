@@ -17,10 +17,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import studojurata_api.exception.RegraNegocioException;
-import studojurata_api.model.Simulado;
+import studojurata_api.model.simulado.Simulado;
 import studojurata_api.model.enums.StatusSimulado;
-import studojurata_api.repository.SimuladoRepository;
-import studojurata_api.service.SimuladoService;
+import studojurata_api.repository.simulado.SimuladoRepository;
+import studojurata_api.service.simulado.SimuladoService;
 
 @ExtendWith(MockitoExtension.class)
 class CicloAutomaticoSimuladoJobTest {

@@ -16,15 +16,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import studojurata_api.dto.FinalizarSimuladoRequest;
-import studojurata_api.model.Alternativa;
-import studojurata_api.model.Questao;
-import studojurata_api.model.QuestaoAluno;
-import studojurata_api.model.SimuladoAluno;
-import studojurata_api.model.SimuladoQuestao;
+import studojurata_api.dto.simulado.FinalizarSimuladoRequest;
+import studojurata_api.model.simulado.Alternativa;
+import studojurata_api.model.simulado.Questao;
+import studojurata_api.model.simulado.QuestaoAluno;
+import studojurata_api.model.simulado.SimuladoAluno;
+import studojurata_api.model.simulado.SimuladoQuestao;
 import studojurata_api.model.enums.TipoQuestao;
-import studojurata_api.repository.AlternativaRepository;
-import studojurata_api.repository.QuestaoAlunoRepository;
+import studojurata_api.repository.simulado.AlternativaRepository;
+import studojurata_api.repository.simulado.QuestaoAlunoRepository;
+import studojurata_api.service.simulado.CorrecaoDeRespostas;
 
 @ExtendWith(MockitoExtension.class)
 class CorrecaoDeRespostasTest {

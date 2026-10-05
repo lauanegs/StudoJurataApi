@@ -22,18 +22,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import studojurata_api.model.Aluno;
-import studojurata_api.model.AlunoTurma;
-import studojurata_api.model.Nota;
-import studojurata_api.repository.AlunoRepository;
-import studojurata_api.repository.AlunoTurmaRepository;
-import studojurata_api.repository.DisciplinaRepository;
-import studojurata_api.repository.NotaRepository;
-import studojurata_api.repository.SimuladoAlunoRepository;
-import studojurata_api.repository.TurmaRepository;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.turma.AlunoTurma;
+import studojurata_api.model.nota.Nota;
+import studojurata_api.repository.pessoa.AlunoRepository;
+import studojurata_api.repository.turma.AlunoTurmaRepository;
+import studojurata_api.repository.curriculo.DisciplinaRepository;
+import studojurata_api.repository.nota.NotaRepository;
+import studojurata_api.repository.simulado.SimuladoAlunoRepository;
+import studojurata_api.repository.turma.TurmaRepository;
 import studojurata_api.security.EscopoProfessor;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.auditoria.AuditLogService;
+import studojurata_api.service.nota.NotaService;
 
 /**
  * C2.6 — escopo da listagem de notas.
@@ -202,7 +204,7 @@ class C2NotaListagemEscopoTest {
         Nota nota = new Nota();
         nota.setId(id);
         if (turmaId != null) {
-            studojurata_api.model.Turma turma = new studojurata_api.model.Turma();
+            studojurata_api.model.turma.Turma turma = new studojurata_api.model.turma.Turma();
             turma.setId(turmaId);
             nota.setTurma(turma);
         }

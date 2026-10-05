@@ -1,0 +1,20 @@
+package studojurata_api.repository.planejamento;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import studojurata_api.model.planejamento.Frequencia;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface FrequenciaRepository extends JpaRepository<Frequencia, Long> {
+
+    List<Frequencia> findByAula_Id(Long aulaId);
+
+    List<Frequencia> findByAluno_IdOrderByAula_DataPrevistaDesc(Long alunoId);
+
+    Optional<Frequencia> findByAluno_IdAndAula_Id(Long alunoId, Long aulaId);
+
+    List<Frequencia> findByAluno_IdAndAula_PlanoAula_TurmaDisciplina_Turma_IdAndPresenteTrue(Long alunoId, Long turmaId);
+
+    List<Frequencia> findByAula_PlanoAula_TurmaDisciplina_Turma_Id(Long turmaId);
+}

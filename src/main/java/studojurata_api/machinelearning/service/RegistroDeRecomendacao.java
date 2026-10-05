@@ -16,9 +16,9 @@ import studojurata_api.machinelearning.model.enums.DecisaoGeracao;
 import studojurata_api.machinelearning.model.enums.NecessidadeRevisao;
 import studojurata_api.machinelearning.model.enums.OrigemDecisao;
 import studojurata_api.machinelearning.repository.RecomendacaoSimuladoRepository;
-import studojurata_api.model.Aluno;
-import studojurata_api.model.ConteudoPlano;
-import studojurata_api.model.Disciplina;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.planejamento.ConteudoPlano;
+import studojurata_api.model.curriculo.Disciplina;
 import studojurata_api.model.enums.NivelDificuldade;
 
 /**

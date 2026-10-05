@@ -17,13 +17,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
-import studojurata_api.dto.FinalizarSimuladoRequest;
-import studojurata_api.dto.SimuladoAlunoResponseDTO;
-import studojurata_api.mapper.SimuladoAlunoMapper;
-import studojurata_api.service.SimuladoAlunoService;
-import studojurata_api.service.SimuladoService;
+import studojurata_api.dto.simulado.FinalizarSimuladoRequest;
+import studojurata_api.dto.simulado.SimuladoAlunoResponseDTO;
+import studojurata_api.mapper.simulado.SimuladoAlunoMapper;
+import studojurata_api.service.simulado.SimuladoAlunoService;
+import studojurata_api.service.simulado.SimuladoService;
 import studojurata_api.support.AuthorizationTestSupport;
 import studojurata_api.support.AutorizacaoComEscopoTestBase;
+import studojurata_api.controller.simulado.SimuladoAlunoController;
 
 /**
  * C1 — tentativas de simulado indexadas por aluno, com os guardas reais.

@@ -17,7 +17,7 @@ import studojurata_api.machinelearning.dto.AtributosRecomendacao;
 import studojurata_api.machinelearning.model.RecomendacaoSimulado;
 import studojurata_api.machinelearning.model.enums.NecessidadeRevisao;
 import studojurata_api.machinelearning.repository.RecomendacaoSimuladoRepository;
-import studojurata_api.model.ConteudoPlano;
+import studojurata_api.model.planejamento.ConteudoPlano;
 
 /**
  * Treino e predição reais do Weka: o modelo só existe com o mínimo de registros

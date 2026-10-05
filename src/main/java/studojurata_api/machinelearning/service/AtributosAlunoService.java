@@ -18,13 +18,13 @@ import lombok.RequiredArgsConstructor;
 import studojurata_api.ia.model.RevisaoConteudo;
 import studojurata_api.ia.repository.RevisaoConteudoRepository;
 import studojurata_api.machinelearning.dto.AtributosRecomendacao;
-import studojurata_api.model.Questao;
-import studojurata_api.model.QuestaoAluno;
-import studojurata_api.model.QuestaoConteudo;
-import studojurata_api.model.Simulado;
+import studojurata_api.model.simulado.Questao;
+import studojurata_api.model.simulado.QuestaoAluno;
+import studojurata_api.model.simulado.QuestaoConteudo;
+import studojurata_api.model.simulado.Simulado;
 import studojurata_api.model.enums.NivelDificuldade;
-import studojurata_api.repository.QuestaoAlunoRepository;
-import studojurata_api.repository.QuestaoConteudoRepository;
+import studojurata_api.repository.simulado.QuestaoAlunoRepository;
+import studojurata_api.repository.simulado.QuestaoConteudoRepository;
 
 /**
  * Monta os atributos da recomendação a partir do que o sistema realmente

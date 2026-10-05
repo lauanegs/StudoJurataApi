@@ -16,8 +16,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 
-import studojurata_api.model.Pessoa;
-import studojurata_api.model.Usuario;
+import studojurata_api.model.pessoa.Pessoa;
+import studojurata_api.model.pessoa.Usuario;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.model.enums.TipoUsuario;
 import studojurata_api.support.AuthorizationTestSupport;

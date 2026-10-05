@@ -26,14 +26,15 @@ import org.springframework.web.server.ResponseStatusException;
 
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
-import studojurata_api.model.Alternativa;
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.Questao;
+import studojurata_api.model.simulado.Alternativa;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.simulado.Questao;
 import studojurata_api.model.enums.TipoQuestao;
-import studojurata_api.repository.AlternativaRepository;
+import studojurata_api.repository.simulado.AlternativaRepository;
 import studojurata_api.security.EscopoProfessor;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.simulado.AlternativaService;
 
 /**
  * C2.7d (passo 2) — escrita de alternativas (POST/PUT /alternativas).

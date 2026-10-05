@@ -22,31 +22,34 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import studojurata_api.dto.LancarSimuladoRequest;
+import studojurata_api.dto.simulado.LancarSimuladoRequest;
 import studojurata_api.exception.RequisicaoInvalidaException;
 import studojurata_api.ia.model.SimuladoGeradoIA;
 import studojurata_api.ia.repository.SimuladoGeradoIARepository;
-import studojurata_api.model.Aluno;
-import studojurata_api.model.AlunoTurma;
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.Questao;
-import studojurata_api.model.Simulado;
-import studojurata_api.model.SimuladoAluno;
-import studojurata_api.model.SimuladoQuestao;
-import studojurata_api.model.Turma;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.turma.AlunoTurma;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.simulado.Questao;
+import studojurata_api.model.simulado.Simulado;
+import studojurata_api.model.simulado.SimuladoAluno;
+import studojurata_api.model.simulado.SimuladoQuestao;
+import studojurata_api.model.turma.Turma;
 import studojurata_api.model.enums.StatusQuestao;
 import studojurata_api.model.enums.StatusSimulado;
 import studojurata_api.model.enums.StatusSimuladoAluno;
 import studojurata_api.model.enums.StatusSimuladoQuestao;
 import studojurata_api.model.enums.TipoDestinacaoSimulado;
-import studojurata_api.repository.AlunoRepository;
-import studojurata_api.repository.SimuladoAlunoRepository;
-import studojurata_api.repository.SimuladoQuestaoRepository;
-import studojurata_api.repository.SimuladoRepository;
+import studojurata_api.repository.pessoa.AlunoRepository;
+import studojurata_api.repository.simulado.SimuladoAlunoRepository;
+import studojurata_api.repository.simulado.SimuladoQuestaoRepository;
+import studojurata_api.repository.simulado.SimuladoRepository;
 import studojurata_api.security.EscopoProfessor;
 import studojurata_api.security.SimuladoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.turma.AlunoTurmaService;
+import studojurata_api.service.simulado.PublicacaoDeSimulado;
+import studojurata_api.service.simulado.SimuladoService;
 
 /**
  * Lançamento de simulado gerado pela IA (C1).

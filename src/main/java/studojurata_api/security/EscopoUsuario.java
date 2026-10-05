@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
 
-import studojurata_api.model.Usuario;
+import studojurata_api.model.pessoa.Usuario;
 import studojurata_api.model.enums.TipoUsuario;
 
 /**

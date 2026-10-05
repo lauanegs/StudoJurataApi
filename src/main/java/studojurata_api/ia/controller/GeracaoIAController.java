@@ -3,12 +3,12 @@ package studojurata_api.ia.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import studojurata_api.dto.SimuladoResponseDTO;
+import studojurata_api.dto.simulado.SimuladoResponseDTO;
 import studojurata_api.ia.dto.GerarSimuladoIARequest;
 import studojurata_api.ia.dto.SimuladoGeradoIAResponseDTO;
 import studojurata_api.ia.mapper.SimuladoGeradoIAMapper;
 import studojurata_api.ia.service.GeracaoSimuladoIAService;
-import studojurata_api.mapper.SimuladoMapper;
+import studojurata_api.mapper.simulado.SimuladoMapper;
 
 import java.util.List;
 

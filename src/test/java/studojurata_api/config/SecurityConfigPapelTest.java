@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
-import studojurata_api.controller.AlunoController;
-import studojurata_api.service.AlunoService;
+import studojurata_api.controller.pessoa.AlunoController;
+import studojurata_api.service.pessoa.AlunoService;
 import studojurata_api.support.AuthorizationTestSupport;
 import studojurata_api.support.AutorizacaoWebTestBase;
 

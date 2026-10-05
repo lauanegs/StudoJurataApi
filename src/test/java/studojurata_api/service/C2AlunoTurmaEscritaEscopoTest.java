@@ -24,22 +24,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import studojurata_api.exception.RegraNegocioException;
-import studojurata_api.model.Aluno;
-import studojurata_api.model.AlunoTurma;
-import studojurata_api.model.Pessoa;
-import studojurata_api.model.ResponsavelAluno;
-import studojurata_api.model.Turma;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.turma.AlunoTurma;
+import studojurata_api.model.pessoa.Pessoa;
+import studojurata_api.model.pessoa.ResponsavelAluno;
+import studojurata_api.model.turma.Turma;
 import studojurata_api.model.enums.StatusMatricula;
 import studojurata_api.model.enums.StatusTurma;
-import studojurata_api.repository.AlunoTurmaRepository;
-import studojurata_api.repository.AlunoRepository;
-import studojurata_api.repository.ResponsavelAlunoRepository;
-import studojurata_api.repository.TurmaRepository;
+import studojurata_api.repository.turma.AlunoTurmaRepository;
+import studojurata_api.repository.pessoa.AlunoRepository;
+import studojurata_api.repository.pessoa.ResponsavelAlunoRepository;
+import studojurata_api.repository.turma.TurmaRepository;
 import studojurata_api.security.EscopoProfessor;
 import studojurata_api.security.EscopoUsuario;
 import studojurata_api.security.PlanejamentoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.turma.AlunoTurmaService;
 
 /**
  * C2 — escopo do professor nas matrículas ({@code /aluno-turma}).

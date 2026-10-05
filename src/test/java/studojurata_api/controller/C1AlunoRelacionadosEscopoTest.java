@@ -14,17 +14,22 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
-import studojurata_api.mapper.QuestaoAlunoMapper;
-import studojurata_api.model.Aluno;
-import studojurata_api.model.AlunoTurma;
-import studojurata_api.service.AlunoService;
-import studojurata_api.service.AlunoTurmaService;
-import studojurata_api.service.FrequenciaService;
-import studojurata_api.service.NotaService;
-import studojurata_api.service.QuestaoAlunoService;
-import studojurata_api.service.SimuladoAlunoService;
+import studojurata_api.mapper.simulado.QuestaoAlunoMapper;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.turma.AlunoTurma;
+import studojurata_api.service.pessoa.AlunoService;
+import studojurata_api.service.turma.AlunoTurmaService;
+import studojurata_api.service.planejamento.FrequenciaService;
+import studojurata_api.service.nota.NotaService;
+import studojurata_api.service.simulado.QuestaoAlunoService;
+import studojurata_api.service.simulado.SimuladoAlunoService;
 import studojurata_api.support.AuthorizationTestSupport;
 import studojurata_api.support.AutorizacaoComEscopoTestBase;
+import studojurata_api.controller.pessoa.AlunoController;
+import studojurata_api.controller.turma.AlunoTurmaController;
+import studojurata_api.controller.planejamento.FrequenciaController;
+import studojurata_api.controller.nota.NotaController;
+import studojurata_api.controller.simulado.QuestaoAlunoController;
 
 /**
  * C1 — demais endpoints individuais indexados por aluno ou por turma:

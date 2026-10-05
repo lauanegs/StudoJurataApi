@@ -19,20 +19,22 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import studojurata_api.exception.RegraNegocioException;
-import studojurata_api.model.Curso;
-import studojurata_api.model.CursoDisciplina;
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.PlanoEnsino;
-import studojurata_api.model.TurmaDisciplina;
+import studojurata_api.model.curriculo.Curso;
+import studojurata_api.model.curriculo.CursoDisciplina;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.planejamento.PlanoEnsino;
+import studojurata_api.model.turma.TurmaDisciplina;
 import studojurata_api.model.enums.StatusAtivoInativo;
-import studojurata_api.repository.CursoDisciplinaRepository;
-import studojurata_api.repository.CursoRepository;
-import studojurata_api.repository.PlanoEnsinoRepository;
-import studojurata_api.repository.TurmaDisciplinaRepository;
+import studojurata_api.repository.curriculo.CursoDisciplinaRepository;
+import studojurata_api.repository.curriculo.CursoRepository;
+import studojurata_api.repository.planejamento.PlanoEnsinoRepository;
+import studojurata_api.repository.turma.TurmaDisciplinaRepository;
 import studojurata_api.security.EscolaContext;
 import studojurata_api.security.EscopoUsuario;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.planejamento.PlanoAulaService;
+import studojurata_api.service.planejamento.PlanoEnsinoService;
 
 /**
  * Passo 6 — disciplina inativada (na disciplina, no vínculo com a turma ou na

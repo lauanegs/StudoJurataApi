@@ -20,15 +20,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import studojurata_api.model.Aluno;
-import studojurata_api.model.QuestaoAluno;
-import studojurata_api.model.Simulado;
-import studojurata_api.model.SimuladoAluno;
-import studojurata_api.model.Turma;
-import studojurata_api.repository.QuestaoAlunoRepository;
-import studojurata_api.repository.SimuladoAlunoRepository;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.simulado.QuestaoAluno;
+import studojurata_api.model.simulado.Simulado;
+import studojurata_api.model.simulado.SimuladoAluno;
+import studojurata_api.model.turma.Turma;
+import studojurata_api.repository.simulado.QuestaoAlunoRepository;
+import studojurata_api.repository.simulado.SimuladoAlunoRepository;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.simulado.QuestaoAlunoService;
+import studojurata_api.service.simulado.SimuladoService;
 
 /**
  * C2 - escopo da listagem agregada de respostas (GET /questao-aluno).

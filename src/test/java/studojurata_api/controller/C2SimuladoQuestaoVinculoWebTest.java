@@ -17,15 +17,16 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 
-import studojurata_api.mapper.SimuladoQuestaoMapper;
-import studojurata_api.model.Questao;
-import studojurata_api.model.Simulado;
-import studojurata_api.model.SimuladoQuestao;
-import studojurata_api.repository.QuestaoRepository;
-import studojurata_api.repository.SimuladoRepository;
-import studojurata_api.service.SimuladoQuestaoService;
+import studojurata_api.mapper.simulado.SimuladoQuestaoMapper;
+import studojurata_api.model.simulado.Questao;
+import studojurata_api.model.simulado.Simulado;
+import studojurata_api.model.simulado.SimuladoQuestao;
+import studojurata_api.repository.simulado.QuestaoRepository;
+import studojurata_api.repository.simulado.SimuladoRepository;
+import studojurata_api.service.simulado.SimuladoQuestaoService;
 import studojurata_api.support.AuthorizationTestSupport;
 import studojurata_api.support.AutorizacaoComEscopoTestBase;
+import studojurata_api.controller.simulado.SimuladoQuestaoController;
 
 /**
  * C2.7d (passo 4) — a rota do vínculo simulado × questão com o

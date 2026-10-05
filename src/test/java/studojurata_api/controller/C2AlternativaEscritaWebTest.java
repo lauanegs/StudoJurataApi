@@ -19,13 +19,14 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 
-import studojurata_api.mapper.AlternativaMapper;
-import studojurata_api.model.Alternativa;
-import studojurata_api.model.Questao;
-import studojurata_api.repository.QuestaoRepository;
-import studojurata_api.service.AlternativaService;
+import studojurata_api.mapper.simulado.AlternativaMapper;
+import studojurata_api.model.simulado.Alternativa;
+import studojurata_api.model.simulado.Questao;
+import studojurata_api.repository.simulado.QuestaoRepository;
+import studojurata_api.service.simulado.AlternativaService;
 import studojurata_api.support.AuthorizationTestSupport;
 import studojurata_api.support.AutorizacaoComEscopoTestBase;
+import studojurata_api.controller.simulado.AlternativaController;
 
 /**
  * C2.7d (passo 2) — a escrita de alternativa vista pela rota, com o

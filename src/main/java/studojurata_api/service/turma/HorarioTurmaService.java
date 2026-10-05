@@ -1,0 +1,66 @@
+package studojurata_api.service.turma;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import studojurata_api.exception.RecursoNaoEncontradoException;
+import studojurata_api.exception.RegraNegocioException;
+import studojurata_api.exception.RequisicaoInvalidaException;
+import studojurata_api.model.turma.HorarioTurma;
+import studojurata_api.model.turma.Turma;
+import studojurata_api.repository.turma.HorarioTurmaRepository;
+import studojurata_api.repository.turma.TurmaRepository;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class HorarioTurmaService {
+
+    private final HorarioTurmaRepository repository;
+    private final TurmaRepository turmaRepository;
+
+    public List<HorarioTurma> listarPorTurma(Long turmaId) {
+        return repository.findByTurma_Id(turmaId);
+    }
+
+    public HorarioTurma adicionar(Long turmaId, HorarioTurma obj) {
+        Turma turma = turmaRepository.findById(turmaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Turma " + turmaId + " não encontrada."));
+        validar(obj);
+        obj.setId(null);
+        obj.setTurma(turma);
+        validarSemSobreposicao(turmaId, obj);
+        return repository.save(obj);
+    }
+
+    public void remover(Long id) {
+        if (!repository.existsById(id)) {
+            throw new RecursoNaoEncontradoException("Horário " + id + " não encontrado.");
+        }
+        repository.deleteById(id);
+    }
+
+    private void validar(HorarioTurma obj) {
+        if (obj.getDiaSemana() == null) {
+            throw new RequisicaoInvalidaException("Dia da semana é obrigatório.");
+        }
+        if (obj.getHoraInicio() == null || obj.getHoraFim() == null) {
+            throw new RequisicaoInvalidaException("Hora de início e hora de fim são obrigatórias.");
+        }
+        if (!obj.getHoraInicio().isBefore(obj.getHoraFim())) {
+            throw new RequisicaoInvalidaException("Hora de início deve ser antes da hora de fim.");
+        }
+    }
+
+    /** Impede cadastrar, para a mesma turma e o mesmo dia, dois horários que se sobrepõem. */
+    private void validarSemSobreposicao(Long turmaId, HorarioTurma novo) {
+        List<HorarioTurma> doMesmoDia = repository.findByTurma_IdAndDiaSemana(turmaId, novo.getDiaSemana());
+        boolean sobrepoe = doMesmoDia.stream().anyMatch(existente ->
+                novo.getHoraInicio().isBefore(existente.getHoraFim())
+                        && novo.getHoraFim().isAfter(existente.getHoraInicio()));
+        if (sobrepoe) {
+            throw new RegraNegocioException(
+                    "Já existe um horário cadastrado para esta turma neste dia que se sobrepõe ao informado.");
+        }
+    }
+}

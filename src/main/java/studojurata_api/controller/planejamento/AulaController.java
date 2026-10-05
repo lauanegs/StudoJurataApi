@@ -1,0 +1,79 @@
+package studojurata_api.controller.planejamento;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.*;
+import studojurata_api.model.planejamento.Aula;
+import studojurata_api.model.planejamento.AulaConteudo;
+import studojurata_api.model.planejamento.Frequencia;
+import studojurata_api.dto.planejamento.ChamadaRequest;
+import studojurata_api.dto.planejamento.GerarAulasLoteRequest;
+import studojurata_api.service.planejamento.AulaConteudoService;
+import studojurata_api.service.planejamento.AulaService;
+import studojurata_api.service.planejamento.FrequenciaService;
+
+import java.time.LocalDate;
+import java.util.List;
+
+@RestController
+@RequestMapping("/aulas")
+@RequiredArgsConstructor
+public class AulaController {
+
+    private final AulaService service;
+    private final AulaConteudoService aulaConteudoService;
+    private final FrequenciaService frequenciaService;
+
+    @GetMapping("/{id}")
+    public Aula buscar(@PathVariable Long id) { return service.buscarParaLeitura(id); }
+
+    /** Aulas de um plano de aula, na ordem em que devem ser ministradas. */
+    @GetMapping("/plano-aula/{planoAulaId}")
+    public List<Aula> listarPorPlanoAula(@PathVariable Long planoAulaId) {
+        return service.listarPorPlanoAula(planoAulaId);
+    }
+
+    @PostMapping
+    public Aula salvar(@RequestBody Aula o) { return service.salvar(o); }
+
+    /** Gera as aulas do plano seguindo os horários já cadastrados na turma. */
+    @PostMapping("/plano-aula/{planoAulaId}/gerar-lote")
+    public List<Aula> gerarLote(@PathVariable Long planoAulaId, @RequestBody GerarAulasLoteRequest pedido) {
+        return service.gerarLote(planoAulaId, pedido);
+    }
+
+    @PutMapping("/{id}")
+    public Aula atualizar(@PathVariable Long id, @RequestBody Aula o) { return service.atualizar(id, o); }
+
+    /** Marca a aula como ministrada, preenchendo a data de publicação. */
+    @PostMapping("/{id}/publicar")
+    public Aula publicar(@PathVariable Long id,
+                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataPublicacao) {
+        return service.publicar(id, dataPublicacao);
+    }
+
+    /** Soft delete: preserva frequências e conteúdos já vinculados. */
+    @DeleteMapping("/{id}")
+    public void deletar(@PathVariable Long id) { service.deletar(id); }
+
+    @GetMapping("/{id}/conteudos")
+    public List<AulaConteudo> listarConteudos(@PathVariable Long id) { return aulaConteudoService.listarPorAula(id); }
+
+    @PostMapping("/{id}/conteudos/{conteudoPlanoId}")
+    public AulaConteudo vincularConteudo(@PathVariable Long id, @PathVariable Long conteudoPlanoId) {
+        return aulaConteudoService.vincular(id, conteudoPlanoId);
+    }
+
+    @DeleteMapping("/{id}/conteudos/{conteudoPlanoId}")
+    public void desvincularConteudo(@PathVariable Long id, @PathVariable Long conteudoPlanoId) {
+        aulaConteudoService.desvincular(id, conteudoPlanoId);
+    }
+
+    @GetMapping("/{id}/frequencias")
+    public List<Frequencia> listarFrequencias(@PathVariable Long id) { return frequenciaService.listarPorAula(id); }
+
+    @PostMapping("/{id}/frequencias/chamada")
+    public List<Frequencia> registrarChamada(@PathVariable Long id, @RequestBody ChamadaRequest request) {
+        return frequenciaService.registrarChamada(id, request);
+    }
+}

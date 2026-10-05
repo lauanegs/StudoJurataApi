@@ -23,13 +23,14 @@ import studojurata_api.ia.repository.SimuladoGeradoIARepository;
 import studojurata_api.ia.service.GeracaoQuestaoIAService;
 import studojurata_api.ia.service.GeracaoSimuladoIAService;
 import studojurata_api.machinelearning.service.MachineLearningRecomendacaoService;
-import studojurata_api.model.Simulado;
-import studojurata_api.repository.AlunoRepository;
-import studojurata_api.repository.ConteudoPlanoRepository;
-import studojurata_api.repository.SimuladoQuestaoRepository;
-import studojurata_api.repository.SimuladoRepository;
+import studojurata_api.model.simulado.Simulado;
+import studojurata_api.repository.pessoa.AlunoRepository;
+import studojurata_api.repository.planejamento.ConteudoPlanoRepository;
+import studojurata_api.repository.simulado.SimuladoQuestaoRepository;
+import studojurata_api.repository.simulado.SimuladoRepository;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.simulado.SimuladoService;
 
 /**
  * Escopo da listagem de simulados gerados pela IA ({@code GET /ia/geracao/simulado}).
@@ -58,7 +59,7 @@ class C2GeracaoIAListagemEscopoTest {
     @Mock private MachineLearningRecomendacaoService machineLearningRecomendacaoService;
     @Mock private SimuladoService simuladoService;
     @Mock private studojurata_api.security.SimuladoAccessGuard simuladoAccessGuard;
-    @Mock private studojurata_api.repository.AulaConteudoRepository aulaConteudoRepository;
+    @Mock private studojurata_api.repository.planejamento.AulaConteudoRepository aulaConteudoRepository;
 
     private GeracaoSimuladoIAService service;
 

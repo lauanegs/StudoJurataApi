@@ -18,14 +18,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import studojurata_api.exception.RequisicaoInvalidaException;
-import studojurata_api.model.Aluno;
-import studojurata_api.model.Pessoa;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.pessoa.Pessoa;
 import studojurata_api.model.enums.Sexo;
-import studojurata_api.repository.AlunoRepository;
-import studojurata_api.repository.AlunoTurmaRepository;
-import studojurata_api.repository.PessoaRepository;
+import studojurata_api.repository.pessoa.AlunoRepository;
+import studojurata_api.repository.turma.AlunoTurmaRepository;
+import studojurata_api.repository.pessoa.PessoaRepository;
 import studojurata_api.security.EscopoProfessor;
 import studojurata_api.security.UsuarioAutenticado;
+import studojurata_api.service.pessoa.AlunoService;
+import studojurata_api.service.pessoa.PessoaService;
 
 /**
  * Bloco A — cadastro de pessoa e de aluno.

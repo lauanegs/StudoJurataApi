@@ -17,25 +17,27 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import studojurata_api.exception.RegraNegocioException;
-import studojurata_api.model.Curso;
-import studojurata_api.model.CursoDisciplina;
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.Turma;
-import studojurata_api.model.TurmaDisciplina;
+import studojurata_api.model.curriculo.Curso;
+import studojurata_api.model.curriculo.CursoDisciplina;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.turma.Turma;
+import studojurata_api.model.turma.TurmaDisciplina;
 import studojurata_api.model.enums.StatusAtivoInativo;
-import studojurata_api.repository.AlunoTurmaRepository;
-import studojurata_api.repository.CursoDisciplinaRepository;
-import studojurata_api.repository.CursoRepository;
-import studojurata_api.repository.DisciplinaRepository;
-import studojurata_api.repository.PlanoAulaRepository;
-import studojurata_api.repository.PlanoEnsinoRepository;
-import studojurata_api.repository.TurmaDisciplinaRepository;
-import studojurata_api.repository.TurmaRepository;
+import studojurata_api.repository.turma.AlunoTurmaRepository;
+import studojurata_api.repository.curriculo.CursoDisciplinaRepository;
+import studojurata_api.repository.curriculo.CursoRepository;
+import studojurata_api.repository.curriculo.DisciplinaRepository;
+import studojurata_api.repository.planejamento.PlanoAulaRepository;
+import studojurata_api.repository.planejamento.PlanoEnsinoRepository;
+import studojurata_api.repository.turma.TurmaDisciplinaRepository;
+import studojurata_api.repository.turma.TurmaRepository;
 import studojurata_api.security.EscopoProfessor;
 import studojurata_api.security.EscopoUsuario;
 import studojurata_api.security.PlanejamentoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.curriculo.CursoDisciplinaService;
+import studojurata_api.service.turma.TurmaDisciplinaService;
 
 /**
  * Bloco A — disciplina inativada não vira vínculo novo.

@@ -13,12 +13,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
-import studojurata_api.mapper.QuestaoMapper;
-import studojurata_api.model.QuestaoConteudo;
-import studojurata_api.service.QuestaoConteudoService;
-import studojurata_api.service.QuestaoService;
+import studojurata_api.mapper.simulado.QuestaoMapper;
+import studojurata_api.model.simulado.QuestaoConteudo;
+import studojurata_api.service.simulado.QuestaoConteudoService;
+import studojurata_api.service.simulado.QuestaoService;
 import studojurata_api.support.AuthorizationTestSupport;
 import studojurata_api.support.AutorizacaoComEscopoTestBase;
+import studojurata_api.controller.simulado.QuestaoController;
 
 /**
  * C2.7d (passo 3) — as rotas do vínculo questão × conteúdo com o

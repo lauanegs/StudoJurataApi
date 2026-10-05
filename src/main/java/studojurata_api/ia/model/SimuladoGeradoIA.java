@@ -9,10 +9,10 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import studojurata_api.ia.model.enums.MotivoRecomendacao;
-import studojurata_api.model.Aluno;
+import studojurata_api.model.pessoa.Aluno;
 import studojurata_api.model.BaseEntity;
-import studojurata_api.model.ConteudoPlano;
-import studojurata_api.model.Simulado;
+import studojurata_api.model.planejamento.ConteudoPlano;
+import studojurata_api.model.simulado.Simulado;
 
 /**
  * Aluno, conteúdo e motivo que originaram um simulado gerado pela IA. Fica

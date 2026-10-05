@@ -11,7 +11,7 @@ import studojurata_api.ia.model.enums.MotivoRecomendacao;
 import studojurata_api.machinelearning.model.enums.DecisaoGeracao;
 import studojurata_api.machinelearning.model.enums.NecessidadeRevisao;
 import studojurata_api.machinelearning.model.enums.OrigemDecisao;
-import studojurata_api.model.Questao;
+import studojurata_api.model.simulado.Questao;
 import studojurata_api.model.enums.NivelDificuldade;
 
 /**

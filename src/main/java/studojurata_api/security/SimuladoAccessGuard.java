@@ -12,10 +12,10 @@ import lombok.RequiredArgsConstructor;
 
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
-import studojurata_api.model.PlanoEnsino;
-import studojurata_api.model.Questao;
-import studojurata_api.model.Simulado;
-import studojurata_api.model.TurmaDisciplina;
+import studojurata_api.model.planejamento.PlanoEnsino;
+import studojurata_api.model.simulado.Questao;
+import studojurata_api.model.simulado.Simulado;
+import studojurata_api.model.turma.TurmaDisciplina;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.model.enums.TipoUsuario;
 
@@ -31,8 +31,8 @@ import studojurata_api.model.enums.TipoUsuario;
  * genérico fica restrito ao administrador — melhor recusar a escrita do que
  * atribuir posse por suposição.
  *
- * <p>Existe para que {@link studojurata_api.service.SimuladoService} e
- * {@link studojurata_api.service.SimuladoQuestaoService} compartilhem a mesma
+ * <p>Existe para que {@link studojurata_api.service.simulado.SimuladoService} e
+ * {@link studojurata_api.service.simulado.SimuladoQuestaoService} compartilhem a mesma
  * regra em vez de manter cada um a sua cópia.
  *
  * <p>O par turma × disciplina do simulado precisa ser uma oferta do professor —

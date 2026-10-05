@@ -18,17 +18,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import studojurata_api.ia.model.RevisaoConteudo;
 import studojurata_api.ia.repository.RevisaoConteudoRepository;
 import studojurata_api.machinelearning.dto.AtributosRecomendacao;
-import studojurata_api.model.Aluno;
-import studojurata_api.model.ConteudoPlano;
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.Questao;
-import studojurata_api.model.QuestaoAluno;
-import studojurata_api.model.QuestaoConteudo;
-import studojurata_api.model.Simulado;
-import studojurata_api.model.SimuladoAluno;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.planejamento.ConteudoPlano;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.simulado.Questao;
+import studojurata_api.model.simulado.QuestaoAluno;
+import studojurata_api.model.simulado.QuestaoConteudo;
+import studojurata_api.model.simulado.Simulado;
+import studojurata_api.model.simulado.SimuladoAluno;
 import studojurata_api.model.enums.NivelDificuldade;
-import studojurata_api.repository.QuestaoAlunoRepository;
-import studojurata_api.repository.QuestaoConteudoRepository;
+import studojurata_api.repository.simulado.QuestaoAlunoRepository;
+import studojurata_api.repository.simulado.QuestaoConteudoRepository;
 
 /** Atributos montados só com dados reais; ausência de dado vira nulo, nunca estimativa. */
 @ExtendWith(MockitoExtension.class)

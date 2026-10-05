@@ -27,18 +27,18 @@ import studojurata_api.machinelearning.model.enums.DecisaoGeracao;
 import studojurata_api.machinelearning.model.enums.NecessidadeRevisao;
 import studojurata_api.machinelearning.model.enums.OrigemDecisao;
 import studojurata_api.machinelearning.repository.RecomendacaoSimuladoRepository;
-import studojurata_api.model.Aluno;
-import studojurata_api.model.ConteudoPlano;
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.Questao;
-import studojurata_api.model.Simulado;
-import studojurata_api.model.TurmaDisciplina;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.planejamento.ConteudoPlano;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.simulado.Questao;
+import studojurata_api.model.simulado.Simulado;
+import studojurata_api.model.turma.TurmaDisciplina;
 import studojurata_api.model.enums.AcaoAuditoria;
 import studojurata_api.model.enums.NivelDificuldade;
-import studojurata_api.repository.AlunoRepository;
-import studojurata_api.repository.ConteudoPlanoRepository;
-import studojurata_api.repository.QuestaoAlunoRepository;
-import studojurata_api.service.AuditLogService;
+import studojurata_api.repository.pessoa.AlunoRepository;
+import studojurata_api.repository.planejamento.ConteudoPlanoRepository;
+import studojurata_api.repository.simulado.QuestaoAlunoRepository;
+import studojurata_api.service.auditoria.AuditLogService;
 
 /**
  * Orquestra a recomendação de simulado individual: monta os atributos reais do

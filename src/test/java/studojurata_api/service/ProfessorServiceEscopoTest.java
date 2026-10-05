@@ -24,21 +24,22 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 
-import studojurata_api.model.AlunoTurma;
-import studojurata_api.model.Pessoa;
-import studojurata_api.model.Professor;
-import studojurata_api.model.Turma;
-import studojurata_api.model.TurmaDisciplina;
-import studojurata_api.model.Usuario;
+import studojurata_api.model.turma.AlunoTurma;
+import studojurata_api.model.pessoa.Pessoa;
+import studojurata_api.model.pessoa.Professor;
+import studojurata_api.model.turma.Turma;
+import studojurata_api.model.turma.TurmaDisciplina;
+import studojurata_api.model.pessoa.Usuario;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.model.enums.TipoUsuario;
-import studojurata_api.repository.AlunoTurmaRepository;
-import studojurata_api.repository.ProfessorRepository;
-import studojurata_api.repository.TurmaDisciplinaRepository;
+import studojurata_api.repository.turma.AlunoTurmaRepository;
+import studojurata_api.repository.pessoa.ProfessorRepository;
+import studojurata_api.repository.turma.TurmaDisciplinaRepository;
 import studojurata_api.security.CustomUserDetails;
 import studojurata_api.security.ProfessorAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.pessoa.ProfessorService;
 
 /**
  * C2.1 — escopo da listagem e das consultas de professor.

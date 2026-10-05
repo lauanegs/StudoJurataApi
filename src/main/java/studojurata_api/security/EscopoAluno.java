@@ -9,11 +9,11 @@ import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
 
-import studojurata_api.model.AlunoTurma;
-import studojurata_api.model.Turma;
-import studojurata_api.model.TurmaDisciplina;
-import studojurata_api.repository.AlunoTurmaRepository;
-import studojurata_api.repository.TurmaDisciplinaRepository;
+import studojurata_api.model.turma.AlunoTurma;
+import studojurata_api.model.turma.Turma;
+import studojurata_api.model.turma.TurmaDisciplina;
+import studojurata_api.repository.turma.AlunoTurmaRepository;
+import studojurata_api.repository.turma.TurmaDisciplinaRepository;
 
 /**
  * Escopo de leitura de um aluno: as turmas em que está matriculado (qualquer

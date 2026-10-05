@@ -7,9 +7,9 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import studojurata_api.ia.model.enums.NivelDominio;
-import studojurata_api.model.Aluno;
+import studojurata_api.model.pessoa.Aluno;
 import studojurata_api.model.BaseEntity;
-import studojurata_api.model.ConteudoPlano;
+import studojurata_api.model.planejamento.ConteudoPlano;
 
 /**
  * Repetição espaçada de um aluno sobre um conteúdo, baseada na curva de

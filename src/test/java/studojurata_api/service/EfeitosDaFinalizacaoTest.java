@@ -17,13 +17,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import studojurata_api.ia.service.RevisaoConteudoService;
 import studojurata_api.machinelearning.service.MachineLearningRecomendacaoService;
-import studojurata_api.model.Aluno;
-import studojurata_api.model.Questao;
-import studojurata_api.model.Simulado;
-import studojurata_api.model.SimuladoAluno;
-import studojurata_api.model.SimuladoQuestao;
-import studojurata_api.repository.QuestaoConteudoRepository;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.simulado.Questao;
+import studojurata_api.model.simulado.Simulado;
+import studojurata_api.model.simulado.SimuladoAluno;
+import studojurata_api.model.simulado.SimuladoQuestao;
+import studojurata_api.repository.simulado.QuestaoConteudoRepository;
 import studojurata_api.service.gamificacao.PontuacaoAlunoService;
+import studojurata_api.service.auditoria.AuditLogService;
+import studojurata_api.service.simulado.CorrecaoDeRespostas;
+import studojurata_api.service.simulado.EfeitosDaFinalizacao;
+import studojurata_api.service.nota.NotaService;
 
 @ExtendWith(MockitoExtension.class)
 class EfeitosDaFinalizacaoTest {

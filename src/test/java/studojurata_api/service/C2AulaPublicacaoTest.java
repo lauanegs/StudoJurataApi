@@ -18,14 +18,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import studojurata_api.exception.RequisicaoInvalidaException;
-import studojurata_api.model.Aula;
-import studojurata_api.repository.AulaRepository;
-import studojurata_api.repository.HorarioTurmaRepository;
-import studojurata_api.repository.PlanoAulaRepository;
-import studojurata_api.repository.PlanoEnsinoRepository;
+import studojurata_api.model.planejamento.Aula;
+import studojurata_api.repository.planejamento.AulaRepository;
+import studojurata_api.repository.turma.HorarioTurmaRepository;
+import studojurata_api.repository.planejamento.PlanoAulaRepository;
+import studojurata_api.repository.planejamento.PlanoEnsinoRepository;
 import studojurata_api.security.EscopoUsuario;
 import studojurata_api.security.PlanejamentoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
+import studojurata_api.service.auditoria.AuditLogService;
+import studojurata_api.service.planejamento.AulaService;
 
 /**
  * Publicação de aula (Fase 1 do M8): "ministrada" é a data em que a aula

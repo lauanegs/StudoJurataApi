@@ -21,15 +21,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.Questao;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.simulado.Questao;
 import studojurata_api.model.enums.OrigemQuestao;
 import studojurata_api.model.enums.StatusQuestao;
 import studojurata_api.model.enums.TipoQuestao;
-import studojurata_api.repository.QuestaoRepository;
+import studojurata_api.repository.simulado.QuestaoRepository;
 import studojurata_api.security.EscopoProfessor;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.simulado.QuestaoService;
 
 /**
  * C2.7d — escrita de questoes (POST/PUT /questoes).

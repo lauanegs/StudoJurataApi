@@ -1,0 +1,25 @@
+package studojurata_api.controller.pessoa;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.security.AlunoAccessGuard;
+import studojurata_api.service.pessoa.AlunoService;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/alunos")
+@RequiredArgsConstructor
+public class AlunoController {
+
+    private final AlunoService service;
+    private final AlunoAccessGuard alunoAccessGuard;
+
+    @GetMapping public List<Aluno> listar(){ return service.listar(); }
+    @GetMapping("/{id}") public Aluno buscar(@PathVariable Long id){ alunoAccessGuard.garantir(id); return service.buscar(id); }
+    @PostMapping public Aluno salvar(@RequestBody Aluno o){ return service.salvar(o); }
+    @PutMapping("/{id}") public Aluno atualizar(@PathVariable Long id,@RequestBody Aluno o){ return service.atualizar(id, o); }
+    @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
+    @PostMapping("/{id}/ativar") public Aluno ativar(@PathVariable Long id){ return service.ativar(id); }
+}

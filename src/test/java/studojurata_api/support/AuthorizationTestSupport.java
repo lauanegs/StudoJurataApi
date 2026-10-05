@@ -4,11 +4,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import studojurata_api.model.Aluno;
-import studojurata_api.model.Escola;
-import studojurata_api.model.Pessoa;
-import studojurata_api.model.Professor;
-import studojurata_api.model.Usuario;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.institucional.Escola;
+import studojurata_api.model.pessoa.Pessoa;
+import studojurata_api.model.pessoa.Professor;
+import studojurata_api.model.pessoa.Usuario;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.model.enums.TipoUsuario;
 import studojurata_api.security.CustomUserDetails;

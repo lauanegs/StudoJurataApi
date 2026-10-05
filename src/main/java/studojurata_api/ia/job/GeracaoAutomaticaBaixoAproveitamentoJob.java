@@ -12,9 +12,9 @@ import studojurata_api.ia.model.enums.MotivoRecomendacao;
 import studojurata_api.ia.repository.SimuladoGeradoIARepository;
 import studojurata_api.ia.service.GeracaoSimuladoIAService;
 import studojurata_api.ia.service.RecomendacaoService;
-import studojurata_api.model.Aluno;
+import studojurata_api.model.pessoa.Aluno;
 import studojurata_api.model.enums.StatusSimulado;
-import studojurata_api.repository.AlunoRepository;
+import studojurata_api.repository.pessoa.AlunoRepository;
 
 /**
  * Baixo aproveitamento não tem data de vencimento própria (ao contrário da

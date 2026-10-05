@@ -21,13 +21,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import studojurata_api.model.Aluno;
-import studojurata_api.model.AlunoTurma;
-import studojurata_api.repository.AlunoRepository;
-import studojurata_api.repository.AlunoTurmaRepository;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.turma.AlunoTurma;
+import studojurata_api.repository.pessoa.AlunoRepository;
+import studojurata_api.repository.turma.AlunoTurmaRepository;
 import studojurata_api.security.EscopoProfessor;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.pessoa.AlunoService;
 
 /**
  * C2.5 — escopo da listagem de alunos.

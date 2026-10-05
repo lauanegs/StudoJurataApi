@@ -18,13 +18,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import studojurata_api.model.Turma;
-import studojurata_api.model.TurmaDisciplina;
+import studojurata_api.model.turma.Turma;
+import studojurata_api.model.turma.TurmaDisciplina;
 import studojurata_api.model.enums.StatusSimuladoAluno;
-import studojurata_api.repository.SimuladoAlunoRepository;
-import studojurata_api.repository.TurmaDisciplinaRepository;
+import studojurata_api.repository.simulado.SimuladoAlunoRepository;
+import studojurata_api.repository.turma.TurmaDisciplinaRepository;
 import studojurata_api.security.ProfessorAccessGuard;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.nota.DesempenhoService;
 
 /**
  * C2 — desempenho do professor ({@code GET /professores/{id}/desempenho}).

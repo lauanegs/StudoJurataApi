@@ -23,9 +23,9 @@ import studojurata_api.ia.model.enums.MotivoRecomendacao;
 import studojurata_api.ia.repository.SimuladoGeradoIARepository;
 import studojurata_api.ia.repository.RevisaoConteudoRepository;
 import studojurata_api.ia.service.GeracaoSimuladoIAService;
-import studojurata_api.model.Aluno;
-import studojurata_api.model.ConteudoPlano;
-import studojurata_api.model.Simulado;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.planejamento.ConteudoPlano;
+import studojurata_api.model.simulado.Simulado;
 
 /**
  * Job de reforço automático (Fase 1 do M8): recusa de negócio — conteúdo

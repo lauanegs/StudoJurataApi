@@ -20,7 +20,7 @@ import studojurata_api.ia.dto.SimuladoGeradoIAResponseDTO;
 import studojurata_api.ia.mapper.SimuladoGeradoIAMapper;
 import studojurata_api.ia.model.SimuladoGeradoIA;
 import studojurata_api.ia.service.GeracaoSimuladoIAService;
-import studojurata_api.mapper.SimuladoMapper;
+import studojurata_api.mapper.simulado.SimuladoMapper;
 import studojurata_api.support.AuthorizationTestSupport;
 import studojurata_api.support.AutorizacaoWebTestBase;
 

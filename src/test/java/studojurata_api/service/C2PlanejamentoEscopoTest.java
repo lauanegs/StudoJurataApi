@@ -22,30 +22,30 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import studojurata_api.dto.ChamadaRequest;
-import studojurata_api.model.Aula;
-import studojurata_api.model.ConteudoPlano;
-import studojurata_api.model.Curso;
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.Escola;
-import studojurata_api.model.PlanoAula;
-import studojurata_api.model.PlanoEnsino;
-import studojurata_api.model.Turma;
-import studojurata_api.model.TurmaDisciplina;
+import studojurata_api.dto.planejamento.ChamadaRequest;
+import studojurata_api.model.planejamento.Aula;
+import studojurata_api.model.planejamento.ConteudoPlano;
+import studojurata_api.model.curriculo.Curso;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.institucional.Escola;
+import studojurata_api.model.planejamento.PlanoAula;
+import studojurata_api.model.planejamento.PlanoEnsino;
+import studojurata_api.model.turma.Turma;
+import studojurata_api.model.turma.TurmaDisciplina;
 import studojurata_api.model.enums.StatusPlano;
-import studojurata_api.repository.AlunoRepository;
-import studojurata_api.repository.AlunoTurmaRepository;
-import studojurata_api.repository.AulaConteudoRepository;
-import studojurata_api.repository.AulaRepository;
-import studojurata_api.repository.ConteudoPlanoRepository;
-import studojurata_api.repository.CursoDisciplinaRepository;
-import studojurata_api.repository.CursoRepository;
-import studojurata_api.repository.DisciplinaRepository;
-import studojurata_api.repository.FrequenciaRepository;
-import studojurata_api.repository.PlanoAulaRepository;
-import studojurata_api.repository.PlanoEnsinoRepository;
-import studojurata_api.repository.TurmaDisciplinaRepository;
-import studojurata_api.repository.TurmaRepository;
+import studojurata_api.repository.pessoa.AlunoRepository;
+import studojurata_api.repository.turma.AlunoTurmaRepository;
+import studojurata_api.repository.planejamento.AulaConteudoRepository;
+import studojurata_api.repository.planejamento.AulaRepository;
+import studojurata_api.repository.planejamento.ConteudoPlanoRepository;
+import studojurata_api.repository.curriculo.CursoDisciplinaRepository;
+import studojurata_api.repository.curriculo.CursoRepository;
+import studojurata_api.repository.curriculo.DisciplinaRepository;
+import studojurata_api.repository.planejamento.FrequenciaRepository;
+import studojurata_api.repository.planejamento.PlanoAulaRepository;
+import studojurata_api.repository.planejamento.PlanoEnsinoRepository;
+import studojurata_api.repository.turma.TurmaDisciplinaRepository;
+import studojurata_api.repository.turma.TurmaRepository;
 import studojurata_api.security.AlunoAccessGuard;
 import studojurata_api.security.EscolaContext;
 import studojurata_api.security.EscopoProfessor;
@@ -53,6 +53,17 @@ import studojurata_api.security.EscopoUsuario;
 import studojurata_api.security.PlanejamentoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.turma.AlunoTurmaService;
+import studojurata_api.service.auditoria.AuditLogService;
+import studojurata_api.service.planejamento.AulaConteudoService;
+import studojurata_api.service.planejamento.AulaService;
+import studojurata_api.service.planejamento.ConteudoPlanoService;
+import studojurata_api.service.curriculo.CursoService;
+import studojurata_api.service.curriculo.DisciplinaService;
+import studojurata_api.service.planejamento.FrequenciaService;
+import studojurata_api.service.planejamento.PlanoAulaService;
+import studojurata_api.service.planejamento.PlanoEnsinoService;
+import studojurata_api.service.turma.TurmaDisciplinaService;
 
 /**
  * Passo 10 — escopo do domínio de planejamento (plano de ensino, plano de aula,
@@ -95,7 +106,7 @@ class C2PlanejamentoEscopoTest {
     @Mock private TurmaRepository turmaRepository;
     @Mock private AlunoTurmaService alunoTurmaService;
     @Mock private DisciplinaRepository disciplinaRepository;
-    @Mock private studojurata_api.repository.HorarioTurmaRepository horarioTurmaRepository;
+    @Mock private studojurata_api.repository.turma.HorarioTurmaRepository horarioTurmaRepository;
 
     private PlanoEnsinoService planoEnsinoService;
     private PlanoAulaService planoAulaService;
@@ -304,7 +315,7 @@ class C2PlanejamentoEscopoTest {
         given(planoAulaRepository.findById(PLANO_AULA_ID))
                 .willReturn(Optional.of(planoAula(PLANO_AULA_ID, VINCULO_ALHEIO)));
 
-        assertForbidden(() -> aulaService.gerarLote(PLANO_AULA_ID, new studojurata_api.dto.GerarAulasLoteRequest()));
+        assertForbidden(() -> aulaService.gerarLote(PLANO_AULA_ID, new studojurata_api.dto.planejamento.GerarAulasLoteRequest()));
 
         verify(aulaRepository, never()).save(any());
     }

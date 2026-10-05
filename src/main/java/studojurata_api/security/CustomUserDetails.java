@@ -3,7 +3,7 @@ package studojurata_api.security;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import studojurata_api.model.Usuario;
+import studojurata_api.model.pessoa.Usuario;
 import studojurata_api.model.enums.StatusAtivoInativo;
 
 import java.util.Collection;

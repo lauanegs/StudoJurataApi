@@ -16,12 +16,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
-import studojurata_api.model.Pessoa;
-import studojurata_api.model.Responsavel;
-import studojurata_api.service.PessoaService;
-import studojurata_api.service.ResponsavelService;
+import studojurata_api.model.pessoa.Pessoa;
+import studojurata_api.model.pessoa.Responsavel;
+import studojurata_api.service.pessoa.PessoaService;
+import studojurata_api.service.pessoa.ResponsavelService;
 import studojurata_api.support.AuthorizationTestSupport;
 import studojurata_api.support.AutorizacaoWebTestBase;
+import studojurata_api.controller.pessoa.PessoaController;
+import studojurata_api.controller.pessoa.ResponsavelController;
 
 /**
  * C2 — leitura do cadastro de pessoas e de responsáveis.

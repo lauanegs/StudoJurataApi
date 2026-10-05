@@ -26,14 +26,15 @@ import org.springframework.web.server.ResponseStatusException;
 
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
-import studojurata_api.model.Escola;
-import studojurata_api.model.Usuario;
+import studojurata_api.model.institucional.Escola;
+import studojurata_api.model.pessoa.Usuario;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.model.enums.TipoUsuario;
-import studojurata_api.repository.UsuarioRepository;
+import studojurata_api.repository.pessoa.UsuarioRepository;
 import studojurata_api.security.CustomUserDetails;
 import studojurata_api.security.EscolaContext;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.pessoa.UsuarioService;
 
 /**
  * C2 — isolamento por escola nos usuários ({@code /usuarios/**}).

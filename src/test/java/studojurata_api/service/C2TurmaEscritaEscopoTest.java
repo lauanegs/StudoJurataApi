@@ -22,14 +22,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import studojurata_api.model.Curso;
-import studojurata_api.model.Escola;
-import studojurata_api.model.Turma;
+import studojurata_api.model.curriculo.Curso;
+import studojurata_api.model.institucional.Escola;
+import studojurata_api.model.turma.Turma;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.model.enums.StatusTurma;
-import studojurata_api.repository.AlunoTurmaRepository;
-import studojurata_api.repository.CursoRepository;
-import studojurata_api.repository.TurmaRepository;
+import studojurata_api.repository.turma.AlunoTurmaRepository;
+import studojurata_api.repository.curriculo.CursoRepository;
+import studojurata_api.repository.turma.TurmaRepository;
 import studojurata_api.security.AlunoAccessGuard;
 import studojurata_api.security.EscolaContext;
 import studojurata_api.security.EscopoProfessor;
@@ -37,6 +37,8 @@ import studojurata_api.security.EscopoUsuario;
 import studojurata_api.security.PlanejamentoAccessGuard;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.turma.AlunoTurmaService;
+import studojurata_api.service.turma.TurmaService;
 
 /**
  * Escrita de turma (POST/PUT/DELETE e ativar): o escopo do professor vem do

@@ -10,15 +10,15 @@ import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 import studojurata_api.machinelearning.dto.AtributosRecomendacao;
-import studojurata_api.model.AlunoTurma;
-import studojurata_api.model.ConteudoPlano;
-import studojurata_api.model.QuestaoAluno;
-import studojurata_api.model.QuestaoConteudo;
-import studojurata_api.model.TurmaDisciplina;
+import studojurata_api.model.turma.AlunoTurma;
+import studojurata_api.model.planejamento.ConteudoPlano;
+import studojurata_api.model.simulado.QuestaoAluno;
+import studojurata_api.model.simulado.QuestaoConteudo;
+import studojurata_api.model.turma.TurmaDisciplina;
 import studojurata_api.model.enums.StatusMatricula;
-import studojurata_api.repository.AlunoTurmaRepository;
-import studojurata_api.repository.QuestaoAlunoRepository;
-import studojurata_api.repository.QuestaoConteudoRepository;
+import studojurata_api.repository.turma.AlunoTurmaRepository;
+import studojurata_api.repository.simulado.QuestaoAlunoRepository;
+import studojurata_api.repository.simulado.QuestaoConteudoRepository;
 
 /**
  * Alerta de baixo aproveitamento <b>coletivo</b>: quando a maioria dos alunos de

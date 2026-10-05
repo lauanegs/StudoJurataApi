@@ -13,16 +13,16 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
-import studojurata_api.model.Alternativa;
-import studojurata_api.model.ConteudoPlano;
-import studojurata_api.model.Questao;
-import studojurata_api.model.QuestaoConteudo;
+import studojurata_api.model.simulado.Alternativa;
+import studojurata_api.model.planejamento.ConteudoPlano;
+import studojurata_api.model.simulado.Questao;
+import studojurata_api.model.simulado.QuestaoConteudo;
 import studojurata_api.model.enums.NivelDificuldade;
 import studojurata_api.model.enums.StatusQuestao;
 import studojurata_api.model.enums.StatusAtivoInativo;
-import studojurata_api.repository.AlternativaRepository;
-import studojurata_api.repository.QuestaoConteudoRepository;
-import studojurata_api.repository.QuestaoRepository;
+import studojurata_api.repository.simulado.AlternativaRepository;
+import studojurata_api.repository.simulado.QuestaoConteudoRepository;
+import studojurata_api.repository.simulado.QuestaoRepository;
 
 /**
  * Seleciona as questões candidatas de um simulado individual a partir do banco,

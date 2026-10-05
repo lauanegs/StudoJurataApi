@@ -26,19 +26,20 @@ import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
-import studojurata_api.model.ConteudoPlano;
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.PlanoEnsino;
-import studojurata_api.model.Questao;
-import studojurata_api.model.QuestaoConteudo;
-import studojurata_api.model.TurmaDisciplina;
+import studojurata_api.model.planejamento.ConteudoPlano;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.planejamento.PlanoEnsino;
+import studojurata_api.model.simulado.Questao;
+import studojurata_api.model.simulado.QuestaoConteudo;
+import studojurata_api.model.turma.TurmaDisciplina;
 import studojurata_api.model.enums.StatusAtivoInativo;
-import studojurata_api.repository.ConteudoPlanoRepository;
-import studojurata_api.repository.QuestaoConteudoRepository;
-import studojurata_api.repository.QuestaoRepository;
+import studojurata_api.repository.planejamento.ConteudoPlanoRepository;
+import studojurata_api.repository.simulado.QuestaoConteudoRepository;
+import studojurata_api.repository.simulado.QuestaoRepository;
 import studojurata_api.security.EscopoProfessor;
 import studojurata_api.security.UsuarioAutenticado;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.simulado.QuestaoConteudoService;
 
 /**
  * C2.7d (passo 3) — escrita dos vínculos questão × conteúdo

@@ -37,22 +37,22 @@ import studojurata_api.machinelearning.model.enums.DecisaoGeracao;
 import studojurata_api.machinelearning.model.enums.NecessidadeRevisao;
 import studojurata_api.machinelearning.model.enums.OrigemDecisao;
 import studojurata_api.machinelearning.service.MachineLearningRecomendacaoService;
-import studojurata_api.model.Aluno;
-import studojurata_api.model.Aula;
-import studojurata_api.model.AulaConteudo;
-import studojurata_api.model.ConteudoPlano;
-import studojurata_api.model.PlanoEnsino;
-import studojurata_api.model.Questao;
-import studojurata_api.model.Simulado;
-import studojurata_api.model.Turma;
-import studojurata_api.model.TurmaDisciplina;
-import studojurata_api.model.Disciplina;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.planejamento.Aula;
+import studojurata_api.model.planejamento.AulaConteudo;
+import studojurata_api.model.planejamento.ConteudoPlano;
+import studojurata_api.model.planejamento.PlanoEnsino;
+import studojurata_api.model.simulado.Questao;
+import studojurata_api.model.simulado.Simulado;
+import studojurata_api.model.turma.Turma;
+import studojurata_api.model.turma.TurmaDisciplina;
+import studojurata_api.model.curriculo.Disciplina;
 import studojurata_api.model.enums.NivelDificuldade;
 import studojurata_api.model.enums.StatusSimulado;
-import studojurata_api.repository.AlunoRepository;
-import studojurata_api.repository.ConteudoPlanoRepository;
-import studojurata_api.repository.SimuladoQuestaoRepository;
-import studojurata_api.repository.SimuladoRepository;
+import studojurata_api.repository.pessoa.AlunoRepository;
+import studojurata_api.repository.planejamento.ConteudoPlanoRepository;
+import studojurata_api.repository.simulado.SimuladoQuestaoRepository;
+import studojurata_api.repository.simulado.SimuladoRepository;
 import studojurata_api.support.AuthorizationTestSupport;
 
 /**
@@ -75,9 +75,9 @@ class GeracaoSimuladoIAServiceMlTest {
     @Mock private SimuladoGeradoIARepository simuladoGeradoIARepository;
     @Mock private RevisaoConteudoRepository revisaoConteudoRepository;
     @Mock private MachineLearningRecomendacaoService machineLearningRecomendacaoService;
-    @Mock private studojurata_api.service.SimuladoService simuladoService;
+    @Mock private studojurata_api.service.simulado.SimuladoService simuladoService;
     @Mock private studojurata_api.security.SimuladoAccessGuard simuladoAccessGuard;
-    @Mock private studojurata_api.repository.AulaConteudoRepository aulaConteudoRepository;
+    @Mock private studojurata_api.repository.planejamento.AulaConteudoRepository aulaConteudoRepository;
 
     private GeracaoSimuladoIAService service;
 
@@ -399,7 +399,7 @@ class GeracaoSimuladoIAServiceMlTest {
     private void dadoAlunoEConteudo() {
         Aluno aluno = new Aluno();
         aluno.setId(ALUNO_ID);
-        aluno.setPessoa(new studojurata_api.model.Pessoa());
+        aluno.setPessoa(new studojurata_api.model.pessoa.Pessoa());
         aluno.getPessoa().setNome("Aluno Teste");
         given(alunoRepository.findById(ALUNO_ID)).willReturn(Optional.of(aluno));
 

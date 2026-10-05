@@ -20,16 +20,17 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 
-import studojurata_api.mapper.SimuladoMapper;
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.Simulado;
-import studojurata_api.model.Turma;
-import studojurata_api.repository.DisciplinaRepository;
-import studojurata_api.repository.PlanoEnsinoRepository;
-import studojurata_api.repository.TurmaRepository;
-import studojurata_api.service.SimuladoService;
+import studojurata_api.mapper.simulado.SimuladoMapper;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.simulado.Simulado;
+import studojurata_api.model.turma.Turma;
+import studojurata_api.repository.curriculo.DisciplinaRepository;
+import studojurata_api.repository.planejamento.PlanoEnsinoRepository;
+import studojurata_api.repository.turma.TurmaRepository;
+import studojurata_api.service.simulado.SimuladoService;
 import studojurata_api.support.AuthorizationTestSupport;
 import studojurata_api.support.AutorizacaoComEscopoTestBase;
+import studojurata_api.controller.simulado.SimuladoController;
 
 /**
  * C2.7d (passo 5) — as rotas de escrita de simulado com o {@code SecurityConfig}

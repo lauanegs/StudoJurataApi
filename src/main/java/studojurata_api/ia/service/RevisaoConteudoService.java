@@ -7,8 +7,8 @@ import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.ia.model.RevisaoConteudo;
 import studojurata_api.ia.model.enums.NivelDominio;
 import studojurata_api.ia.repository.RevisaoConteudoRepository;
-import studojurata_api.repository.AlunoRepository;
-import studojurata_api.repository.ConteudoPlanoRepository;
+import studojurata_api.repository.pessoa.AlunoRepository;
+import studojurata_api.repository.planejamento.ConteudoPlanoRepository;
 
 import java.time.LocalDate;
 import java.util.List;

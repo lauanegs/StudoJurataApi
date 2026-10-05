@@ -17,14 +17,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import studojurata_api.model.Endereco;
-import studojurata_api.model.Escola;
-import studojurata_api.model.Evento;
-import studojurata_api.model.Pessoa;
-import studojurata_api.model.Usuario;
+import studojurata_api.model.pessoa.Endereco;
+import studojurata_api.model.institucional.Escola;
+import studojurata_api.model.institucional.Evento;
+import studojurata_api.model.pessoa.Pessoa;
+import studojurata_api.model.pessoa.Usuario;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.model.enums.TipoUsuario;
-import studojurata_api.repository.EventoRepository;
+import studojurata_api.repository.institucional.EventoRepository;
+import studojurata_api.service.institucional.EventoService;
 
 /**
  * Eventos sao lidos por qualquer usuario autenticado (a Home de todos os perfis

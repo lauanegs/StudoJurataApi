@@ -15,10 +15,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
-import studojurata_api.model.ResponsavelAluno;
-import studojurata_api.service.ResponsavelAlunoService;
+import studojurata_api.model.pessoa.ResponsavelAluno;
+import studojurata_api.service.pessoa.ResponsavelAlunoService;
 import studojurata_api.support.AuthorizationTestSupport;
 import studojurata_api.support.AutorizacaoComEscopoTestBase;
+import studojurata_api.controller.pessoa.ResponsavelAlunoController;
 
 /**
  * Passo 11 — escopo das leituras de responsável × aluno.

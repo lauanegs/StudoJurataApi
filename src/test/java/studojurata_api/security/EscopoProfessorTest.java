@@ -16,13 +16,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import studojurata_api.model.Aluno;
-import studojurata_api.model.AlunoTurma;
-import studojurata_api.model.Turma;
-import studojurata_api.model.TurmaDisciplina;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.turma.AlunoTurma;
+import studojurata_api.model.turma.Turma;
+import studojurata_api.model.turma.TurmaDisciplina;
 import studojurata_api.model.enums.StatusMatricula;
-import studojurata_api.repository.AlunoTurmaRepository;
-import studojurata_api.repository.TurmaDisciplinaRepository;
+import studojurata_api.repository.turma.AlunoTurmaRepository;
+import studojurata_api.repository.turma.TurmaDisciplinaRepository;
 
 /**
  * Teste unitário do {@link EscopoProfessor}, com repositórios dublados: não

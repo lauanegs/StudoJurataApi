@@ -22,20 +22,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import studojurata_api.model.Aluno;
-import studojurata_api.model.Simulado;
-import studojurata_api.model.SimuladoAluno;
-import studojurata_api.model.SimuladoQuestao;
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.Turma;
+import studojurata_api.model.pessoa.Aluno;
+import studojurata_api.model.simulado.Simulado;
+import studojurata_api.model.simulado.SimuladoAluno;
+import studojurata_api.model.simulado.SimuladoQuestao;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.turma.Turma;
 import studojurata_api.model.enums.StatusSimuladoAluno;
-import studojurata_api.repository.AlunoRepository;
-import studojurata_api.repository.AlternativaRepository;
-import studojurata_api.repository.QuestaoAlunoRepository;
-import studojurata_api.repository.QuestaoConteudoRepository;
-import studojurata_api.repository.SimuladoAlunoRepository;
-import studojurata_api.repository.SimuladoQuestaoRepository;
-import studojurata_api.repository.SimuladoRepository;
+import studojurata_api.repository.pessoa.AlunoRepository;
+import studojurata_api.repository.simulado.AlternativaRepository;
+import studojurata_api.repository.simulado.QuestaoAlunoRepository;
+import studojurata_api.repository.simulado.QuestaoConteudoRepository;
+import studojurata_api.repository.simulado.SimuladoAlunoRepository;
+import studojurata_api.repository.simulado.SimuladoQuestaoRepository;
+import studojurata_api.repository.simulado.SimuladoRepository;
 import studojurata_api.security.AlunoAccessGuard;
 import studojurata_api.security.EscopoProfessor;
 import studojurata_api.security.SimuladoAccessGuard;
@@ -44,6 +44,15 @@ import studojurata_api.service.gamificacao.PontuacaoAlunoService;
 import studojurata_api.ia.service.RevisaoConteudoService;
 import studojurata_api.machinelearning.service.MachineLearningRecomendacaoService;
 import studojurata_api.support.AuthorizationTestSupport;
+import studojurata_api.service.turma.AlunoTurmaService;
+import studojurata_api.service.auditoria.AuditLogService;
+import studojurata_api.service.simulado.CorrecaoDeRespostas;
+import studojurata_api.service.simulado.EfeitosDaFinalizacao;
+import studojurata_api.service.nota.NotaService;
+import studojurata_api.service.simulado.PublicacaoDeSimulado;
+import studojurata_api.service.simulado.SimuladoAlunoService;
+import studojurata_api.service.simulado.SimuladoQuestaoService;
+import studojurata_api.service.simulado.SimuladoService;
 
 /**
  * C2.4 — escopo das listagens de simulado, de tentativa e de vinculo
@@ -100,7 +109,7 @@ class C2SimuladoListagemEscopoTest {
                 new EfeitosDaFinalizacao(notaService, auditLogService, pontuacaoAlunoService, revisaoConteudoService,
                         questaoConteudoRepository, mock(MachineLearningRecomendacaoService.class)));
         simuladoQuestaoService = new SimuladoQuestaoService(simuladoQuestaoRepository, questaoConteudoRepository,
-                mock(studojurata_api.repository.AulaConteudoRepository.class), usuarioAutenticado, simuladoServiceDublado, simuladoAccessGuard);
+                mock(studojurata_api.repository.planejamento.AulaConteudoRepository.class), usuarioAutenticado, simuladoServiceDublado, simuladoAccessGuard);
     }
 
     @AfterEach

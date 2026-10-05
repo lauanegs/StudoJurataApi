@@ -14,16 +14,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import studojurata_api.dto.QuestaoRequestDTO;
-import studojurata_api.dto.QuestaoResponseDTO;
+import studojurata_api.dto.simulado.QuestaoRequestDTO;
+import studojurata_api.dto.simulado.QuestaoResponseDTO;
 import studojurata_api.exception.RecursoNaoEncontradoException;
-import studojurata_api.model.Disciplina;
-import studojurata_api.model.Questao;
+import studojurata_api.model.curriculo.Disciplina;
+import studojurata_api.model.simulado.Questao;
 import studojurata_api.model.enums.NivelDificuldade;
 import studojurata_api.model.enums.OrigemQuestao;
 import studojurata_api.model.enums.StatusQuestao;
 import studojurata_api.model.enums.TipoQuestao;
-import studojurata_api.repository.DisciplinaRepository;
+import studojurata_api.repository.curriculo.DisciplinaRepository;
+import studojurata_api.mapper.simulado.QuestaoMapper;
 
 /**
  * C2.7d — o mapper não é mais um caminho para o cliente definir a moderação:
