@@ -92,8 +92,10 @@ class C2SimuladoEscritaEscopoTest {
         UsuarioAutenticado usuarioAutenticado = new UsuarioAutenticado();
         SimuladoAccessGuard simuladoAccessGuard = new SimuladoAccessGuard(usuarioAutenticado, escopoProfessor);
         simuladoService = new SimuladoService(repository, simuladoQuestaoRepository, simuladoAlunoRepository,
-                mock(studojurata_api.ia.repository.SimuladoGeradoIARepository.class), alunoTurmaService,
-                alunoRepository, usuarioAutenticado, escopoProfessor, simuladoAccessGuard);
+                usuarioAutenticado, escopoProfessor, simuladoAccessGuard,
+                new PublicacaoDeSimulado(repository, simuladoQuestaoRepository, simuladoAlunoRepository,
+                        mock(studojurata_api.ia.repository.SimuladoGeradoIARepository.class), alunoTurmaService,
+                        alunoRepository, usuarioAutenticado));
     }
 
     @AfterEach

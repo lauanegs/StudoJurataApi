@@ -19,19 +19,10 @@ import studojurata_api.dto.LancarSimuladoRequest;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
 import studojurata_api.exception.RequisicaoInvalidaException;
-import studojurata_api.ia.model.SimuladoGeradoIA;
-import studojurata_api.ia.repository.SimuladoGeradoIARepository;
-import studojurata_api.model.Aluno;
-import studojurata_api.model.AlunoTurma;
 import studojurata_api.model.Simulado;
 import studojurata_api.model.SimuladoAluno;
-import studojurata_api.model.SimuladoQuestao;
-import studojurata_api.model.enums.StatusQuestao;
 import studojurata_api.model.enums.StatusSimulado;
-import studojurata_api.model.enums.StatusSimuladoAluno;
 import studojurata_api.model.enums.StatusSimuladoQuestao;
-import studojurata_api.model.enums.TipoDestinacaoSimulado;
-import studojurata_api.repository.AlunoRepository;
 import studojurata_api.repository.SimuladoAlunoRepository;
 import studojurata_api.repository.SimuladoQuestaoRepository;
 import studojurata_api.repository.SimuladoRepository;
@@ -46,12 +37,10 @@ public class SimuladoService {
     private final SimuladoRepository repository;
     private final SimuladoQuestaoRepository simuladoQuestaoRepository;
     private final SimuladoAlunoRepository simuladoAlunoRepository;
-    private final SimuladoGeradoIARepository simuladoGeradoIARepository;
-    private final AlunoTurmaService alunoTurmaService;
-    private final AlunoRepository alunoRepository;
     private final UsuarioAutenticado usuarioAutenticado;
     private final EscopoProfessor escopoProfessor;
     private final SimuladoAccessGuard simuladoAccessGuard;
+    private final PublicacaoDeSimulado publicacao;
 
     /**
      * Listagem escopada: ADMINISTRADOR ve tudo; PROFESSOR ve os simulados das
@@ -258,7 +247,7 @@ public class SimuladoService {
         Simulado simulado = buscar(simuladoId);
         simuladoAccessGuard.garantirEscrita(simulado);
 
-        return publicar(simulado, alunoIdsEspecificos);
+        return publicacao.publicar(simulado, alunoIdsEspecificos);
     }
 
     /**
@@ -269,155 +258,7 @@ public class SimuladoService {
      */
     @Transactional
     public Simulado lancarAutomaticamente(Long simuladoId) {
-        return publicar(buscar(simuladoId), null);
-    }
-
-    private Simulado publicar(Simulado simulado, List<Long> alunoIdsEspecificos) {
-        Long simuladoId = simulado.getId();
-
-        if (simulado.getStatus() != StatusSimulado.RASCUNHO) {
-            throw new RegraNegocioException("Este simulado já foi lançado ou está encerrado.");
-        }
-
-        List<SimuladoQuestao> questoesAtivas = simuladoQuestaoRepository
-                .findBySimuladoIdAndStatusOrderByOrdem(simuladoId, StatusSimuladoQuestao.ATIVA);
-        if (questoesAtivas.isEmpty()) {
-            throw new RegraNegocioException("Não é possível lançar um simulado sem questões.");
-        }
-
-        List<Long> naoAprovadas = questoesAtivas.stream()
-                .map(SimuladoQuestao::getQuestao)
-                .filter(q -> q.getStatus() != StatusQuestao.APROVADA)
-                .map(q -> q.getId())
-                .toList();
-        if (!naoAprovadas.isEmpty()) {
-            throw new RegraNegocioException(
-                    "Existem questões pendentes de revisão neste simulado (ids: " + naoAprovadas + "). "
-                            + "Todas as questões precisam estar APROVADAS antes do lançamento.");
-        }
-
-        List<Aluno> elegiveis = resolverElegiveis(simulado, alunoIdsEspecificos);
-
-        for (Aluno aluno : elegiveis) {
-            if (simuladoAlunoRepository.existsBySimuladoIdAndAlunoId(simuladoId, aluno.getId())) {
-                continue; // já convocado — lançamento é idempotente
-            }
-            SimuladoAluno simuladoAluno = new SimuladoAluno();
-            simuladoAluno.setSimulado(simulado);
-            simuladoAluno.setAluno(aluno);
-            simuladoAluno.setStatus(StatusSimuladoAluno.PENDENTE);
-            simuladoAlunoRepository.save(simuladoAluno);
-        }
-
-        simulado.setStatus(StatusSimulado.PUBLICADO);
-        if (simulado.getDataInicio() == null) {
-            simulado.setDataInicio(LocalDateTime.now());
-        }
-        return repository.save(simulado);
-    }
-
-    private List<Aluno> resolverElegiveis(Simulado simulado, List<Long> alunoIdsEspecificos) {
-        if (simulado.getTipoDestinacao() == TipoDestinacaoSimulado.ESPECIFICO) {
-            List<Aluno> elegiveisDoVinculoIA = elegiveisDoVinculoIA(simulado, alunoIdsEspecificos);
-            if (elegiveisDoVinculoIA != null) {
-                return elegiveisDoVinculoIA;
-            }
-
-            if (alunoIdsEspecificos == null || alunoIdsEspecificos.isEmpty()) {
-                throw new RequisicaoInvalidaException(
-                        "Informe ao menos um aluno para um simulado com destinação ESPECIFICO.");
-            }
-            List<Aluno> alunos = alunoIdsEspecificos.stream()
-                    .map(id -> alunoRepository.findById(id)
-                            .orElseThrow(() -> new RecursoNaoEncontradoException(
-                                    "Aluno " + id + " não encontrado.")))
-                    .toList();
-            validarAlunosMatriculadosNaTurma(simulado, alunos);
-            return alunos;
-        }
-
-        if (simulado.getTurma() == null) {
-            throw new RequisicaoInvalidaException(
-                    "Simulado com destinação TODOS precisa estar vinculado a uma turma.");
-        }
-        return alunoTurmaService.ativosPorTurma(simulado.getTurma().getId())
-                .stream()
-                .map(AlunoTurma::getAluno)
-                .toList();
-    }
-
-    /**
-     * Destinatário de simulado gerado pela IA: quem manda é o vínculo
-     * aluno × conteúdo gravado na geração, não o corpo da requisição — o
-     * professor aprova as questões e o simulado vai para o aluno que a IA
-     * indicou. Mandar outro aluno é recusado.
-     *
-     * @return alunos do vínculo, ou {@code null} quando o simulado não veio da
-     *         IA (aí vale a regra normal de destinação específica).
-     */
-    private List<Aluno> elegiveisDoVinculoIA(Simulado simulado, List<Long> alunoIdsInformados) {
-        if (simulado.getId() == null) {
-            return null;
-        }
-
-        Set<Long> alunosDoVinculo = simuladoGeradoIARepository.findBySimulado_Id(simulado.getId()).stream()
-                .map(SimuladoGeradoIA::getAluno)
-                .filter(Objects::nonNull)
-                .map(Aluno::getId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-
-        if (alunosDoVinculo.isEmpty()) {
-            return null;
-        }
-        if (alunoIdsInformados != null && !alunosDoVinculo.containsAll(alunoIdsInformados)) {
-            throw new RequisicaoInvalidaException(
-                    "Este simulado foi gerado pela IA para outro(s) aluno(s): o destinatário não pode ser alterado.");
-        }
-
-        return alunosDoVinculo.stream()
-                .map(alunoId -> alunoRepository.findById(alunoId)
-                        .orElseThrow(() -> new RecursoNaoEncontradoException(
-                                "Aluno " + alunoId + " não encontrado.")))
-                .toList();
-    }
-
-    /**
-     * Simulado específico de professor só convoca aluno matriculado na turma do
-     * simulado (qualquer status de matrícula: o histórico também vale, como no
-     * resto do domínio). O acesso do professor à turma e à disciplina já foi
-     * decidido pelo {@code SimuladoAccessGuard} antes daqui, então o que falta
-     * validar é o vínculo do aluno com a turma — uma consulta só, sem N+1.
-     *
-     * <p>Roda antes de criar qualquer tentativa: lista com aluno inválido não
-     * gera efeito parcial. O ADMIN mantém a liberdade do fluxo administrativo.
-     */
-    private void validarAlunosMatriculadosNaTurma(Simulado simulado, List<Aluno> alunos) {
-        if (alunos.isEmpty() || usuarioAutenticado.ehAdministrador()) {
-            return;
-        }
-
-        Long turmaId = simulado.getTurma() != null ? simulado.getTurma().getId() : null;
-        if (turmaId == null) {
-            throw new RegraNegocioException(
-                    "Simulado com destinação ESPECIFICO precisa estar vinculado a uma turma.");
-        }
-
-        Set<Long> matriculados = alunoTurmaService.historicoPorTurma(turmaId).stream()
-                .map(AlunoTurma::getAluno)
-                .filter(Objects::nonNull)
-                .map(Aluno::getId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-
-        List<Long> foraDaTurma = alunos.stream()
-                .map(Aluno::getId)
-                .filter(alunoId -> alunoId == null || !matriculados.contains(alunoId))
-                .toList();
-        if (!foraDaTurma.isEmpty()) {
-            throw new RegraNegocioException(
-                    "Estes alunos não têm matrícula na turma deste simulado: " + foraDaTurma + ".");
-        }
+        return publicacao.publicar(buscar(simuladoId), null);
     }
 
     /**
@@ -447,23 +288,12 @@ public class SimuladoService {
         Simulado simulado = buscar(simuladoId);
         simuladoAccessGuard.garantirEscrita(simulado);
 
-        return encerrarSimulado(simulado);
+        return publicacao.encerrar(simulado);
     }
 
     /** Encerramento na data final, feito pelo job agendado (sem sessão). */
     @Transactional
     public Simulado encerrarAutomaticamente(Long simuladoId) {
-        return encerrarSimulado(buscar(simuladoId));
-    }
-
-    private Simulado encerrarSimulado(Simulado simulado) {
-        if (simulado.getStatus() != StatusSimulado.PUBLICADO) {
-            throw new RegraNegocioException("Só é possível encerrar um simulado que esteja PUBLICADO.");
-        }
-        simulado.setStatus(StatusSimulado.ENCERRADO);
-        if (simulado.getDataFim() == null) {
-            simulado.setDataFim(LocalDateTime.now());
-        }
-        return repository.save(simulado);
+        return publicacao.encerrar(buscar(simuladoId));
     }
 }

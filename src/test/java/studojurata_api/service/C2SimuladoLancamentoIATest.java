@@ -82,8 +82,9 @@ class C2SimuladoLancamentoIATest {
         UsuarioAutenticado usuarioAutenticado = new UsuarioAutenticado();
         SimuladoAccessGuard guard = new SimuladoAccessGuard(usuarioAutenticado, escopoProfessor);
         simuladoService = new SimuladoService(repository, simuladoQuestaoRepository, simuladoAlunoRepository,
-                simuladoGeradoIARepository, alunoTurmaService, alunoRepository, usuarioAutenticado, escopoProfessor,
-                guard);
+                usuarioAutenticado, escopoProfessor, guard,
+                new PublicacaoDeSimulado(repository, simuladoQuestaoRepository, simuladoAlunoRepository,
+                        simuladoGeradoIARepository, alunoTurmaService, alunoRepository, usuarioAutenticado));
     }
 
     @AfterEach
