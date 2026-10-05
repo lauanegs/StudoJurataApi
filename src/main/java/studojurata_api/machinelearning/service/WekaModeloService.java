@@ -103,15 +103,6 @@ public class WekaModeloService {
         }
     }
 
-    public boolean modeloDisponivel() {
-        return modeloAtual() != null;
-    }
-
-    /** Quantidade de exemplos rotulados hoje disponíveis para treino. */
-    public int exemplosDisponiveis() {
-        return repository.findByPercentualAcertoPosteriorIsNotNull().size();
-    }
-
     /** Novo desfecho registrado invalida o modelo: o próximo uso reconstrói com os dados novos. */
     public void invalidarModelo() {
         cache.set(null);

@@ -19,7 +19,6 @@ import studojurata_api.model.curriculo.Disciplina;
 import studojurata_api.model.simulado.Questao;
 import studojurata_api.model.simulado.Simulado;
 import studojurata_api.model.simulado.SimuladoQuestao;
-import studojurata_api.model.enums.OrigemQuestao;
 import studojurata_api.model.enums.StatusSimulado;
 import studojurata_api.model.enums.StatusSimuladoQuestao;
 import studojurata_api.repository.simulado.QuestaoConteudoRepository;

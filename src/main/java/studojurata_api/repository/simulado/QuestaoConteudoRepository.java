@@ -8,7 +8,6 @@ import java.util.List;
 
 public interface QuestaoConteudoRepository extends JpaRepository<QuestaoConteudo, Long> {
 
-    boolean existsByQuestaoId(Long questaoId);
 
     List<QuestaoConteudo> findByConteudoPlano_Id(Long conteudoPlanoId);
 
