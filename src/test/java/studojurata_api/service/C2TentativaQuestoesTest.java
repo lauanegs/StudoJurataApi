@@ -81,9 +81,10 @@ class C2TentativaQuestoesTest {
     void setUp() {
         AlunoAccessGuard guard = new AlunoAccessGuard(mock(EscopoProfessor.class));
         service = new SimuladoAlunoService(repository, simuladoQuestaoRepository, questaoAlunoRepository,
-                alternativaRepository, questaoConteudoRepository, notaService, auditLogService,
-                pontuacaoAlunoService, revisaoConteudoService, guard, simuladoService, new UsuarioAutenticado(),
-                mock(MachineLearningRecomendacaoService.class));
+                alternativaRepository, auditLogService, guard, simuladoService, new UsuarioAutenticado(),
+                new CorrecaoDeRespostas(questaoAlunoRepository, alternativaRepository),
+                new EfeitosDaFinalizacao(notaService, auditLogService, pontuacaoAlunoService, revisaoConteudoService,
+                        questaoConteudoRepository, mock(MachineLearningRecomendacaoService.class)));
     }
 
     @AfterEach

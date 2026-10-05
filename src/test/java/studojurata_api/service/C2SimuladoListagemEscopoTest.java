@@ -92,9 +92,11 @@ class C2SimuladoListagemEscopoTest {
                 simuladoAlunoRepository, mock(studojurata_api.ia.repository.SimuladoGeradoIARepository.class),
                 alunoTurmaService, alunoRepository, usuarioAutenticado, escopoProfessor, simuladoAccessGuard);
         simuladoAlunoService = new SimuladoAlunoService(simuladoAlunoRepository, simuladoQuestaoRepository,
-                questaoAlunoRepository, alternativaRepository, questaoConteudoRepository, notaService,
-                auditLogService, pontuacaoAlunoService, revisaoConteudoService, mock(AlunoAccessGuard.class),
-                simuladoServiceDublado, usuarioAutenticado, mock(MachineLearningRecomendacaoService.class));
+                questaoAlunoRepository, alternativaRepository, auditLogService, mock(AlunoAccessGuard.class),
+                simuladoServiceDublado, usuarioAutenticado,
+                new CorrecaoDeRespostas(questaoAlunoRepository, alternativaRepository),
+                new EfeitosDaFinalizacao(notaService, auditLogService, pontuacaoAlunoService, revisaoConteudoService,
+                        questaoConteudoRepository, mock(MachineLearningRecomendacaoService.class)));
         simuladoQuestaoService = new SimuladoQuestaoService(simuladoQuestaoRepository, questaoConteudoRepository,
                 mock(studojurata_api.repository.AulaConteudoRepository.class), usuarioAutenticado, simuladoServiceDublado, simuladoAccessGuard);
     }

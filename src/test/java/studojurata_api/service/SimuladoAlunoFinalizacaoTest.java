@@ -92,9 +92,10 @@ class SimuladoAlunoFinalizacaoTest {
         escopoProfessor = mock(EscopoProfessor.class);
         AlunoAccessGuard guard = new AlunoAccessGuard(escopoProfessor);
         service = new SimuladoAlunoService(repository, simuladoQuestaoRepository, questaoAlunoRepository,
-                alternativaRepository, questaoConteudoRepository, notaService, auditLogService,
-                pontuacaoAlunoService, revisaoConteudoService, guard, simuladoService, new UsuarioAutenticado(),
-                machineLearningRecomendacaoService);
+                alternativaRepository, auditLogService, guard, simuladoService, new UsuarioAutenticado(),
+                new CorrecaoDeRespostas(questaoAlunoRepository, alternativaRepository),
+                new EfeitosDaFinalizacao(notaService, auditLogService, pontuacaoAlunoService, revisaoConteudoService,
+                        questaoConteudoRepository, machineLearningRecomendacaoService));
     }
 
     @AfterEach

@@ -1,17 +1,11 @@
 package studojurata_api.service;
 
-import studojurata_api.model.enums.TipoUsuario;
-import studojurata_api.security.UsuarioAutenticado;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import studojurata_api.dto.FinalizarSimuladoRequest;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.exception.RegraNegocioException;
-import studojurata_api.ia.model.enums.NivelDominio;
-import studojurata_api.ia.service.RevisaoConteudoService;
-import studojurata_api.machinelearning.service.MachineLearningRecomendacaoService;
 import studojurata_api.model.Alternativa;
 import studojurata_api.model.Questao;
 import studojurata_api.model.QuestaoAluno;
@@ -21,22 +15,16 @@ import studojurata_api.model.enums.AcaoAuditoria;
 import studojurata_api.model.enums.StatusSimulado;
 import studojurata_api.model.enums.StatusSimuladoAluno;
 import studojurata_api.model.enums.StatusSimuladoQuestao;
-import studojurata_api.model.enums.TipoQuestao;
+import studojurata_api.model.enums.TipoUsuario;
 import studojurata_api.repository.AlternativaRepository;
 import studojurata_api.repository.QuestaoAlunoRepository;
-import studojurata_api.repository.QuestaoConteudoRepository;
 import studojurata_api.repository.SimuladoAlunoRepository;
 import studojurata_api.repository.SimuladoQuestaoRepository;
 import studojurata_api.security.AlunoAccessGuard;
-import studojurata_api.service.gamificacao.PontuacaoAlunoService;
+import studojurata_api.security.UsuarioAutenticado;
 
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -46,15 +34,12 @@ public class SimuladoAlunoService {
     private final SimuladoQuestaoRepository simuladoQuestaoRepository;
     private final QuestaoAlunoRepository questaoAlunoRepository;
     private final AlternativaRepository alternativaRepository;
-    private final QuestaoConteudoRepository questaoConteudoRepository;
-    private final NotaService notaService;
     private final AuditLogService auditLogService;
-    private final PontuacaoAlunoService pontuacaoAlunoService;
-    private final RevisaoConteudoService revisaoConteudoService;
     private final AlunoAccessGuard alunoAccessGuard;
     private final SimuladoService simuladoService;
     private final UsuarioAutenticado usuarioAutenticado;
-    private final MachineLearningRecomendacaoService machineLearningRecomendacaoService;
+    private final CorrecaoDeRespostas correcaoDeRespostas;
+    private final EfeitosDaFinalizacao efeitosDaFinalizacao;
 
     /**
      * Listagem escopada: ADMINISTRADOR ve todas as tentativas; PROFESSOR ve as
@@ -202,9 +187,7 @@ public class SimuladoAlunoService {
 
         questaoAluno.setSimuladoAluno(simuladoAluno);
         questaoAluno.setQuestao(questao);
-        boolean acertou = questao.getTipo() == TipoQuestao.VERDADEIRO_FALSO
-                ? julgarVerdadeiroFalso(questao, resposta, questaoAluno)
-                : julgarAlternativas(resposta, questaoAluno);
+        boolean acertou = correcaoDeRespostas.julgar(questao, resposta, questaoAluno);
         if (!Boolean.TRUE.equals(questaoAluno.getRespondida())) {
             throw new RegraNegocioException("Selecione uma resposta antes de confirmar.");
         }
@@ -220,9 +203,6 @@ public class SimuladoAlunoService {
     }
 
     public record ResultadoFinalizacao(SimuladoAluno simuladoAluno, Integer diasProximaRevisao) {}
-
-    /** respondidas = questões efetivamente respondidas (em branco não conta). */
-    private record ResultadoCorrecao(int acertos, int respondidas, double pontuacaoObtida, double pontuacaoTotal) {}
 
     /**
      * Aceita respostas parciais: questões ausentes contam como em branco (erro).
@@ -249,113 +229,16 @@ public class SimuladoAlunoService {
         List<SimuladoQuestao> questoes = simuladoQuestaoRepository.findBySimuladoIdAndStatusOrderByOrdem(
                 simuladoAluno.getSimulado().getId(), StatusSimuladoQuestao.ATIVA);
 
-        ResultadoCorrecao correcao = corrigirRespostas(simuladoAluno, questoes, request);
+        CorrecaoDeRespostas.Resultado correcao = correcaoDeRespostas.corrigir(simuladoAluno, questoes, request);
         SimuladoAluno salvo = salvarResultado(simuladoAluno, request, correcao, questoes.size());
 
-        recalcularNotaDaDisciplina(salvo);
-
-        // Aprendizado progressivo: o desempenho real desta tentativa vira o
-        // desfecho das recomendações ainda em aberto que tocaram estas questões —
-        // é esse número que serve de rótulo para o próximo treino do modelo.
-        registrarDesfechoDaRecomendacao(salvo, correcao, questoes);
-
-        // Moedas por concluir, independente da nota — mas só quando o aluno
-        // respondeu todas as questões: prova entregue em branco/incompleta não rende moedas.
-        if (!questoes.isEmpty() && correcao.respondidas() == questoes.size()) {
-            pontuacaoAlunoService.concederMoedas(salvo.getAluno().getId(),
-                    PontuacaoAlunoService.MOEDAS_POR_SIMULADO_CONCLUIDO);
-        }
-
-        Integer diasProximaRevisao = registrarRevisaoEspacada(salvo.getAluno().getId(), questoes, correcao);
+        Integer diasProximaRevisao = efeitosDaFinalizacao.aplicar(salvo, correcao, questoes);
 
         return new ResultadoFinalizacao(salvo, diasProximaRevisao);
     }
 
-    /**
-     * Percentual real de acerto da tentativa, associado à recomendação que a
-     * explica. Tentativa sem nenhuma resposta (tudo em branco) não gera rótulo:
-     * não houve desempenho observável, e um zero artificial ensinaria o modelo a
-     * tratar abandono como falta de domínio.
-     */
-    private void registrarDesfechoDaRecomendacao(
-            SimuladoAluno simuladoAluno, ResultadoCorrecao correcao, List<SimuladoQuestao> questoes) {
-
-        if (correcao.respondidas() == 0) {
-            return;
-        }
-
-        double percentual = correcao.pontuacaoTotal() > 0
-                ? correcao.pontuacaoObtida() / correcao.pontuacaoTotal()
-                : 0;
-        List<Long> questaoIds = questoes.stream().map(vinculo -> vinculo.getQuestao().getId()).toList();
-        Long simuladoId = simuladoAluno.getSimulado() != null ? simuladoAluno.getSimulado().getId() : null;
-
-        machineLearningRecomendacaoService.registrarResultado(
-                simuladoAluno.getAluno().getId(), simuladoId, percentual, questaoIds);
-    }
-
-    /**
-     * Questão em branco, inclusive V/F com afirmação não julgada, conta como
-     * erro em vez de reabrir a tentativa: reabrir deixaria o aluno refazer
-     * sabendo o que já tinha respondido.
-     */
-    private ResultadoCorrecao corrigirRespostas(
-            SimuladoAluno simuladoAluno, List<SimuladoQuestao> questoes, FinalizarSimuladoRequest request) {
-        Map<Long, FinalizarSimuladoRequest.Item> respostasPorQuestao = new HashMap<>();
-        if (request.getRespostas() != null) {
-            for (FinalizarSimuladoRequest.Item item : request.getRespostas()) {
-                if (item.getQuestaoId() != null) {
-                    respostasPorQuestao.put(item.getQuestaoId(), item);
-                }
-            }
-        }
-
-        int acertos = 0;
-        int respondidas = 0;
-        double pontuacaoObtida = 0d;
-        double pontuacaoTotal = 0d;
-
-        for (SimuladoQuestao simuladoQuestao : questoes) {
-            Questao questao = simuladoQuestao.getQuestao();
-            double pontuacao = simuladoQuestao.getPontuacao() != null ? simuladoQuestao.getPontuacao() : 1d;
-            pontuacaoTotal += pontuacao;
-
-            FinalizarSimuladoRequest.Item resposta = respostasPorQuestao.get(questao.getId());
-
-            QuestaoAluno questaoAluno = questaoAlunoRepository
-                    .findFirstBySimuladoAlunoIdAndQuestaoId(simuladoAluno.getId(), questao.getId())
-                    .orElseGet(QuestaoAluno::new);
-            questaoAluno.setSimuladoAluno(simuladoAluno);
-            questaoAluno.setQuestao(questao);
-
-            // Questão já conferida durante a prova: vale a resposta gravada, não a do request.
-            boolean jaConferida = Boolean.TRUE.equals(questaoAluno.getRespondida());
-            boolean acertou = jaConferida
-                    ? Boolean.TRUE.equals(questaoAluno.getAcertou())
-                    : questao.getTipo() == TipoQuestao.VERDADEIRO_FALSO
-                            ? julgarVerdadeiroFalso(questao, resposta, questaoAluno)
-                            : julgarAlternativas(resposta, questaoAluno);
-
-            questaoAluno.setAcertou(acertou);
-            if (!jaConferida) {
-                questaoAluno.setTempoResposta(resposta != null ? resposta.getTempoResposta() : null);
-            }
-            questaoAlunoRepository.save(questaoAluno);
-
-            if (Boolean.TRUE.equals(questaoAluno.getRespondida())) {
-                respondidas++;
-            }
-            if (acertou) {
-                acertos++;
-                pontuacaoObtida += pontuacao;
-            }
-        }
-
-        return new ResultadoCorrecao(acertos, respondidas, pontuacaoObtida, pontuacaoTotal);
-    }
-
     private SimuladoAluno salvarResultado(
-            SimuladoAluno simuladoAluno, FinalizarSimuladoRequest request, ResultadoCorrecao correcao, int totalQuestoes) {
+            SimuladoAluno simuladoAluno, FinalizarSimuladoRequest request, CorrecaoDeRespostas.Resultado correcao, int totalQuestoes) {
         Double notaMaxima = simuladoAluno.getSimulado().getNotaMaxima();
         double nota = (notaMaxima != null && correcao.pontuacaoTotal() > 0)
                 ? (correcao.pontuacaoObtida() / correcao.pontuacaoTotal()) * notaMaxima
@@ -376,115 +259,4 @@ public class SimuladoAlunoService {
         return salvo;
     }
 
-    /** Simulado.turma pode ser nula em ESPECIFICO; nesse caso não há como escopar a nota. */
-    private void recalcularNotaDaDisciplina(SimuladoAluno salvo) {
-        Long disciplinaId = salvo.getSimulado().getDisciplina() != null ? salvo.getSimulado().getDisciplina().getId() : null;
-        Long turmaId = salvo.getSimulado().getTurma() != null ? salvo.getSimulado().getTurma().getId() : null;
-        if (disciplinaId != null && turmaId != null) {
-            notaService.recalcular(salvo.getAluno().getId(), disciplinaId, turmaId);
-        } else {
-            // Registrado em AuditLog para o Administrador identificar por que o
-            // aluno não tem nota nessa disciplina.
-            auditLogService.registrar("SimuladoAluno", salvo.getId(), AcaoAuditoria.ATUALIZACAO,
-                    "Nota da disciplina NÃO recalculada: disciplina ou turma do simulado ausente "
-                            + "(simulado sem turma vinculada). Corrija o cadastro do simulado.");
-        }
-    }
-
-    /** Qualquer simulado finalizado alimenta a repetição espaçada. */
-    private Integer registrarRevisaoEspacada(Long alunoId, List<SimuladoQuestao> questoes, ResultadoCorrecao correcao) {
-        double percentualAcerto = correcao.pontuacaoTotal() > 0
-                ? (correcao.pontuacaoObtida() / correcao.pontuacaoTotal()) * 100
-                : 0;
-        LocalDate proximaRevisao = registrarReforcoNosConteudos(alunoId, questoes, percentualAcerto);
-        return proximaRevisao != null
-                ? (int) ChronoUnit.DAYS.between(LocalDate.now(), proximaRevisao)
-                : null;
-    }
-
-    /** Mesmos limiares de nivelDesempenho no front (utils/desempenho.ts). */
-    private static NivelDominio nivelDominioPeloPercentual(double percentual) {
-        if (percentual < 40) return NivelDominio.BAIXO;
-        if (percentual < 70) return NivelDominio.MEDIO;
-        return NivelDominio.ALTO;
-    }
-
-    /**
-     * Cada conteúdo tocado avança uma vez por finalização, não uma vez por
-     * questão. Retorna a próxima data mais próxima, ou null se nenhum conteúdo
-     * tem revisão agendada.
-     */
-    private LocalDate registrarReforcoNosConteudos(Long alunoId, List<SimuladoQuestao> questoes, double percentualAcerto) {
-        List<Long> questaoIds = questoes.stream().map(sq -> sq.getQuestao().getId()).toList();
-        if (questaoIds.isEmpty()) return null;
-
-        Set<Long> conteudoPlanoIds = new HashSet<>();
-        for (var vinculo : questaoConteudoRepository.findByQuestao_IdIn(questaoIds)) {
-            if (vinculo.getConteudoPlano() != null) {
-                conteudoPlanoIds.add(vinculo.getConteudoPlano().getId());
-            }
-        }
-
-        NivelDominio nivel = nivelDominioPeloPercentual(percentualAcerto);
-        LocalDate maisProxima = null;
-        for (Long conteudoPlanoId : conteudoPlanoIds) {
-            var revisao = revisaoConteudoService.registrarReforco(alunoId, conteudoPlanoId, nivel);
-            LocalDate data = revisao.getDataProximoReforco();
-            if (data != null && (maisProxima == null || data.isBefore(maisProxima))) {
-                maisProxima = data;
-            }
-        }
-        return maisProxima;
-    }
-
-    /** Escolha única (tipo ALTERNATIVAS): acerta quem escolheu a alternativa marcada correta=true. */
-    private boolean julgarAlternativas(FinalizarSimuladoRequest.Item resposta, QuestaoAluno questaoAluno) {
-        questaoAluno.setAlternativasVerdadeiras(List.of());
-
-        if (resposta == null || resposta.getAlternativaId() == null) {
-                    questaoAluno.setAlternativa(null);
-            questaoAluno.setRespondida(false);
-            return false;
-        }
-
-        Alternativa alternativaEscolhida = alternativaRepository.findById(resposta.getAlternativaId())
-                .orElseThrow(() -> new RecursoNaoEncontradoException(
-                        "Alternativa " + resposta.getAlternativaId() + " não encontrada."));
-        questaoAluno.setAlternativa(alternativaEscolhida);
-        questaoAluno.setRespondida(true);
-        return Boolean.TRUE.equals(alternativaEscolhida.getCorreta());
-    }
-
-    /**
-     * VERDADEIRO_FALSO: cada alternativa da questão é uma afirmação julgada
-     * independentemente (correta=true/false é o gabarito — a afirmação É
-     * verdadeira ou falsa). O aluno acerta a questão inteira só se marcou
-     * TODAS as afirmações certas; uma só errada derruba a questão toda.
-     *
-     * alternativasVerdadeiras == null no request é o sentinel de "em branco"
-     * — diferente de lista vazia, que é uma resposta legítima ("julguei
-     * todas as afirmações como Falsas").
-     */
-    private boolean julgarVerdadeiroFalso(Questao questao, FinalizarSimuladoRequest.Item resposta, QuestaoAluno questaoAluno) {
-        List<Alternativa> afirmacoes = alternativaRepository.findByQuestaoIdOrderByOrdem(questao.getId());
-        questaoAluno.setAlternativa(null);
-
-        List<Long> idsMarcadosVerdadeiros = resposta != null ? resposta.getAlternativasVerdadeiras() : null;
-
-        if (afirmacoes.isEmpty() || idsMarcadosVerdadeiros == null) {
-            // Sem afirmações cadastradas, ou questão deixada em branco.
-            questaoAluno.setAlternativasVerdadeiras(List.of());
-            questaoAluno.setRespondida(false);
-            return false;
-        }
-
-        List<Alternativa> marcadasVerdadeiras = afirmacoes.stream()
-                .filter(afirmacao -> idsMarcadosVerdadeiros.contains(afirmacao.getId()))
-                .toList();
-        questaoAluno.setAlternativasVerdadeiras(marcadasVerdadeiras);
-        questaoAluno.setRespondida(true);
-
-        return afirmacoes.stream().allMatch(afirmacao ->
-                Boolean.TRUE.equals(afirmacao.getCorreta()) == idsMarcadosVerdadeiros.contains(afirmacao.getId()));
-    }
 }
