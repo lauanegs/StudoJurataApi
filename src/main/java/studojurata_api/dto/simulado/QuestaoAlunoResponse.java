@@ -7,7 +7,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public class QuestaoAlunoResponseDTO {
+public class QuestaoAlunoResponse {
     private Long id;
     private Long simuladoAlunoId;
     private Long questaoId;

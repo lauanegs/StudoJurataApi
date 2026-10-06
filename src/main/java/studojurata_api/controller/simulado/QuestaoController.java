@@ -3,8 +3,8 @@ package studojurata_api.controller.simulado;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import studojurata_api.dto.simulado.QuestaoRequestDTO;
-import studojurata_api.dto.simulado.QuestaoResponseDTO;
+import studojurata_api.dto.simulado.QuestaoRequest;
+import studojurata_api.dto.simulado.QuestaoResponse;
 import studojurata_api.mapper.simulado.QuestaoMapper;
 import studojurata_api.model.simulado.QuestaoConteudo;
 import studojurata_api.service.simulado.QuestaoConteudoService;
@@ -22,38 +22,38 @@ public class QuestaoController {
     private final QuestaoConteudoService questaoConteudoService;
 
     @GetMapping
-    public List<QuestaoResponseDTO> listar() {
-        return service.listar().stream().map(mapper::toResponseDTO).toList();
+    public List<QuestaoResponse> listar() {
+        return service.listar().stream().map(mapper::toResponse).toList();
     }
 
     @GetMapping("/{id}")
-    public QuestaoResponseDTO buscar(@PathVariable Long id) {
-        return mapper.toResponseDTO(service.buscar(id));
+    public QuestaoResponse buscar(@PathVariable Long id) {
+        return mapper.toResponse(service.buscar(id));
     }
 
     @PostMapping
-    public QuestaoResponseDTO salvar(@Valid @RequestBody QuestaoRequestDTO dto) {
-        return mapper.toResponseDTO(service.salvar(mapper.toEntity(dto)));
+    public QuestaoResponse salvar(@Valid @RequestBody QuestaoRequest dto) {
+        return mapper.toResponse(service.salvar(mapper.toEntity(dto)));
     }
 
     @PutMapping("/{id}")
-    public QuestaoResponseDTO atualizar(@PathVariable Long id, @Valid @RequestBody QuestaoRequestDTO dto) {
-        return mapper.toResponseDTO(service.atualizar(id, mapper.toEntity(dto)));
+    public QuestaoResponse atualizar(@PathVariable Long id, @Valid @RequestBody QuestaoRequest dto) {
+        return mapper.toResponse(service.atualizar(id, mapper.toEntity(dto)));
     }
 
     @GetMapping("/pendentes")
-    public List<QuestaoResponseDTO> listarPendentes() {
-        return service.listarPendentes().stream().map(mapper::toResponseDTO).toList();
+    public List<QuestaoResponse> listarPendentes() {
+        return service.listarPendentes().stream().map(mapper::toResponse).toList();
     }
 
     @PostMapping("/{id}/aprovar")
-    public QuestaoResponseDTO aprovar(@PathVariable Long id) {
-        return mapper.toResponseDTO(service.aprovar(id));
+    public QuestaoResponse aprovar(@PathVariable Long id) {
+        return mapper.toResponse(service.aprovar(id));
     }
 
     @PostMapping("/{id}/rejeitar")
-    public QuestaoResponseDTO rejeitar(@PathVariable Long id) {
-        return mapper.toResponseDTO(service.rejeitar(id));
+    public QuestaoResponse rejeitar(@PathVariable Long id) {
+        return mapper.toResponse(service.rejeitar(id));
     }
 
     @GetMapping("/{id}/conteudos")

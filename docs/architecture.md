@@ -35,12 +35,12 @@ PostgreSQL (schema gerenciado por ddl-auto=update)
 ### Controller
 - Um `@RestController` por entidade principal (`SimuladoController`, `AlunoController`, etc.), quase sempre 1:1 com o Service correspondente.
 - Método padrão: `listar()`, `buscar(id)`, `salvar(dto)`, `atualizar(id, dto)`, `deletar(id)` — nomenclatura em português, consistente em ~30 controllers.
-- Controllers são **finos de propósito**: delegam para `mapper.toEntity()` → `service.<ação>()` → `mapper.toResponseDTO()`, tudo em uma linha na maioria dos métodos. Confirmado por inspeção: praticamente nenhum controller tem `if`/lógica condicional própria — é convenção real do projeto, não coincidência.
+- Controllers são **finos de propósito**: delegam para `mapper.toEntity()` → `service.<ação>()` → `mapper.toResponse()`, tudo em uma linha na maioria dos métodos. Confirmado por inspeção: praticamente nenhum controller tem `if`/lógica condicional própria — é convenção real do projeto, não coincidência.
 - Autorização é declarada centralizadamente em `SecurityConfig` (`.requestMatchers(...)`), não em anotações `@PreAuthorize` nos controllers. Quando a regra depende do dono do recurso (não só do papel), o controller/service chama `AlunoAccessGuard.garantir(alunoId)` explicitamente (ver seção 4).
 - Injeção de dependência sempre por **construtor**, via `@RequiredArgsConstructor` (Lombok) em campos `private final`. Não há `@Autowired` em campo em nenhum arquivo inspecionado.
 
 ### Mapper
-- Classes `@Component` manuais (**não** há MapStruct nem outra lib de mapeamento no `pom.xml`). Cada mapper tem `toEntity(RequestDTO)` e `toResponseDTO(Entity)`.
+- Classes `@Component` manuais (**não** há MapStruct nem outra lib de mapeamento no `pom.xml`). Cada mapper tem `toEntity(RequestDTO)` e `toResponse(Entity)`.
 - Quando o DTO de entrada só carrega um ID de relacionamento (ex.: `disciplinaId`), o mapper busca a entidade completa via repositório e lança `RecursoNaoEncontradoException` se não existir — ou seja, o mapper participa da validação de existência de FKs, não só da tradução de campos.
 - Vive em pacote próprio (`mapper/`), separado do `service/`.
 
@@ -60,7 +60,7 @@ PostgreSQL (schema gerenciado por ddl-auto=update)
 - Enums de domínio (`StatusSimulado`, `TipoUsuario`, etc., 17 no total) vivem em `model/enums/`, mapeados com `@Enumerated(EnumType.STRING)` — nunca `ORDINAL`.
 
 ### DTO
-- Um `RequestDTO`/`ResponseDTO` por entidade principal (ou próximo disso), em vez de reusar a entidade diretamente no contrato HTTP. `@Getter @Setter` puro (nunca a entidade JPA sai/entra direto no controller).
+- Um `XRequest`/`XResponse` por entidade principal (ou próximo disso), em vez de reusar a entidade diretamente no contrato HTTP. `@Getter @Setter` puro (nunca a entidade JPA sai/entra direto no controller).
 - Cobertura de validação **é inconsistente**: das 17 classes em `dto/`, só 6 usam `@NotNull`/`@NotBlank`/etc. Não é uma regra "toda entrada tem Bean Validation" ainda aplicada uniformemente — ver seção 6.
 
 ## 3. Fluxo de uma requisição (exemplo real: `POST /simulados/{id}/lancar`)
@@ -74,7 +74,7 @@ PostgreSQL (schema gerenciado por ddl-auto=update)
    - resolve a lista de alunos elegíveis (por turma ou por lista explícita, `RequisicaoInvalidaException` se faltar dado);
    - cria `SimuladoAluno` (status `PENDENTE`) por aluno elegível, idempotente (pula quem já foi convocado);
    - atualiza `Simulado.status = PUBLICADO`.
-4. `SimuladoMapper.toResponseDTO()` converte a entidade atualizada em `SimuladoResponseDTO`.
+4. `SimuladoMapper.toResponse()` converte a entidade atualizada em `SimuladoResponseDTO`.
 5. Se qualquer exceção de negócio for lançada, `GlobalExceptionHandler` a traduz para o status HTTP e corpo `ErrorResponse` padronizados.
 
 Esse fluxo — Controller fino → Mapper resolve relações → Service concentra regra de negócio e transação → Repository persiste — é o padrão a seguir em qualquer novo endpoint ou revisão.
@@ -123,7 +123,7 @@ Estes são registrados para orientar revisões futuras — **não devem ser corr
 
 ## 7. Onde colocar cada tipo de lógica (regra para novas features)
 
-- **Validação de formato/obrigatoriedade de campo** → Bean Validation no `RequestDTO` (`@NotNull`, `@NotBlank`, etc.), nunca no controller.
+- **Validação de formato/obrigatoriedade de campo** → Bean Validation no `XRequest` (`@NotNull`, `@NotBlank`, etc.), nunca no controller.
 - **Validação que depende de estado do banco** (ex.: "só posso lançar se todas as questões estão aprovadas") → Service, lançando `RegraNegocioException`/`RequisicaoInvalidaException`.
 - **Resolução de relacionamento a partir de um ID recebido no DTO** → Mapper (`toEntity`), lançando `RecursoNaoEncontradoException` se o ID não existir.
 - **Autorização por papel** → `SecurityConfig` (`requestMatchers`).

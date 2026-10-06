@@ -2,8 +2,8 @@ package studojurata_api.mapper.simulado;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import studojurata_api.dto.simulado.QuestaoRequestDTO;
-import studojurata_api.dto.simulado.QuestaoResponseDTO;
+import studojurata_api.dto.simulado.QuestaoRequest;
+import studojurata_api.dto.simulado.QuestaoResponse;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.curriculo.Disciplina;
 import studojurata_api.model.simulado.Questao;
@@ -20,7 +20,7 @@ public class QuestaoMapper {
      * servidor ({@code QuestaoService.salvar}/{@code atualizar}). O campo
      * continua aceito no corpo para nao quebrar o cliente, mas e ignorado.
      */
-    public Questao toEntity(QuestaoRequestDTO dto) {
+    public Questao toEntity(QuestaoRequest dto) {
         if (dto == null) return null;
         Questao questao = new Questao();
         questao.setEnunciado(dto.getEnunciado());
@@ -34,9 +34,9 @@ public class QuestaoMapper {
         return questao;
     }
 
-    public QuestaoResponseDTO toResponseDTO(Questao questao) {
+    public QuestaoResponse toResponse(Questao questao) {
         if (questao == null) return null;
-        QuestaoResponseDTO dto = new QuestaoResponseDTO();
+        QuestaoResponse dto = new QuestaoResponse();
         dto.setId(questao.getId());
         dto.setEnunciado(questao.getEnunciado());
         dto.setTipo(questao.getTipo());

@@ -3,8 +3,8 @@ package studojurata_api.controller.simulado;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import studojurata_api.dto.simulado.SimuladoQuestaoRequestDTO;
-import studojurata_api.dto.simulado.SimuladoQuestaoResponseDTO;
+import studojurata_api.dto.simulado.SimuladoQuestaoRequest;
+import studojurata_api.dto.simulado.SimuladoQuestaoResponse;
 import studojurata_api.mapper.simulado.SimuladoQuestaoMapper;
 import studojurata_api.service.simulado.SimuladoQuestaoService;
 
@@ -19,13 +19,13 @@ public class SimuladoQuestaoController {
     private final SimuladoQuestaoMapper mapper;
 
     @GetMapping
-    public List<SimuladoQuestaoResponseDTO> listar() {
-        return service.listar().stream().map(mapper::toResponseDTO).toList();
+    public List<SimuladoQuestaoResponse> listar() {
+        return service.listar().stream().map(mapper::toResponse).toList();
     }
 
     @PostMapping
-    public SimuladoQuestaoResponseDTO salvar(@Valid @RequestBody SimuladoQuestaoRequestDTO dto) {
-        return mapper.toResponseDTO(service.salvar(mapper.toEntity(dto)));
+    public SimuladoQuestaoResponse salvar(@Valid @RequestBody SimuladoQuestaoRequest dto) {
+        return mapper.toResponse(service.salvar(mapper.toEntity(dto)));
     }
 
     /** Tira a questão do simulado; a questão em si continua existindo. */

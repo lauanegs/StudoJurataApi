@@ -1,15 +1,15 @@
 package studojurata_api.ia.mapper;
 
 import org.springframework.stereotype.Component;
-import studojurata_api.ia.dto.SimuladoGeradoIAResponseDTO;
+import studojurata_api.ia.dto.SimuladoGeradoIAResponse;
 import studojurata_api.ia.model.SimuladoGeradoIA;
 
 @Component
 public class SimuladoGeradoIAMapper {
 
-    public SimuladoGeradoIAResponseDTO toResponseDTO(SimuladoGeradoIA vinculo) {
+    public SimuladoGeradoIAResponse toResponse(SimuladoGeradoIA vinculo) {
         if (vinculo == null) return null;
-        SimuladoGeradoIAResponseDTO dto = new SimuladoGeradoIAResponseDTO();
+        SimuladoGeradoIAResponse dto = new SimuladoGeradoIAResponse();
         dto.setSimuladoId(vinculo.getSimulado() != null ? vinculo.getSimulado().getId() : null);
         dto.setAlunoId(vinculo.getAluno() != null ? vinculo.getAluno().getId() : null);
         dto.setConteudoPlanoId(vinculo.getConteudoPlano() != null ? vinculo.getConteudoPlano().getId() : null);

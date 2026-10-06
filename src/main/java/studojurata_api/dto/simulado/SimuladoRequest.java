@@ -10,7 +10,7 @@ import studojurata_api.model.enums.TipoDestinacaoSimulado;
 
 @Getter
 @Setter
-public class SimuladoRequestDTO {
+public class SimuladoRequest {
     @NotBlank(message = "titulo é obrigatório")
     private String titulo;
     private Long disciplinaId;

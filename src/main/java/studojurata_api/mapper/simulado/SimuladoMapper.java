@@ -2,8 +2,8 @@ package studojurata_api.mapper.simulado;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import studojurata_api.dto.simulado.SimuladoRequestDTO;
-import studojurata_api.dto.simulado.SimuladoResponseDTO;
+import studojurata_api.dto.simulado.SimuladoRequest;
+import studojurata_api.dto.simulado.SimuladoResponse;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.curriculo.Disciplina;
 import studojurata_api.model.planejamento.PlanoEnsino;
@@ -23,7 +23,7 @@ public class SimuladoMapper {
     private final TurmaRepository turmaRepository;
     private final SimuladoGeradoIARepository simuladoGeradoIARepository;
 
-    public Simulado toEntity(SimuladoRequestDTO dto) {
+    public Simulado toEntity(SimuladoRequest dto) {
         if (dto == null) return null;
         Simulado simulado = new Simulado();
         simulado.setTitulo(dto.getTitulo());
@@ -53,9 +53,9 @@ public class SimuladoMapper {
         return simulado;
     }
 
-    public SimuladoResponseDTO toResponseDTO(Simulado simulado) {
+    public SimuladoResponse toResponse(Simulado simulado) {
         if (simulado == null) return null;
-        SimuladoResponseDTO dto = new SimuladoResponseDTO();
+        SimuladoResponse dto = new SimuladoResponse();
         dto.setId(simulado.getId());
         dto.setTitulo(simulado.getTitulo());
         dto.setDisciplinaId(simulado.getDisciplina() != null ? simulado.getDisciplina().getId() : null);

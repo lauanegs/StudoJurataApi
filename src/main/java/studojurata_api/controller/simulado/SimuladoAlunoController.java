@@ -3,7 +3,7 @@ package studojurata_api.controller.simulado;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import studojurata_api.dto.simulado.FinalizarSimuladoRequest;
-import studojurata_api.dto.simulado.SimuladoAlunoResponseDTO;
+import studojurata_api.dto.simulado.SimuladoAlunoResponse;
 import studojurata_api.mapper.simulado.SimuladoAlunoMapper;
 import studojurata_api.model.simulado.Simulado;
 import studojurata_api.model.simulado.SimuladoAluno;
@@ -26,25 +26,25 @@ public class SimuladoAlunoController {
     private final SimuladoAccessGuard simuladoAccessGuard;
 
     @GetMapping
-    public List<SimuladoAlunoResponseDTO> listar() {
-        return service.listar().stream().map(mapper::toResponseDTO).toList();
+    public List<SimuladoAlunoResponse> listar() {
+        return service.listar().stream().map(mapper::toResponse).toList();
     }
 
     @GetMapping("/{id}")
-    public SimuladoAlunoResponseDTO buscar(@PathVariable Long id) {
+    public SimuladoAlunoResponse buscar(@PathVariable Long id) {
         SimuladoAluno tentativa = service.buscar(id);
         alunoAccessGuard.garantir(alunoDaTentativa(tentativa));
-        return mapper.toResponseDTO(tentativa);
+        return mapper.toResponse(tentativa);
     }
 
     @GetMapping("/aluno/{alunoId}")
-    public List<SimuladoAlunoResponseDTO> listarPorAluno(@PathVariable Long alunoId) {
+    public List<SimuladoAlunoResponse> listarPorAluno(@PathVariable Long alunoId) {
         alunoAccessGuard.garantir(alunoId);
-        return service.listarPorAluno(alunoId).stream().map(mapper::toResponseDTO).toList();
+        return service.listarPorAluno(alunoId).stream().map(mapper::toResponse).toList();
     }
 
     @GetMapping("/simulado/{simuladoId}")
-    public List<SimuladoAlunoResponseDTO> listarPorSimulado(@PathVariable Long simuladoId) {
+    public List<SimuladoAlunoResponse> listarPorSimulado(@PathVariable Long simuladoId) {
         Simulado simulado = simuladoService.buscar(simuladoId);
 
         // Simulado sem turma não tem escopo verificável: só o administrador
@@ -55,7 +55,7 @@ public class SimuladoAlunoController {
             alunoAccessGuard.garantirAcessoATurma(simulado.getTurma().getId());
         }
 
-        return service.listarPorSimulado(simuladoId).stream().map(mapper::toResponseDTO).toList();
+        return service.listarPorSimulado(simuladoId).stream().map(mapper::toResponse).toList();
     }
 
     /**
@@ -74,9 +74,9 @@ public class SimuladoAlunoController {
 
     /** Além de nota e acertos, devolve em quantos dias cai a próxima revisão espaçada. */
     @PostMapping("/{id}/finalizar")
-    public SimuladoAlunoResponseDTO finalizar(@PathVariable Long id, @RequestBody FinalizarSimuladoRequest request) {
+    public SimuladoAlunoResponse finalizar(@PathVariable Long id, @RequestBody FinalizarSimuladoRequest request) {
         SimuladoAlunoService.ResultadoFinalizacao resultado = service.finalizar(id, request);
-        SimuladoAlunoResponseDTO dto = mapper.toResponseDTO(resultado.simuladoAluno());
+        SimuladoAlunoResponse dto = mapper.toResponse(resultado.simuladoAluno());
         dto.setDiasProximaRevisao(resultado.diasProximaRevisao());
         return dto;
     }

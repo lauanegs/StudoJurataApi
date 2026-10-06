@@ -2,7 +2,7 @@ package studojurata_api.mapper.simulado;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import studojurata_api.dto.simulado.QuestaoAlunoResponseDTO;
+import studojurata_api.dto.simulado.QuestaoAlunoResponse;
 import studojurata_api.model.simulado.Alternativa;
 import studojurata_api.model.simulado.QuestaoAluno;
 
@@ -12,9 +12,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class QuestaoAlunoMapper {
 
-    public QuestaoAlunoResponseDTO toResponseDTO(QuestaoAluno questaoAluno) {
+    public QuestaoAlunoResponse toResponse(QuestaoAluno questaoAluno) {
         if (questaoAluno == null) return null;
-        QuestaoAlunoResponseDTO dto = new QuestaoAlunoResponseDTO();
+        QuestaoAlunoResponse dto = new QuestaoAlunoResponse();
         dto.setId(questaoAluno.getId());
         dto.setSimuladoAlunoId(questaoAluno.getSimuladoAluno() != null ? questaoAluno.getSimuladoAluno().getId() : null);
         dto.setQuestaoId(questaoAluno.getQuestao() != null ? questaoAluno.getQuestao().getId() : null);

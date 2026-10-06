@@ -9,7 +9,7 @@ import studojurata_api.model.enums.TipoDestinacaoSimulado;
 
 @Getter
 @Setter
-public class SimuladoResponseDTO {
+public class SimuladoResponse {
     private Long id;
     private String titulo;
     private Long disciplinaId;

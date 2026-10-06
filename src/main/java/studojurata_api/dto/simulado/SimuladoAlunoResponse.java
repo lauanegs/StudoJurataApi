@@ -6,7 +6,7 @@ import studojurata_api.model.enums.StatusSimuladoAluno;
 
 @Getter
 @Setter
-public class SimuladoAlunoResponseDTO {
+public class SimuladoAlunoResponse {
     private Long id;
     private Long simuladoId;
     private Long alunoId;

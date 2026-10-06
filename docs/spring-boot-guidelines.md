@@ -32,12 +32,12 @@ O projeto **não tem uma camada de Use Case separada do Service** (não há paco
 
 ## DTOs
 
-- Um `RequestDTO` e um `ResponseDTO` por entidade principal — nunca serializar a entidade JPA diretamente na resposta (evita expor relações lazy, campos sensíveis, e acopla o contrato de API ao schema do banco).
+- Um `XRequest` e um `XResponse` por entidade principal — nunca serializar a entidade JPA diretamente na resposta (evita expor relações lazy, campos sensíveis, e acopla o contrato de API ao schema do banco).
 - Campo sensível que precisa ser **aceito** mas nunca **devolvido**: `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)` — não `@JsonIgnore` (bloqueia as duas direções; já foi um bug real do projeto em `Usuario.senha`, que quebrava todo `POST /usuarios`).
 
 ## Mapeadores
 
-- `@Component` manual, método `toEntity`/`toResponseDTO`. Sem MapStruct/ModelMapper no classpath — não introduzir uma lib de mapeamento sem justificar o ganho sobre o padrão manual atual (o projeto tem ~15 mappers manuais consistentes; migrar todos para MapStruct é uma mudança grande de tooling, não uma correção pontual).
+- `@Component` manual, método `toEntity`/`toResponse`. Sem MapStruct/ModelMapper no classpath — não introduzir uma lib de mapeamento sem justificar o ganho sobre o padrão manual atual (o projeto tem ~15 mappers manuais consistentes; migrar todos para MapStruct é uma mudança grande de tooling, não uma correção pontual).
 - Mapper pode injetar repositórios para resolver um ID recebido em relação completa — e deve lançar `RecursoNaoEncontradoException` quando o ID não existir, em vez de deixar `null`/`NullPointerException` silencioso.
 
 ## Validações

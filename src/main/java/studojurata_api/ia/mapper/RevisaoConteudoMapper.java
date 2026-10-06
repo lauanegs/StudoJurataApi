@@ -1,15 +1,15 @@
 package studojurata_api.ia.mapper;
 
 import org.springframework.stereotype.Component;
-import studojurata_api.ia.dto.RevisaoConteudoResponseDTO;
+import studojurata_api.ia.dto.RevisaoConteudoResponse;
 import studojurata_api.ia.model.RevisaoConteudo;
 
 @Component
 public class RevisaoConteudoMapper {
 
-    public RevisaoConteudoResponseDTO toResponseDTO(RevisaoConteudo revisao) {
+    public RevisaoConteudoResponse toResponse(RevisaoConteudo revisao) {
         if (revisao == null) return null;
-        RevisaoConteudoResponseDTO dto = new RevisaoConteudoResponseDTO();
+        RevisaoConteudoResponse dto = new RevisaoConteudoResponse();
         dto.setId(revisao.getId());
         dto.setAlunoId(revisao.getAluno() != null ? revisao.getAluno().getId() : null);
         dto.setConteudoPlanoId(revisao.getConteudoPlano() != null ? revisao.getConteudoPlano().getId() : null);

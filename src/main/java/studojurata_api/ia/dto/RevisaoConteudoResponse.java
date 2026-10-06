@@ -8,7 +8,7 @@ import studojurata_api.ia.model.enums.NivelDominio;
 
 @Getter
 @Setter
-public class RevisaoConteudoResponseDTO {
+public class RevisaoConteudoResponse {
     private Long id;
     private Long alunoId;
     private Long conteudoPlanoId;

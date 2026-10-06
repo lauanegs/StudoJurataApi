@@ -83,7 +83,7 @@ Use `Optional` no **retorno de métodos que podem legitimamente não encontrar n
 
 ## Streams
 
-Streams são idiomáticas aqui para transformação de coleções simples (`.stream().map(mapper::toResponseDTO).toList()` em praticamente todo controller `listar()`). Evite:
+Streams são idiomáticas aqui para transformação de coleções simples (`.stream().map(mapper::toResponse).toList()` em praticamente todo controller `listar()`). Evite:
 - Streams com efeitos colaterais dentro do `.map()`/`.forEach()` que também fazem I/O (chamada a repositório) misturado com lógica condicional — nesse caso, um `for` é mais fácil de debugar e de logar.
 - `.collect(Collectors.toList())` quando `.toList()` (Java 16+) resolve — o projeto já roda Java 21, prefira a forma curta.
 

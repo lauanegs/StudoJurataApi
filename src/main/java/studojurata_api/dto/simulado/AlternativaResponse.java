@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class AlternativaResponseDTO {
+public class AlternativaResponse {
     private Long id;
     private Long questaoId;
     private String texto;

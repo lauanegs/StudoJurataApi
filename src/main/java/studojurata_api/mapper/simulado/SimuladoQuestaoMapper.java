@@ -2,8 +2,8 @@ package studojurata_api.mapper.simulado;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import studojurata_api.dto.simulado.SimuladoQuestaoRequestDTO;
-import studojurata_api.dto.simulado.SimuladoQuestaoResponseDTO;
+import studojurata_api.dto.simulado.SimuladoQuestaoRequest;
+import studojurata_api.dto.simulado.SimuladoQuestaoResponse;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.simulado.Questao;
 import studojurata_api.model.simulado.Simulado;
@@ -18,7 +18,7 @@ public class SimuladoQuestaoMapper {
     private final SimuladoRepository simuladoRepository;
     private final QuestaoRepository questaoRepository;
 
-    public SimuladoQuestao toEntity(SimuladoQuestaoRequestDTO dto) {
+    public SimuladoQuestao toEntity(SimuladoQuestaoRequest dto) {
         if (dto == null) return null;
         SimuladoQuestao simuladoQuestao = new SimuladoQuestao();
         simuladoQuestao.setOrdem(dto.getOrdem());
@@ -36,9 +36,9 @@ public class SimuladoQuestaoMapper {
         return simuladoQuestao;
     }
 
-    public SimuladoQuestaoResponseDTO toResponseDTO(SimuladoQuestao simuladoQuestao) {
+    public SimuladoQuestaoResponse toResponse(SimuladoQuestao simuladoQuestao) {
         if (simuladoQuestao == null) return null;
-        SimuladoQuestaoResponseDTO dto = new SimuladoQuestaoResponseDTO();
+        SimuladoQuestaoResponse dto = new SimuladoQuestaoResponse();
         dto.setId(simuladoQuestao.getId());
         dto.setSimuladoId(simuladoQuestao.getSimulado() != null ? simuladoQuestao.getSimulado().getId() : null);
         dto.setQuestaoId(simuladoQuestao.getQuestao() != null ? simuladoQuestao.getQuestao().getId() : null);

@@ -2,8 +2,8 @@ package studojurata_api.mapper.simulado;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import studojurata_api.dto.simulado.AlternativaRequestDTO;
-import studojurata_api.dto.simulado.AlternativaResponseDTO;
+import studojurata_api.dto.simulado.AlternativaRequest;
+import studojurata_api.dto.simulado.AlternativaResponse;
 import studojurata_api.exception.RecursoNaoEncontradoException;
 import studojurata_api.model.simulado.Alternativa;
 import studojurata_api.model.simulado.Questao;
@@ -15,7 +15,7 @@ public class AlternativaMapper {
 
     private final QuestaoRepository questaoRepository;
 
-    public Alternativa toEntity(AlternativaRequestDTO dto) {
+    public Alternativa toEntity(AlternativaRequest dto) {
         if (dto == null) return null;
         Alternativa alternativa = new Alternativa();
         alternativa.setTexto(dto.getTexto());
@@ -29,9 +29,9 @@ public class AlternativaMapper {
         return alternativa;
     }
 
-    public AlternativaResponseDTO toResponseDTO(Alternativa alternativa) {
+    public AlternativaResponse toResponse(Alternativa alternativa) {
         if (alternativa == null) return null;
-        AlternativaResponseDTO dto = new AlternativaResponseDTO();
+        AlternativaResponse dto = new AlternativaResponse();
         dto.setId(alternativa.getId());
         dto.setQuestaoId(alternativa.getQuestao() != null ? alternativa.getQuestao().getId() : null);
         dto.setTexto(alternativa.getTexto());

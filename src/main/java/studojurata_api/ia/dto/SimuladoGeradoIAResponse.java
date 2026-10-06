@@ -9,7 +9,7 @@ import java.util.Set;
 
 @Getter
 @Setter
-public class SimuladoGeradoIAResponseDTO {
+public class SimuladoGeradoIAResponse {
     private Long simuladoId;
     private Long alunoId;
     private Long conteudoPlanoId;

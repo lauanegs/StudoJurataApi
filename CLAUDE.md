@@ -33,7 +33,7 @@ controller/   — REST controllers, um por recurso, em subpacotes por domínio
 service/      — regra de negócio, sem interface própria, em subpacotes por domínio
 repository/   — interfaces JpaRepository, query methods derivados
 model/        — entidades JPA (estendem BaseEntity) + model/enums/
-dto/          — RequestDTO/ResponseDTO (hoje concentrados em simulado/)
+dto/          — XRequest/XResponse (sem sufixo DTO; hoje concentrados em simulado/)
 mapper/       — conversores DTO ↔ Entity, manuais (sem MapStruct)
 exception/    — exceções de domínio + GlobalExceptionHandler
 security/     — CustomUserDetails(Service), AlunoAccessGuard, EscolaContext
