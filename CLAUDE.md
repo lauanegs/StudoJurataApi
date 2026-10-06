@@ -25,25 +25,27 @@ Este é o documento principal de instruções para trabalhar neste repositório.
 - springdoc-openapi 2.6.0 — Swagger UI (`/swagger-ui/**`, liberado sem auth em dev)
 - Integração externa: Google Gemini (`GeminiApiClient`, `java.net.http.HttpClient` nativo, sem lib HTTP adicional)
 
-**Arquitetura:** camadas clássicas (Controller → Mapper → Service → Repository → Entity), organizadas majoritariamente **por tipo técnico**, com uma exceção deliberada: o módulo `ia/` é organizado por feature. Ver [`docs/architecture.md`](docs/architecture.md) para o detalhamento completo, incluindo os "Problemas arquiteturais identificados" — não corrigir esses problemas silenciosamente; eles existem para orientar decisões futuras, algumas exigem confirmação do usuário antes de agir.
+**Arquitetura:** camadas clássicas (Controller → Mapper → Service → Repository → Entity), organizadas **por tipo técnico e, dentro de cada camada, por domínio** (subpacotes `pessoa`, `simulado`, `turma`...); o módulo `ia/` (e `machinelearning/`) é organizado por feature própria. Ver [`docs/architecture.md`](docs/architecture.md) para o detalhamento completo, incluindo os "Problemas arquiteturais identificados" — não corrigir esses problemas silenciosamente; eles existem para orientar decisões futuras, algumas exigem confirmação do usuário antes de agir.
 
 **Estrutura principal** (`src/main/java/studojurata_api/`):
 ```
-controller/   — ~31 REST controllers, um por entidade/recurso principal
-service/      — ~30 services, regra de negócio, sem interface própria
+controller/   — REST controllers, um por recurso, em subpacotes por domínio
+service/      — regra de negócio, sem interface própria, em subpacotes por domínio
 repository/   — interfaces JpaRepository, query methods derivados
 model/        — entidades JPA (estendem BaseEntity) + model/enums/
-dto/          — RequestDTO/ResponseDTO por entidade
+dto/          — RequestDTO/ResponseDTO (hoje concentrados em simulado/)
 mapper/       — conversores DTO ↔ Entity, manuais (sem MapStruct)
 exception/    — exceções de domínio + GlobalExceptionHandler
 security/     — CustomUserDetails(Service), AlunoAccessGuard, EscolaContext
-config/       — SecurityConfig, seeders de dev
+config/       — SecurityConfig, AdminInicialBootstrap, seeders (o de dev só no perfil `seed`)
 ia/           — módulo de IA (Gemini), organizado por feature própria
+machinelearning/ — ML (Weka): recomendação, repetição espaçada, seleção de questões
+job/          — CicloAutomaticoSimuladoJob (publica/encerra simulados por data)
 ```
 
 **Banco de dados:** PostgreSQL local (`jdbc:postgresql://localhost:5432/studojurata`), schema gerenciado por `spring.jpa.hibernate.ddl-auto=update` — **sem** Flyway/Liquibase. `update` nunca remove/relaxa colunas; ao remover ou restringir um campo de entidade já populada, é necessário draftar o `ALTER TABLE` manual junto (já causou um incidente real documentado em `docs/architecture.md`).
 
-**Build:** Maven (`./mvnw compile`, `./mvnw test`, `./mvnw spring-boot:run`). Subir a aplicação completa de dentro de um sandbox de ferramenta pode falhar por um erro de baixo nível de loopback socket do JVM/Windows (não relacionado ao código) — se acontecer após 2-3 tentativas, pedir para o usuário subir manualmente em vez de insistir com variações de flags de JVM.
+**Build:** Maven (`./mvnw compile`, `./mvnw spring-boot:run`). Subir a aplicação completa de dentro de um sandbox de ferramenta pode falhar por um erro de baixo nível de loopback socket do JVM/Windows (não relacionado ao código) — se acontecer após 2-3 tentativas, pedir para o usuário subir manualmente em vez de insistir com variações de flags de JVM.
 
 **Testes:** removidos de propósito (`src/test` não existe). Validar com `./mvnw compile` e verificação manual contra a API.
 
@@ -87,10 +89,10 @@ Forma/obrigatoriedade → Bean Validation no DTO. Regra dependente de estado do 
 - Autorização por papel: `SecurityConfig` (matchers explícitos por rota + método HTTP). Toda rota de escrita nova precisa de uma entrada própria.
 - Autorização por dono do recurso (IDOR): `AlunoAccessGuard` para dados pessoais de Aluno — papel sozinho não basta.
 - Multi-tenant (`EscolaContext`) é parcial hoje (5 de 30 services) — não presumir que é o padrão universal nem "consertar" isso silenciosamente; é uma decisão de produto a confirmar.
-- Nunca commitar segredo real; a senha do Postgres em `application.properties` hoje é texto puro aceitável só porque é 100% ambiente local de dev — sinalizar antes de qualquer preparação para produção.
+- Nunca commitar segredo real; em produção, banco, chave do Gemini e admin inicial vêm só de variáveis de ambiente (ver `docs/deploy.md`); o padrão de senha do Postgres em `application.properties` é só do ambiente local.
 
 ### Testes
-Cobertura real é quase zero. Ao alterar comportamento, verificar manualmente contra a API e relatar o que foi verificado. Se testes forem adicionados, usar o pacote `studojurata_api` (espelhando produção — não `br.com.studojurata.studojurata_api`, que é a inconsistência legada do único teste hoje).
+Não há testes automatizados (removidos de propósito). Ao alterar comportamento, verificar manualmente contra a API e relatar o que foi verificado.
 
 ### Manutenção
 Seguir `docs/refactoring-guidelines.md` para qualquer refatoração: entender → identificar comportamento e problemas → classificar por gravidade → planejar a menor mudança → aplicar → compilar → testar → verificar regressão → revisar de novo → simplificar se necessário.

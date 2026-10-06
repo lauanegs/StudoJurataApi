@@ -61,8 +61,7 @@
 - [ ] Relação N:N nova usa entidade de associação explícita (como `AlunoTurma`) em vez de `@ManyToMany` puro, se carregar estado próprio?
 
 ## Testes
-- [ ] A mudança alterou comportamento de um endpoint sem nenhum teste automatizado cobrindo o caso (situação comum hoje — ver `architecture.md` #3)? Se sim, a verificação manual (chamada real à API, script, Swagger) foi documentada na tarefa/PR?
-- [ ] Se um teste foi adicionado, ele usa o pacote `studojurata_api` (não `br.com.studojurata.studojurata_api`, que é a inconsistência legada — ver `architecture.md` #8)?
+- [ ] A mudança alterou comportamento de um endpoint? Não há testes automatizados (ver `architecture.md` #3): a verificação manual (chamada real à API, script, Swagger) foi documentada na tarefa/PR?
 
 ## Código morto
 - [ ] Import, método privado, classe ou DTO sem nenhuma referência no projeto (confirmado via busca, não só "parece não usado")?
@@ -86,7 +85,7 @@
 - [ ] A mudança altera o formato de uma resposta de API já consumida pelo front (`studojuratafront`)? Campo removido/renomeado/tipo trocado?
 - [ ] A mudança altera o comportamento de uma regra de negócio existente sem que isso tenha sido pedido explicitamente?
 - [ ] A mudança altera uma constraint de segurança existente (`SecurityConfig`, `AlunoAccessGuard`) de forma que amplia acesso sem essa ser a intenção?
-- [ ] Compilação (`mvn compile` ou `mvn -q compile`) e, se aplicável, `mvn test` foram executados após a mudança?
+- [ ] Compilação (`mvn compile` ou `mvn -q compile`) foi executada após a mudança?
 
 ## Referências
 Ver seção "Referências" em `clean-code.md`, `java-guidelines.md` e `spring-boot-guidelines.md`.

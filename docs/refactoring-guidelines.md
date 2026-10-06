@@ -57,11 +57,11 @@ Rodar `mvn -q compile` (ou `mvnw compile`) após qualquer mudança em `src/main`
 
 > Nota do projeto: subir o backend inteiro (`mvnw spring-boot:run`) de dentro de sandboxes de ferramenta pode falhar por um erro de baixo nível de loopback socket do JVM/Windows, sem relação com o código — não é sinal de bug introduzido pela refatoração. `mvn compile`/`mvn test` não têm esse problema (não abrem socket de rede). Se precisar rodar a aplicação de fato, pode ser necessário pedir para o usuário subir manualmente.
 
-### 8. Executar testes
-Rodar `mvn test`. Hoje isso cobre essencialmente só `contextLoads()` — não é uma rede de segurança real. Quando a mudança tocar um endpoint/regra de negócio sem teste correspondente, compensar com verificação manual (chamada HTTP real contra a API rodando, Swagger UI, ou um script como os já existentes no front) e **relatar o que foi verificado manualmente**, não só "os testes passaram".
+### 8. Validar
+Não há testes automatizados. Rodar `./mvnw compile` e compensar com verificação manual (chamada HTTP real contra a API rodando, Swagger UI ou um script).
 
 ```bash
-./mvnw test
+./mvnw compile
 ```
 
 ### 9. Verificar possíveis regressões

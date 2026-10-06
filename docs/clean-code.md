@@ -93,7 +93,7 @@ Prefira o código que se lê de cima para baixo como uma narrativa (ver `Simulad
 
 ## Testabilidade
 
-Como a cobertura de testes automatizados hoje é praticamente zero (ver `docs/architecture.md`, problema #3), o critério prático de "testável" aqui é: **o service não deve depender de estado estático, `new HttpClient()` direto no construtor, ou `LocalDateTime.now()` espalhado sem necessidade** — isso já é seguido (ver `GeminiApiClient`, que adia a criação do `HttpClient` e recebe tudo via `@Value`/construtor). Ao escrever código novo, mantenha os services fáceis de testar com `@ExtendWith(MockitoExtension.class)` mesmo que o teste ainda não exista — é isso que a injeção por construtor já garante.
+Como não há testes automatizados (ver `docs/architecture.md`, problema #3), o critério prático de "testável" aqui é: **o service não deve depender de estado estático, `new HttpClient()` direto no construtor, ou `LocalDateTime.now()` espalhado sem necessidade** — isso já é seguido (ver `GeminiApiClient`, que adia a criação do `HttpClient` e recebe tudo via `@Value`/construtor). Ao escrever código novo, mantenha os services fáceis de testar com `@ExtendWith(MockitoExtension.class)` mesmo que o teste ainda não exista — é isso que a injeção por construtor já garante.
 
 ## Referências
 - Robert C. Martin, *Clean Code* (síntese dos princípios de nomes, funções e comentários).

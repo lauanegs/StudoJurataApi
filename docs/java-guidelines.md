@@ -7,7 +7,7 @@ Java 21 (LTS), compilado via Maven (`spring-boot-starter-parent` 3.3.4). Estas r
 - Classes: `PascalCase`, substantivo do domínio (`Simulado`, `SimuladoAluno`, `AlunoAccessGuard`). Sufixos técnicos indicam o papel: `...Controller`, `...Service`, `...Repository`, `...Mapper`, `...RequestDTO`/`...ResponseDTO`, `...Exception`.
 - Métodos: `camelCase`, verbo + (opcional) complemento, em português, consistente com o resto do código (`buscar`, `salvar`, `resolverElegiveis`, `historicoPorAlunoEDisciplina`). Não misturar inglês (`save`, `find`) no mesmo tipo de camada onde o resto usa português.
 - Constantes: `UPPER_SNAKE_CASE` — hoje o projeto tem poucas (a maioria dos "valores fixos" são enums, não `static final` soltos). Prefira enum a constante solta quando o valor representa um conjunto fechado de opções de domínio.
-- Pacotes: minúsculo, sem underscore extra além do já usado no nome raiz (`studojurata_api`). **Nota:** o pacote raiz de produção é `studojurata_api`; o único teste existente está em `br.com.studojurata.studojurata_api` (inconsistente — ver `docs/architecture.md` #8). Novos testes devem usar `studojurata_api` como raiz, espelhando produção, em vez de replicar a inconsistência.
+- Pacotes: minúsculo, sem underscore extra além do já usado no nome raiz (`studojurata_api`). Dentro de cada camada (`controller`, `service`, `repository`, `model`, `dto`, `mapper`) a classe nova entra no subpacote do seu domínio.
 
 ## Organização de imports
 
