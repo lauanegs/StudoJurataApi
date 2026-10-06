@@ -97,45 +97,13 @@ import studojurata_api.repository.turma.HorarioTurmaRepository;
 import studojurata_api.repository.turma.TurmaDisciplinaRepository;
 import studojurata_api.repository.turma.TurmaRepository;
 
-/**
- * Script de reset + carga de dados reais da escola administrada (cursos de
- * tecnologia infantojuvenil: Geek Júnior, Robótica, Programação Gamificada,
- * Geek Teens).
- *
- * O QUE FAZ:
- * 1) Apaga TODOS os registros de TODAS as tabelas do banco (respeitando a
- *    ordem de dependência das FKs, sem precisar de DROP/TRUNCATE manual em SQL).
- * 2) Recria os dados reais da escola: 1 escola, 4 cursos, 2 disciplinas
- *    (Robótica e Programação Gamificada), 4 turmas (1 por curso, 1 aula
- *    semanal de 1h30, capacidade 8), 2 professores (1 titular por
- *    disciplina), 17 alunos de 7 a 14 anos (14 com matrícula ativa + 1 em
- *    duas turmas/cursos ativos ao mesmo tempo + 2 só no histórico — 1
- *    concluída, 1 cancelada — cobrindo todas as situações de matrícula),
- *    responsáveis, planos de ensino/aula (cada TurmaDisciplina tem seu
- *    plano ativo do ciclo atual; a turma de Robótica acumula também um
- *    ciclo anterior CONCLUIDO, cada plano de ensino sempre vinculado a um
- *    plano de aula — nenhuma turma fica sem plano ativo), aulas,
- *    frequência, simulados (alguns já respondidos, outros pendentes —
- *    "a fazer" — e questões de IA aguardando revisão do professor), notas,
- *    eventos de aula demonstrativa, gamificação e histórico do módulo de
- *    IA.
- *
- * COMO RODAR (NUNCA roda sozinho em produção — só com o profile "seed"):
- *   mvn spring-boot:run -Dspring-boot.run.profiles=seed
- *   (ou, na IDE, adicionar "seed" em "Active profiles" da run configuration)
- *
- * ATENÇÃO: isso apaga TODOS os dados existentes no banco configurado em
- * application.properties. Use apenas em ambiente de desenvolvimento/teste.
- */
 @Component
 @RequiredArgsConstructor
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Profile("seed")
 public class DevDataResetSeeder implements CommandLineRunner {
-
     private final PasswordEncoder passwordEncoder;
 
-    // --- núcleo acadêmico ---
     private final EscolaRepository escolaRepository;
     private final CursoRepository cursoRepository;
     private final CursoDisciplinaRepository cursoDisciplinaRepository;
@@ -144,7 +112,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
     private final HorarioTurmaRepository horarioTurmaRepository;
     private final TurmaDisciplinaRepository turmaDisciplinaRepository;
 
-    // --- pessoas / perfis ---
     private final PessoaRepository pessoaRepository;
     private final ProfessorRepository professorRepository;
     private final AlunoRepository alunoRepository;
@@ -153,7 +120,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
     private final UsuarioRepository usuarioRepository;
     private final AlunoTurmaRepository alunoTurmaRepository;
 
-    // --- currículo / aulas ---
     private final PlanoEnsinoRepository planoEnsinoRepository;
     private final ConteudoPlanoRepository conteudoPlanoRepository;
     private final PlanoAulaRepository planoAulaRepository;
@@ -161,7 +127,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
     private final AulaConteudoRepository aulaConteudoRepository;
     private final FrequenciaRepository frequenciaRepository;
 
-    // --- questões / simulados ---
     private final QuestaoRepository questaoRepository;
     private final AlternativaRepository alternativaRepository;
     private final QuestaoConteudoRepository questaoConteudoRepository;
@@ -171,22 +136,18 @@ public class DevDataResetSeeder implements CommandLineRunner {
     private final QuestaoAlunoRepository questaoAlunoRepository;
     private final NotaRepository notaRepository;
 
-    // --- diversos ---
     private final EventoRepository eventoRepository;
     private final AuditLogRepository auditLogRepository;
 
-    // --- gamificação ---
     private final SkinRepository skinRepository;
     private int sequenciaMatricula;
     private final PontuacaoAlunoRepository pontuacaoAlunoRepository;
     private final SkinAlunoRepository skinAlunoRepository;
 
-    // --- IA ---
     private final RevisaoConteudoRepository revisaoConteudoRepository;
     private final HistoricoGeracaoIARepository historicoGeracaoIARepository;
     private final SimuladoGeradoIARepository simuladoGeradoIARepository;
 
-    /** Recomendações do machine learning: precisam sair antes de aluno/simulado/conteúdo. */
     private final studojurata_api.machinelearning.repository.RecomendacaoSimuladoRepository recomendacaoSimuladoRepository;
 
     @Override
@@ -196,9 +157,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         semear();
     }
 
-    // =========================================================================
-    // 1) LIMPEZA — ordem do "filho" para o "pai", respeitando as FKs
-    // =========================================================================
     private void limparBanco() {
         recomendacaoSimuladoRepository.deleteAllInBatch();
         questaoAlunoRepository.deleteAllInBatch();
@@ -239,29 +197,19 @@ public class DevDataResetSeeder implements CommandLineRunner {
         escolaRepository.deleteAllInBatch();
     }
 
-    /**
-     * `codigo` é um sufixo único de 2 dígitos (ex.: "01"), base do CPF gerado
-     * e do telefone.
-     */
     private record AlunoSeed(String nome, String codigo, String nascimentoIso, String username,
                               Sexo sexo, String nomeResponsavel, Parentesco parentesco) {
     }
 
-    // =========================================================================
-    // 2) CARGA DE DADOS — do "pai" para o "filho"
-    // =========================================================================
     private void semear() {
-
         LocalDate inicioAnoLetivo = LocalDate.of(2026, 2, 2);
 
-        // ---- Escola ------------------------------------------------------------
         Escola escola = new Escola();
         escola.setNome("Escola Studo Jurata");
         escola.setCnpj("12.345.678/0001-90");
         escola.setStatus(StatusAtivoInativo.ATIVO);
         escola = escolaRepository.save(escola);
 
-        // ---- Cursos --------------------------------------------------------------
         Curso cursoGeekJunior = criarCurso(escola, "Geek Júnior",
                 "Primeiros passos em tecnologia para crianças de 7 a 9 anos: robótica e programação gamificada.", 60);
         Curso cursoRobotica = criarCurso(escola, "Robótica",
@@ -271,7 +219,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         Curso cursoGeekTeens = criarCurso(escola, "Geek Teens",
                 "Robótica e programação gamificada em nível avançado para adolescentes de 12 a 14 anos.", 60);
 
-        // ---- Disciplinas -----------------------------------------------------------
         Disciplina discRobotica = new Disciplina();
         discRobotica.setEscola(escola);
         discRobotica.setTitulo("Robótica");
@@ -284,9 +231,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         discProgGamificada.setStatus(StatusAtivoInativo.ATIVO);
         discProgGamificada = disciplinaRepository.save(discProgGamificada);
 
-        // ---- Grade curricular (Curso ↔ Disciplina + carga horária) ----------------
-        // Robótica e Programação Gamificada só têm a matéria correspondente (60h);
-        // Geek Júnior e Geek Teens têm as duas (30h cada), somando sempre 60h.
         criarCursoDisciplina(cursoGeekJunior, discRobotica, 30);
         criarCursoDisciplina(cursoGeekJunior, discProgGamificada, 30);
         criarCursoDisciplina(cursoRobotica, discRobotica, 60);
@@ -294,13 +238,11 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarCursoDisciplina(cursoGeekTeens, discRobotica, 30);
         criarCursoDisciplina(cursoGeekTeens, discProgGamificada, 30);
 
-        // ---- Turmas (1 por curso, 1 aula semanal de 1h30, capacidade 8) ------------
         Turma turmaGeekJunior = criarTurma(escola, cursoGeekJunior, DiaSemana.TERCA, 8, 0, inicioAnoLetivo);
         Turma turmaRobotica = criarTurma(escola, cursoRobotica, DiaSemana.QUARTA, 14, 0, inicioAnoLetivo);
         Turma turmaProgGamificada = criarTurma(escola, cursoProgGamificada, DiaSemana.QUINTA, 14, 0, inicioAnoLetivo);
         Turma turmaGeekTeens = criarTurma(escola, cursoGeekTeens, DiaSemana.SABADO, 9, 0, inicioAnoLetivo);
 
-        // ---- Professores (1 titular por disciplina) --------------------------------
         Pessoa pessoaProfRobotica = criarPessoa("Rafael Torres Mendes", gerarCpfValido("800000001"),
                 LocalDate.of(1990, 4, 18), "(11) 98100-0001", "rafael.mendes@studojurata.com", Sexo.MASCULINO);
         Pessoa pessoaProfProgGamificada = criarPessoa("Juliana Prado Costa", gerarCpfValido("800000002"),
@@ -319,13 +261,10 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarUsuario(escola, pessoaProfRobotica, "rafael.mendes", "senha123", TipoUsuario.PROFESSOR, null, profRobotica);
         criarUsuario(escola, pessoaProfProgGamificada, "juliana.costa", "senha123", TipoUsuario.PROFESSOR, null, profProgGamificada);
 
-        // ---- Administrador (necessário para Evento.criadoPor) -----------------
         Pessoa pessoaAdmin = criarPessoa("Ana Paula Admin", gerarCpfValido("900000001"),
                 LocalDate.of(1980, 1, 1), "(11) 90000-0000", "admin@studojurata.com", Sexo.FEMININO);
         Usuario usuarioAdmin = criarUsuario(escola, pessoaAdmin, "admin", "admin123", TipoUsuario.ADMINISTRADOR, null, null);
 
-        // ---- TurmaDisciplina --------------------------------------------------------
-        // Mesma distribuição de matérias da grade curricular acima.
         TurmaDisciplina tdGeekJuniorRobotica = criarTurmaDisciplina(turmaGeekJunior, discRobotica, profRobotica);
         TurmaDisciplina tdGeekJuniorProgGamificada = criarTurmaDisciplina(turmaGeekJunior, discProgGamificada, profProgGamificada);
         TurmaDisciplina tdRobotica = criarTurmaDisciplina(turmaRobotica, discRobotica, profRobotica);
@@ -333,7 +272,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         TurmaDisciplina tdGeekTeensRobotica = criarTurmaDisciplina(turmaGeekTeens, discRobotica, profRobotica);
         TurmaDisciplina tdGeekTeensProgGamificada = criarTurmaDisciplina(turmaGeekTeens, discProgGamificada, profProgGamificada);
 
-        // ---- Alunos (7 a 14 anos) + Responsáveis + Matrículas ativas ---------------
         List<AlunoSeed> seedsGeekJunior = List.of(
                 new AlunoSeed("Enzo Ferreira Lima", "01", "2019-03-14", "aluno.enzo",
                         Sexo.MASCULINO, "Marcelo Ferreira Lima (pai)", Parentesco.PAI),
@@ -380,7 +318,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         for (Aluno aluno : alunosProgGamificada) criarMatricula(aluno, turmaProgGamificada, StatusMatricula.ATIVA, inicioAnoLetivo, null);
         for (Aluno aluno : alunosGeekTeens) criarMatricula(aluno, turmaGeekTeens, StatusMatricula.ATIVA, inicioAnoLetivo, null);
 
-        // ---- Alunos só no histórico (cobrem CONCLUIDA e CANCELADA) -----------------
         Aluno alunoConcluido = criarAlunos(escola, List.of(
                 new AlunoSeed("Théo Azevedo Ramos", "15", "2016-04-08", "aluno.theo",
                         Sexo.MASCULINO, "Camila Azevedo Ramos (mãe)", Parentesco.MAE))).get(0);
@@ -393,14 +330,12 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarMatricula(alunoCancelado, turmaGeekTeens, StatusMatricula.CANCELADA,
                 inicioAnoLetivo, LocalDate.of(2026, 5, 16));
 
-        // ---- Aluno matriculado em dois cursos ativos simultaneamente ---------------
         Aluno alunoDoisCursos = criarAlunos(escola, List.of(
                 new AlunoSeed("Pedro Augusto Lima", "17", "2016-11-22", "aluno.pedro",
                         Sexo.MASCULINO, "Fernanda Augusto Lima (mãe)", Parentesco.MAE))).get(0);
         criarMatricula(alunoDoisCursos, turmaGeekJunior, StatusMatricula.ATIVA, inicioAnoLetivo, null);
         criarMatricula(alunoDoisCursos, turmaRobotica, StatusMatricula.ATIVA, inicioAnoLetivo, null);
 
-        // ---- Plano de Ensino + Conteúdo + Plano de Aula + Aulas --------------------
         PlanoEnsino peGeekJuniorRobotica = criarPlanoEnsino(tdGeekJuniorRobotica, cursoGeekJunior,
                 "Robótica - Geek Júnior");
         PlanoEnsino peGeekJuniorProgGamificada = criarPlanoEnsino(tdGeekJuniorProgGamificada, cursoGeekJunior,
@@ -433,12 +368,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         vincularAulaConteudo(aulasGeekTeensRobotica, conteudosGeekTeensRobotica);
         vincularAulaConteudo(aulasGeekTeensProgGamificada, conteudosGeekTeensProgGamificada);
 
-        // ---- Ciclo anterior CONCLUIDO (Robótica) -----------------------------------
-        // Cobre o caso "plano de ensino já concluído, vinculado a um plano de aula":
-        // a mesma TurmaDisciplina (Robótica) acumula o ciclo 2025 (CONCLUIDO) além
-        // do ciclo 2026 ativo criado acima — nenhuma turma fica sem plano de ensino
-        // e plano de aula ATIVO. É o mesmo ciclo em que aluno.theo (matrícula
-        // concluída) cursou a turma.
         PlanoEnsino peRoboticaAnterior = criarPlanoEnsino(tdRobotica, cursoRobotica, "Robótica (2025)",
                 StatusPlano.CONCLUIDO, LocalDate.of(2025, 2, 3), LocalDate.of(2025, 12, 12));
         List<ConteudoPlano> conteudosRoboticaAnterior = criarConteudos(peRoboticaAnterior, "Sensores e Atuadores", "Montagem de Circuitos");
@@ -446,18 +375,15 @@ public class DevDataResetSeeder implements CommandLineRunner {
                 StatusPlano.CONCLUIDO, LocalDate.of(2025, 3, 3));
         vincularAulaConteudo(aulasRoboticaAnterior, conteudosRoboticaAnterior);
 
-        // ---- Frequência: alunos ativos de cada turma, nas aulas daquela turma -----
         marcarFrequenciaTurma(alunosGeekJunior, concat(aulasGeekJuniorRobotica, aulasGeekJuniorProgGamificada));
         marcarFrequenciaTurma(alunosRobotica, aulasRobotica);
         marcarFrequenciaTurma(alunosProgGamificada, aulasProgGamificada);
         marcarFrequenciaTurma(alunosGeekTeens, concat(aulasGeekTeensRobotica, aulasGeekTeensProgGamificada));
 
-        // Aluno em dois cursos ativos: frequência marcada nas aulas das duas turmas.
         for (Aula aula : concat(aulasGeekJuniorRobotica, aulasGeekJuniorProgGamificada, aulasRobotica)) {
             criarFrequencia(alunoDoisCursos, aula, true, null);
         }
 
-        // ---- Questões (5 por turma-disciplina) + Simulados -------------------------
         List<Questao> questoesGeekJuniorRobotica = criarQuestoes(discRobotica, conteudosGeekJuniorRobotica);
         List<Questao> questoesGeekJuniorProgGamificada = criarQuestoes(discProgGamificada, conteudosGeekJuniorProgGamificada);
         List<Questao> questoesRobotica = criarQuestoes(discRobotica, conteudosRobotica);
@@ -472,9 +398,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         Simulado simuladoGeekTeensRobotica = criarSimulado("Simulado de Robótica - Geek Teens", discRobotica, peGeekTeensRobotica, turmaGeekTeens, questoesGeekTeensRobotica);
         Simulado simuladoGeekTeensProgGamificada = criarSimulado("Simulado de Programação Gamificada - Geek Teens", discProgGamificada, peGeekTeensProgGamificada, turmaGeekTeens, questoesGeekTeensProgGamificada);
 
-        // ---- SimuladoAluno: metade responde (CONCLUIDO), metade fica "a fazer" ----
-        // (StatusSimuladoAluno.PENDENTE — ver Javadoc do enum: é o estado normal
-        // logo após o lançamento do simulado, antes do aluno abrir a prova.)
         responderSimulado(simuladoGeekJuniorRobotica, alunosGeekJunior.get(0), questoesGeekJuniorRobotica, 4);
         responderSimulado(simuladoGeekJuniorRobotica, alunosGeekJunior.get(1), questoesGeekJuniorRobotica, 3);
         criarSimuladoAlunoPendente(simuladoGeekJuniorRobotica, alunosGeekJunior.get(2));
@@ -485,10 +408,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarSimuladoAlunoPendente(simuladoGeekJuniorProgGamificada, alunosGeekJunior.get(1));
         criarSimuladoAlunoPendente(simuladoGeekJuniorProgGamificada, alunosGeekJunior.get(3));
 
-        // Exemplo do alerta "pede reforço manual" (AlertaDesempenhoCard, ver
-        // LIMIAR_BAIXO_DESEMPENHO no front): 3 dos 5 alunos concluídos (60%) ficam
-        // abaixo de 60% de aproveitamento — visível em Desempenho > Por
-        // simulado > Detalhar no Simulado de Robótica da turma de Robótica.
         responderSimulado(simuladoRobotica, alunosRobotica.get(0), questoesRobotica, 5);
         responderSimulado(simuladoRobotica, alunosRobotica.get(1), questoesRobotica, 2);
         responderSimulado(simuladoRobotica, alunosRobotica.get(2), questoesRobotica, 2);
@@ -507,7 +426,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         responderSimulado(simuladoGeekTeensProgGamificada, alunosGeekTeens.get(2), questoesGeekTeensProgGamificada, 1);
         criarSimuladoAlunoPendente(simuladoGeekTeensProgGamificada, alunosGeekTeens.get(0));
 
-        // ---- Notas (por aluno/disciplina/turma) -------------------------------------
         criarNota(alunosGeekJunior.get(0), discRobotica, turmaGeekJunior, 8.0, 1);
         criarNota(alunosGeekJunior.get(1), discRobotica, turmaGeekJunior, 6.0, 1);
         criarNota(alunosGeekJunior.get(2), discProgGamificada, turmaGeekJunior, 10.0, 1);
@@ -518,9 +436,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarNota(alunosGeekTeens.get(1), discProgGamificada, turmaGeekTeens, 10.0, 1);
         criarNota(alunosGeekTeens.get(2), discProgGamificada, turmaGeekTeens, 2.0, 1);
 
-        // ---- Questões de IA pendentes de revisão ("simulados a revisar") -----------
-        // Vinculadas a um simulado ainda em RASCUNHO por disciplina, cobrindo a tela
-        // de revisão de questões geradas por IA antes de irem para um simulado real.
         Simulado revisaoRobotica = criarSimuladoRascunhoIA("Revisão IA — Robótica", discRobotica, peRobotica, turmaRobotica, 2,
                 alunosRobotica.get(1), conteudosRobotica.get(1));
         Simulado revisaoProgGamificada = criarSimuladoRascunhoIA("Revisão IA — Programação Gamificada", discProgGamificada, peProgGamificada,
@@ -549,7 +464,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarHistoricoGeracaoIA(conteudosProgGamificada.get(0), discProgGamificada, revisaoProgGamificada, NivelDificuldade.FACIL,
                 TipoQuestao.ALTERNATIVAS, 2, 1, 1, 0, OrigemResultadoGeracao.FALLBACK_BANCO, "gemini-1.5-flash", 1800L);
 
-        // ---- Eventos: aulas demonstrativas constantes + reunião -------------------
         criarEvento("Aula demonstrativa — Robótica", "Aula aberta para famílias interessadas no curso de Robótica.",
                 LocalDateTime.of(2026, 7, 18, 9, 0), usuarioAdmin, true);
         criarEvento("Aula demonstrativa — Geek Júnior", "Aula aberta para famílias interessadas no curso Geek Júnior.",
@@ -561,11 +475,9 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarEvento("Reunião de pais e mestres", "Reunião geral do semestre.",
                 LocalDateTime.of(2026, 9, 5, 19, 0), usuarioAdmin, false);
 
-        // ---- Auditoria -------------------------------------------------------------
         criarAuditLog("Nota", 1L, AcaoAuditoria.ATUALIZACAO, "admin", "total: 7.0 -> 8.0");
         criarAuditLog("SimuladoAluno", 1L, AcaoAuditoria.CRIACAO, "rafael.mendes", "tentativa finalizada pelo aluno");
 
-        // ---- Gamificação -------------------------------------------------------------
         Skin skinClassico = criarSkin("Jura", "Jura, o visual padrão do mascote Studo Jurata.", 0, "skins/classico.png");
         Skin skinExplorador = criarSkin("Bit", "Traje de explorador, desbloqueado com moedas de reforço.", 50, "skins/explorador.png");
         criarSkin("Lia", "Jaleco de cientista, para quem completa muitos simulados.", 80, "skins/cientista.png");
@@ -579,27 +491,15 @@ public class DevDataResetSeeder implements CommandLineRunner {
         criarSkinAluno(alunosGeekJunior.get(0), skinClassico, true);
         criarSkinAluno(alunosRobotica.get(0), skinExplorador, true);
 
-        // ---- Módulo de IA (revisão espaçada) ---------------------------------------
         criarRevisao(alunosGeekJunior.get(3), conteudosGeekJuniorRobotica.get(0), 1, NivelDominio.BAIXO);
         criarRevisao(alunosProgGamificada.get(1), conteudosProgGamificada.get(0), 3, NivelDominio.MEDIO);
 
-        // Revisão já devida hoje, para testar a geração sem esperar o cron.
-        // O conteúdo tem só 1 questão aprovada por nível: pedir 5 de nível MEDIA
-        // obriga ao menos 2 a virem do Gemini, não só do cache.
-        // Este caso é de propósito o do alerta coletivo: 3 de 5 alunos de Robótica estão
-        // abaixo de 60% em "Sensores e Atuadores", então "Gerar agora" avisa o professor
-        // para revisar em sala em vez de gerar simulado individual.
         criarRevisaoDevidaHoje(alunosRobotica.get(0), conteudosRobotica.get(0), NivelDominio.BAIXO);
 
-        // Devidas hoje que PODEM ser geradas (sem alerta coletivo), uma por professor.
         criarRevisaoDevidaHoje(alunosGeekJunior.get(0), conteudosGeekJuniorRobotica.get(0), NivelDominio.MEDIO);
         criarRevisaoDevidaHoje(alunosGeekJunior.get(1), conteudosGeekJuniorRobotica.get(1), NivelDominio.BAIXO);
         criarRevisaoDevidaHoje(alunosProgGamificada.get(0), conteudosProgGamificada.get(1), NivelDominio.BAIXO);
     }
-
-    // =========================================================================
-    // Helpers
-    // =========================================================================
 
     private Curso criarCurso(Escola escola, String nome, String descricao, int cargaHorariaTotal) {
         Curso curso = new Curso();
@@ -620,10 +520,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         cursoDisciplinaRepository.save(cd);
     }
 
-    /**
-     * Nome da turma = curso + dia da semana + horário de início. Sem dataFim:
-     * turma ATIVA continua indefinidamente e só ganha data ao ser encerrada.
-     */
     private Turma criarTurma(Escola escola, Curso curso, DiaSemana dia, int horaInicio, int minutoInicio,
                               LocalDate dataInicio) {
         LocalTime inicio = LocalTime.of(horaInicio, minutoInicio);
@@ -672,7 +568,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         p.setEmail(email);
         p.setSexo(sexo);
         p.setStatus(StatusAtivoInativo.ATIVO);
-        // Derivado do CPF: a mesma pessoa recebe o mesmo endereço entre resets.
         p.setEndereco(gerarEndereco(cpf));
         return pessoaRepository.save(p);
     }
@@ -692,11 +587,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
             {"05836-000", "Avenida Giovanni Gronchi", "Morumbi"},
     };
 
-    /** Endereço plausível de São Paulo/SP, determinístico a partir do CPF. */
-    /**
-     * Dígitos verificadores reais (mesmo algoritmo de `cpfValido` no front):
-     * com CPF inválido, salvar um cadastro do seed sem alterações falharia.
-     */
     private String gerarCpfValido(String base9) {
         int[] d = new int[11];
         for (int i = 0; i < 9; i++) d[i] = base9.charAt(i) - '0';
@@ -776,13 +666,11 @@ public class DevDataResetSeeder implements CommandLineRunner {
 
         Aluno aluno = new Aluno();
         aluno.setPessoa(pessoaAluno);
-        // Mesmo formato gerado pela API (AAAA9999), em sequência.
         aluno.setMatricula(LocalDate.now().getYear() + String.format("%04d", ++sequenciaMatricula));
         aluno = alunoRepository.save(aluno);
 
         criarUsuario(escola, pessoaAluno, seed.username(), "senha123", TipoUsuario.ALUNO, aluno, null);
 
-        // Prefixo 6 (o do aluno é 7) para os CPFs nunca colidirem.
         Pessoa pessoaResp = criarPessoa(seed.nomeResponsavel(), gerarCpfValido("6000000" + seed.codigo()),
                 LocalDate.of(1980, 1, 1), "(11) 94" + seed.codigo() + "-0000",
                 "resp." + seed.username() + "@studojurata.com",
@@ -815,12 +703,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
                 LocalDate.of(2026, 2, 2), LocalDate.of(2026, 12, 18));
     }
 
-    /**
-     * Overload que permite semear um plano de ensino de um ciclo já
-     * CONCLUIDO (ex.: ano letivo anterior) — cobre o caso "nenhuma turma
-     * fica sem plano de ensino ativo": a mesma TurmaDisciplina acumula um
-     * plano concluído (histórico) e o plano ativo do ciclo atual.
-     */
     private PlanoEnsino criarPlanoEnsino(TurmaDisciplina td, Curso curso, String titulo, StatusPlano status,
                                           LocalDate dataInicio, LocalDate dataFim) {
         PlanoEnsino pe = new PlanoEnsino();
@@ -856,11 +738,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         return criarPlanoAulaComAulas(td, pe, tituloBase, StatusPlano.ATIVO, LocalDate.of(2026, 3, 1));
     }
 
-    /**
-     * Overload que permite semear um plano de aula de um ciclo já
-     * CONCLUIDO, vinculado ao plano de ensino concluído correspondente —
-     * "cada plano de ensino concluído é vinculado a um plano de aula".
-     */
     private List<Aula> criarPlanoAulaComAulas(TurmaDisciplina td, PlanoEnsino pe, String tituloBase, StatusPlano status,
                                                LocalDate dataBase) {
         PlanoAula pa = new PlanoAula();
@@ -869,8 +746,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         pa.setStatus(status);
         pa = planoAulaRepository.save(pa);
 
-        // A carga horária precisa bater com o horário da turma, como
-        // AulaService.validar exige no uso normal.
         List<HorarioTurma> horarios = horarioTurmaRepository.findByTurma_Id(td.getTurma().getId());
         HorarioTurma horario = horarios.isEmpty() ? null : horarios.get(0);
         double cargaHorariaAula = horario != null
@@ -907,8 +782,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
     private void marcarFrequenciaTurma(List<Aluno> alunosDaTurma, List<Aula> aulasDaTurma) {
         for (Aula aula : aulasDaTurma) {
             for (int i = 0; i < alunosDaTurma.size(); i++) {
-                // Um aluno por turma falta com justificativa, os demais presentes —
-                // cobre os dois estados de frequência na tela do professor.
                 boolean presente = i != alunosDaTurma.size() - 1;
                 criarFrequencia(alunosDaTurma.get(i), aula, presente, presente ? null : "Atestado médico");
             }
@@ -924,23 +797,15 @@ public class DevDataResetSeeder implements CommandLineRunner {
         frequenciaRepository.save(f);
     }
 
-    /** Uma questão de múltipla escolha pronta pra semear: enunciado + até 3 alternativas (a 1ª é a correta). */
     private record QuestaoAlternativasSeed(String enunciado, NivelDificuldade nivel, String... alternativas) {
     }
 
-    /** Uma afirmação de questão Verdadeiro/Falso: cada uma julgada à parte (ver AlternativaVerdadeiroFalso no front). */
     private record AfirmacaoSeed(String texto, boolean verdadeira) {
     }
 
-    /** Uma questão Verdadeiro/Falso pronta pra semear: enunciado + até 3 afirmações independentes. */
     private record QuestaoVFSeed(String enunciado, AfirmacaoSeed... afirmacoes) {
     }
 
-    /**
-     * Banco de questões reais por disciplina (não texto placeholder) — no máximo
-     * 3 alternativas por questão (MAXIMO_ALTERNATIVAS do front) e V/F com
-     * afirmações cujo gabarito bate de fato com a resposta certa.
-     */
     private List<Questao> criarQuestoes(Disciplina disciplina, List<ConteudoPlano> conteudos) {
         boolean robotica = disciplina.getTitulo().equals("Robótica");
 
@@ -1011,7 +876,7 @@ public class DevDataResetSeeder implements CommandLineRunner {
             Alternativa a = new Alternativa();
             a.setQuestao(q);
             a.setTexto(seed.alternativas()[i]);
-            a.setCorreta(i == 0); // a primeira do array é sempre a correta, por convenção do banco acima
+            a.setCorreta(i == 0);
             a.setOrdem(i + 1);
             alternativaRepository.save(a);
         }
@@ -1051,11 +916,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         questaoConteudoRepository.save(qc);
     }
 
-    /**
-     * Questão de origem IA, ainda PENDENTE — aparece na tela de revisão do
-     * professor. Até 3 alternativas (MAXIMO_ALTERNATIVAS do front); a
-     * primeira do array é sempre a correta.
-     */
     private Questao criarQuestaoIaPendente(Disciplina disciplina, ConteudoPlano conteudo, String enunciado,
                                             NivelDificuldade nivel, String... alternativas) {
         Questao q = new Questao();
@@ -1106,15 +966,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         return s;
     }
 
-    /**
-     * Simulado em RASCUNHO com as questões de IA aguardando aprovação.
-     * `quantidadeQuestoes` precisa bater com quantas o chamador vincula depois.
-     */
-    /**
-     * Rascunho como a geração por IA o produz: destinado a um aluno, dentro do plano
-     * de ensino da turma, com o vínculo SimuladoGeradoIA (por isso aparece em
-     * "Aguardando aprovação" e mostra "Studo Jurata" como autor).
-     */
     private Simulado criarSimuladoRascunhoIA(String titulo, Disciplina disciplina, PlanoEnsino planoEnsino, Turma turma,
                                              int quantidadeQuestoes, Aluno aluno, ConteudoPlano conteudo) {
         Simulado s = new Simulado();
@@ -1186,8 +1037,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
             qa.setTempoResposta(90);
 
             if (questao.getTipo() == TipoQuestao.VERDADEIRO_FALSO) {
-                // Acertou = julgou todas as afirmações certas; errou = inverte o
-                // julgamento de todas, garantindo pelo menos uma errada.
                 qa.setAlternativa(null);
                 qa.setAlternativasVerdadeiras(alternativas.stream()
                         .filter(a -> Boolean.TRUE.equals(a.getCorreta()) == acertou)
@@ -1205,7 +1054,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         }
     }
 
-    /** Tentativa "a fazer" — criada no lançamento do simulado, aluno ainda não abriu a prova. */
     private void criarSimuladoAlunoPendente(Simulado simulado, Aluno aluno) {
         SimuladoAluno sa = new SimuladoAluno();
         sa.setSimulado(simulado);
@@ -1281,10 +1129,6 @@ public class DevDataResetSeeder implements CommandLineRunner {
         revisaoConteudoRepository.save(r);
     }
 
-    /**
-     * Variante de criarRevisao já devida hoje, para testar a integração com o
-     * Gemini sem esperar a repetição espaçada.
-     */
     private void criarRevisaoDevidaHoje(Aluno aluno, ConteudoPlano conteudo, NivelDominio nivel) {
         RevisaoConteudo r = new RevisaoConteudo();
         r.setAluno(aluno);

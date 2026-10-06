@@ -21,23 +21,16 @@ import studojurata_api.model.planejamento.ConteudoPlano;
 import studojurata_api.model.curriculo.Disciplina;
 import studojurata_api.model.enums.NivelDificuldade;
 
-/**
- * Registro da recomendação: grava o que foi decidido (atributos, necessidade,
- * decisão, questões selecionadas), escreve o motivo em texto e monta a resposta.
- * Só traduz o resultado da análise; as decisões em si ficam no
- * {@link MachineLearningRecomendacaoService}.
- */
+/** Registro da recomendação: grava o que foi decidido (atributos, necessidade, decisão, questões selecionadas) */
 @Component
 @RequiredArgsConstructor
 public class RegistroDeRecomendacao {
-
     private final RecomendacaoSimuladoRepository recomendacaoSimuladoRepository;
 
     public RecomendacaoSimulado persistir(Aluno aluno, Disciplina disciplina, ConteudoPlano conteudo,
             AtributosRecomendacao atributos, NecessidadeRevisao necessidade, OrigemDecisao origem,
             DecisaoGeracao decisao, int quantidade, int intervalo, Set<MotivoRecomendacao> motivos, String motivo,
             SelecaoQuestoesService.Resultado selecao, boolean dadosInsuficientes, boolean bloqueadoPeloAlerta) {
-
         RecomendacaoSimulado registro = new RecomendacaoSimulado();
         registro.setAluno(aluno);
         registro.setDisciplina(disciplina);
@@ -72,7 +65,6 @@ public class RegistroDeRecomendacao {
             SelecaoQuestoesService.Resultado selecao, Set<MotivoRecomendacao> motivos, String motivo,
             NecessidadeRevisao necessidade, OrigemDecisao origem, boolean dadosInsuficientes,
             boolean modeloUsado, String alertaProfessor, NivelDificuldade nivelPrioritario) {
-
         RecomendacaoSimuladoDTO dto = new RecomendacaoSimuladoDTO();
         dto.setId(registro.getId());
         dto.setAlunoId(registro.getAluno().getId());
@@ -106,7 +98,6 @@ public class RegistroDeRecomendacao {
     public String montarMotivo(NecessidadeRevisao necessidade, Set<MotivoRecomendacao> motivos,
             AtributosRecomendacao atributos, SelecaoQuestoesService.Resultado selecao, DecisaoGeracao decisao,
             boolean bloqueadoPeloAlerta) {
-
         StringBuilder texto = new StringBuilder("Necessidade: ").append(necessidade).append('.');
 
         if (!atributos.temHistorico()) {

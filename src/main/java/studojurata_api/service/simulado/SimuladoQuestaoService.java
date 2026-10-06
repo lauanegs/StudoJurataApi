@@ -29,8 +29,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class SimuladoQuestaoService {
-
-    /** Regra de negócio: um simulado nunca pode ter mais que 10 questões. */
+    /** Regra de negócio: um simulado nunca pode ter mais que 10 questões */
     private static final int MAXIMO_QUESTOES_POR_SIMULADO = 10;
 
     private final SimuladoQuestaoRepository repository;
@@ -40,11 +39,7 @@ public class SimuladoQuestaoService {
     private final SimuladoService simuladoService;
     private final SimuladoAccessGuard simuladoAccessGuard;
 
-    /**
-     * Listagem escopada: ADMINISTRADOR ve todos os vinculos; PROFESSOR e ALUNO
-     * veem apenas os vinculos dos simulados que podem acessar (para o aluno, os
-     * simulados em que tem tentativa). Orfaos preservados por D-C1.
-     */
+    /** Listagem escopada: ADMINISTRADOR ve todos os vinculos; PROFESSOR */
     public List<SimuladoQuestao> listar() {
         if (usuarioAutenticado.ehAdministrador()) {
             return repository.findAll();
@@ -54,23 +49,13 @@ public class SimuladoQuestaoService {
         return simuladoIds.isEmpty() ? List.of() : repository.findBySimulado_IdIn(simuladoIds);
     }
 
-    /**
-     * Vincula questão a simulado (POST /simulado-questao).
-     *
-     * <p>Além das regras que já existiam — a questão de IA precisa estar
-     * vinculada a um conteúdo e o simulado nunca passa de 10 questões —, o
-     * C2.7d valida as <b>duas</b> pontas contra o escopo do professor: o
-     * simulado (turma, disciplina e plano) e a questão (disciplina). O cliente só
-     * informa ids, e as entidades chegam do banco pelo mapper; nada aqui confia
-     * no conteúdo do corpo além desses ids.
-     */
+    /** Vincula questão a simulado (POST /simulado-questao) */
     @Transactional
     public SimuladoQuestao salvar(SimuladoQuestao obj) {
         Simulado simulado = obj.getSimulado();
         Questao questao = obj.getQuestao();
 
-        // Escopo das duas pontas: simulado (turma/disciplina/plano) e questão
-        // (disciplina), com uma única resolução de escopo do professor.
+        // Escopo das duas pontas: simulado (turma/disciplina/plano) e questão (disciplina)
         simuladoAccessGuard.garantirEscritaDoVinculo(simulado, questao);
         exigirSimuladoEmRascunho(simulado);
 
@@ -82,16 +67,12 @@ public class SimuladoQuestaoService {
             obj.setStatus(StatusSimuladoQuestao.ATIVA);
         }
         SimuladoQuestao salvo = repository.save(obj);
-        // A quantidade do simulado é sempre a contagem real de vínculos ativos.
+        // A quantidade do simulado é sempre a contagem real de vínculos ativos
         simuladoService.sincronizarQuantidadeDeQuestoes(salvo.getSimulado());
         return salvo;
     }
 
-    /**
-     * A mesma questão não entra duas vezes no simulado: dois vínculos levariam a
-     * questão repetida na prova e a contagem inflada. Vínculo REMOVIDA não conta
-     * — a questão pode voltar depois de sair.
-     */
+    /** A mesma questão não entra duas vezes no simulado */
     private void validarVinculoAtivoUnico(SimuladoQuestao obj) {
         Long simuladoId = obj.getSimulado() != null ? obj.getSimulado().getId() : null;
         Long questaoId = obj.getQuestao() != null ? obj.getQuestao().getId() : null;
@@ -103,12 +84,7 @@ public class SimuladoQuestaoService {
         }
     }
 
-    /**
-     * O simulado em RASCUNHO é o único que aceita novas questões: depois de
-     * lançado já existem tentativas (e possivelmente alunos respondendo), então
-     * vincular questão mudaria a prova em andamento. A tela já bloqueia esse
-     * caminho; aqui a mesma regra vale para quem chama a API direto.
-     */
+    /** O simulado em RASCUNHO é o único que aceita novas questões */
     private void exigirSimuladoEmRascunho(Simulado simulado) {
         if (simulado == null || simulado.getId() == null) {
             throw new RequisicaoInvalidaException("Simulado é obrigatório.");
@@ -119,20 +95,7 @@ public class SimuladoQuestaoService {
         }
     }
 
-    /**
-     * Tira a questão do simulado (DELETE
-     * /simulado-questao/simulado/{id}/questao/{id}). A questão continua
-     * existindo — o que sai é só o relacionamento com este simulado.
-     *
-     * <p>Mesma porta da inclusão: perfil e escopo pelo
-     * {@link SimuladoAccessGuard} e simulado em RASCUNHO. Depois de publicado já
-     * existem tentativas (e possivelmente respostas), e mexer na prova em
-     * andamento mudaria o simulado de quem está respondendo.
-     *
-     * <p>Apaga o vínculo, como nos outros desvínculos do domínio
-     * ({@code QuestaoConteudoService}/{@code AulaConteudoService}): em RASCUNHO
-     * não há resposta registrada para preservar.
-     */
+    /** Tira a questão do simulado (DELETE /simulado-questao/simulado/{id}/questao/{id}) */
     @Transactional
     public void desvincular(Long simuladoId, Long questaoId) {
         Simulado simulado = simuladoService.buscar(simuladoId);
@@ -147,12 +110,7 @@ public class SimuladoQuestaoService {
         simuladoService.sincronizarQuantidadeDeQuestoes(simulado);
     }
 
-    /**
-     * O simulado não mistura disciplinas: a questão precisa ser da mesma
-     * disciplina dele, senão o desempenho por conteúdo perde o sentido. Vale
-     * também para o ADMIN, por ser regra do dado e não de escopo. A questão aqui
-     * já é não nula: {@code validarQuestaoVinculadaAoConteudo} roda antes.
-     */
+    /** O simulado não mistura disciplinas */
     private void validarCoerenciaDeDisciplinas(Simulado simulado, Questao questao) {
         if (simulado == null || simulado.getId() == null) {
             throw new RequisicaoInvalidaException("Simulado é obrigatório.");
@@ -179,12 +137,7 @@ public class SimuladoQuestaoService {
         }
     }
 
-    /**
-     * Toda questão de simulado precisa de conteúdo, e todo conteúdo vinculado
-     * precisa ter sido ministrado (ao menos uma aula realizada, com data de
-     * publicação até hoje). Sem isso o aluno seria cobrado em matéria que ainda
-     * não viu e a repetição espaçada não teria o que rastrear.
-     */
+    /** Toda questão de simulado precisa de conteúdo, e todo conteúdo vinculado precisa ter sido ministrado */
     private void validarQuestaoVinculadaAoConteudo(SimuladoQuestao obj) {
         if (obj.getQuestao() == null || obj.getQuestao().getId() == null) {
             throw new RequisicaoInvalidaException("Questão é obrigatória.");

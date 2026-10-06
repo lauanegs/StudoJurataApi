@@ -11,17 +11,11 @@ import studojurata_api.model.enums.TipoQuestao;
 import studojurata_api.model.BaseEntity;
 import studojurata_api.model.curriculo.Disciplina;
 
-/**
- * O vínculo com conteúdos fica em QuestaoConteudo. status é o fluxo de
- * moderação: questões de origem IA nascem PENDENTE e só podem ir para novos
- * simulados após aprovação; as do professor já nascem APROVADA.
- */
 @Entity
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class Questao extends BaseEntity {
-
     @Column(columnDefinition = "TEXT")
 
     private String enunciado;

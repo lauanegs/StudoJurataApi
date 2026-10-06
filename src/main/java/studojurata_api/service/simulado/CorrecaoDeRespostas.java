@@ -17,33 +17,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Correção das respostas de uma tentativa: julga cada questão (alternativa
- * única ou verdadeiro/falso), grava a resposta e totaliza acertos e pontuação.
- * Usada na finalização e na conferência imediata de uma questão.
- */
+/** Correção das respostas de uma tentativa */
 @Component
 @RequiredArgsConstructor
 public class CorrecaoDeRespostas {
-
     private final QuestaoAlunoRepository questaoAlunoRepository;
     private final AlternativaRepository alternativaRepository;
 
-    /** respondidas = questões efetivamente respondidas (em branco não conta). */
+    /** respondidas = questões efetivamente respondidas (em branco não conta) */
     public record Resultado(int acertos, int respondidas, double pontuacaoObtida, double pontuacaoTotal) {}
 
-    /** Julga a questão conforme o tipo e preenche a resposta do aluno (alternativa escolhida ou afirmações marcadas). */
+    /** Julga a questão conforme o tipo e preenche a resposta do aluno (alternativa escolhida ou afirmações marcadas) */
     public boolean julgar(Questao questao, FinalizarSimuladoRequest.Item resposta, QuestaoAluno questaoAluno) {
         return questao.getTipo() == TipoQuestao.VERDADEIRO_FALSO
                 ? julgarVerdadeiroFalso(questao, resposta, questaoAluno)
                 : julgarAlternativas(resposta, questaoAluno);
     }
 
-    /**
-     * Questão em branco, inclusive V/F com afirmação não julgada, conta como
-     * erro em vez de reabrir a tentativa: reabrir deixaria o aluno refazer
-     * sabendo o que já tinha respondido.
-     */
+    /** Questão em branco, inclusive V/F com afirmação não julgada, conta como erro em vez de reabrir a tentativa */
     public Resultado corrigir(
             SimuladoAluno simuladoAluno, List<SimuladoQuestao> questoes, FinalizarSimuladoRequest request) {
         Map<Long, FinalizarSimuladoRequest.Item> respostasPorQuestao = new HashMap<>();
@@ -73,7 +64,7 @@ public class CorrecaoDeRespostas {
             questaoAluno.setSimuladoAluno(simuladoAluno);
             questaoAluno.setQuestao(questao);
 
-            // Questão já conferida durante a prova: vale a resposta gravada, não a do request.
+            // Questão já conferida durante a prova: vale a resposta gravada, não a do request
             boolean jaConferida = Boolean.TRUE.equals(questaoAluno.getRespondida());
             boolean acertou = jaConferida
                     ? Boolean.TRUE.equals(questaoAluno.getAcertou())
@@ -97,7 +88,7 @@ public class CorrecaoDeRespostas {
         return new Resultado(acertos, respondidas, pontuacaoObtida, pontuacaoTotal);
     }
 
-    /** Escolha única (tipo ALTERNATIVAS): acerta quem escolheu a alternativa marcada correta=true. */
+    /** Escolha única (tipo ALTERNATIVAS) */
     private boolean julgarAlternativas(FinalizarSimuladoRequest.Item resposta, QuestaoAluno questaoAluno) {
         questaoAluno.setAlternativasVerdadeiras(List.of());
 
@@ -115,16 +106,7 @@ public class CorrecaoDeRespostas {
         return Boolean.TRUE.equals(alternativaEscolhida.getCorreta());
     }
 
-    /**
-     * VERDADEIRO_FALSO: cada alternativa da questão é uma afirmação julgada
-     * independentemente (correta=true/false é o gabarito — a afirmação É
-     * verdadeira ou falsa). O aluno acerta a questão inteira só se marcou
-     * TODAS as afirmações certas; uma só errada derruba a questão toda.
-     *
-     * alternativasVerdadeiras == null no request é o sentinel de "em branco"
-     * — diferente de lista vazia, que é uma resposta legítima ("julguei
-     * todas as afirmações como Falsas").
-     */
+    /** VERDADEIRO_FALSO: cada alternativa da questão é uma afirmação julgada independentemente */
     private boolean julgarVerdadeiroFalso(Questao questao, FinalizarSimuladoRequest.Item resposta, QuestaoAluno questaoAluno) {
         List<Alternativa> afirmacoes = alternativaRepository.findByQuestaoIdOrderByOrdem(questao.getId());
         questaoAluno.setAlternativa(null);
@@ -132,7 +114,7 @@ public class CorrecaoDeRespostas {
         List<Long> idsMarcadosVerdadeiros = resposta != null ? resposta.getAlternativasVerdadeiras() : null;
 
         if (afirmacoes.isEmpty() || idsMarcadosVerdadeiros == null) {
-            // Sem afirmações cadastradas, ou questão deixada em branco.
+            // Sem afirmações cadastradas, ou questão deixada em branco
             questaoAluno.setAlternativasVerdadeiras(List.of());
             questaoAluno.setRespondida(false);
             return false;

@@ -13,7 +13,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PessoaService {
-
     private final PessoaRepository repository;
 
     public List<Pessoa> listar() { return repository.findAll(); }
@@ -32,18 +31,14 @@ public class PessoaService {
         return repository.save(obj);
     }
 
-    /**
-     * Sexo é obrigatório em todo cadastro de pessoa (aluno, professor e
-     * responsável usam esta mesma porta): é dado de identificação usado pelas
-     * listagens da secretaria e não há valor padrão que faça sentido supor.
-     */
+    /** Sexo é obrigatório em todo cadastro de pessoa (aluno, professor e responsável usam esta mesma porta) */
     private void validarSexo(Pessoa obj) {
         if (obj.getSexo() == null) {
             throw new RequisicaoInvalidaException("Sexo é obrigatório.");
         }
     }
 
-    /** A constraint unique do banco já impede, mas checar antes dá uma mensagem clara em vez de 500. */
+    /** A constraint unique do banco já impede, mas checar antes dá uma mensagem clara em vez de 500 */
     private void validarCpfUnico(String cpf, Long ignorarId) {
         if (cpf == null || cpf.isBlank()) return;
 

@@ -13,7 +13,6 @@ import studojurata_api.model.BaseEntity;
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class Frequencia extends BaseEntity {
-
     @ManyToOne(optional = false)
     private Aluno aluno;
 
@@ -23,7 +22,6 @@ public class Frequencia extends BaseEntity {
     @Column(nullable = false)
     private Boolean presente;
 
-    /** Preenchida opcionalmente quando presente = false. */
     @Column(length = 500)
     private String justificativa;
 }

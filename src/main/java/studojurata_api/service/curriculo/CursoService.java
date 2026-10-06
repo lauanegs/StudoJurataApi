@@ -13,19 +13,14 @@ import studojurata_api.security.EscolaContext;
 
 import java.util.List;
 
-/**
- * atualizar() ignora a escola enviada: um curso nunca muda de escola.
- * cargaHorariaTotal enviado também é ignorado, pois é sempre derivado da
- * grade (CursoDisciplinaService).
- */
+/** atualizar() ignora a escola enviada: um curso nunca muda de escola */
 @Service
 @RequiredArgsConstructor
 public class CursoService {
-
     private final CursoRepository repository;
     private final EscolaContext escolaContext;
 
-    /** Sem escola resolvível (antes do cadastro inicial da escola), não filtra. */
+    /** Sem escola resolvível (antes do cadastro inicial da escola), não filtra */
     public List<Curso> listar() {
         Long escolaId = escolaContext.escolaAtualId();
         return escolaId != null ? repository.findByEscola_Id(escolaId) : repository.findAll();
@@ -36,7 +31,7 @@ public class CursoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Curso " + id + " não encontrado."));
     }
 
-    /** Leitura individual: catálogo da mesma escola da listagem. */
+    /** Leitura individual: catálogo da mesma escola da listagem */
     public Curso buscarParaLeitura(Long id) {
         Curso curso = buscar(id);
         Long escolaId = escolaContext.escolaAtualId();
@@ -69,7 +64,7 @@ public class CursoService {
         }
     }
 
-    /** Soft-delete: turmas já vinculadas a este curso preservam a referência histórica. */
+    /** Soft-delete: turmas já vinculadas a este curso preservam a referência histórica */
     public void deletar(Long id) {
         Curso curso = buscar(id);
         curso.setStatus(StatusAtivoInativo.INATIVO);

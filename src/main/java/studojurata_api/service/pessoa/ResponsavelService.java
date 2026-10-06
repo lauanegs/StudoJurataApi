@@ -13,7 +13,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ResponsavelService {
-
     private final ResponsavelRepository repository;
 
     public List<Responsavel> listar() { return repository.findAll(); }
@@ -30,7 +29,7 @@ public class ResponsavelService {
         return repository.save(obj);
     }
 
-    /** Soft-delete pela Pessoa, já que Responsavel não tem status próprio. */
+    /** Soft-delete pela Pessoa, já que Responsavel não tem status próprio */
     @Transactional
     public void deletar(Long id) {
         Responsavel responsavel = buscar(id);

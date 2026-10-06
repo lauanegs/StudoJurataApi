@@ -26,32 +26,11 @@ import studojurata_api.model.enums.NivelDificuldade;
 import studojurata_api.repository.simulado.QuestaoAlunoRepository;
 import studojurata_api.repository.simulado.QuestaoConteudoRepository;
 
-/**
- * Monta os atributos da recomendação a partir do que o sistema realmente
- * guarda. Não estima nem preenche lacuna com valor inventado: quando o dado não
- * existe, o atributo vai nulo (e o Weka recebe valor ausente, não zero).
- *
- * <p>Onde cada atributo nasce (levantamento do passo):
- * <ul>
- *   <li>respostas e acerto: {@code QuestaoAluno} (uma linha por questão da
- *       tentativa, com {@code acertou});</li>
- *   <li>data da resposta: {@code Simulado.dataInicio} (a tentativa é respondida
- *       dentro da janela do simulado) e, na falta dele, {@code QuestaoAluno.createdAt};</li>
- *   <li>dificuldade: {@code Questao.nivelDificuldade} (opcional no banco — questões
- *       sem nível não entram na média);</li>
- *   <li>conteúdo da questão: {@code QuestaoConteudo} (o vínculo é que liga a
- *       questão ao conteúdo);</li>
- *   <li>revisões: {@code RevisaoConteudo.quantidadeReforcos} e as datas de
- *       último/próximo reforço;</li>
- *   <li>tentativas: quantidade de {@code SimuladoAluno} distintos que tocaram o
- *       conteúdo.</li>
- * </ul>
- */
+/** Monta os atributos da recomendação a partir do que o sistema realmente guarda */
 @Service
 @RequiredArgsConstructor
 public class AtributosAlunoService {
-
-    /** Quantas respostas mais recentes formam o "desempenho recente". */
+    /** Quantas respostas mais recentes formam o "desempenho recente" */
     static final int JANELA_RECENTE = 5;
 
     private final QuestaoAlunoRepository questaoAlunoRepository;
@@ -126,7 +105,7 @@ public class AtributosAlunoService {
                 && disciplinaId.equals(simulado.getDisciplina().getId());
     }
 
-    /** Percentual de acerto (0 a 1) do conjunto informado; nulo quando não há o que medir. */
+    /** Percentual de acerto (0 a 1) do conjunto informado; nulo quando não há o que medir */
     private static Double percentual(List<QuestaoAluno> respostas) {
         if (respostas.isEmpty()) return null;
         long acertos = respostas.stream().filter(resposta -> Boolean.TRUE.equals(resposta.getAcertou())).count();
@@ -143,7 +122,7 @@ public class AtributosAlunoService {
         return tentativas.size();
     }
 
-    /** 1 = FÁCIL, 2 = MÉDIA, 3 = DIFÍCIL; questões sem nível não entram na média. */
+    /** 1 = FÁCIL, 2 = MÉDIA, 3 = DIFÍCIL; questões sem nível não entram na média */
     private static Double dificuldadeMedia(List<QuestaoAluno> respostas) {
         List<Integer> pesos = respostas.stream()
                 .map(resposta -> peso(resposta.getQuestao() != null ? resposta.getQuestao().getNivelDificuldade() : null))

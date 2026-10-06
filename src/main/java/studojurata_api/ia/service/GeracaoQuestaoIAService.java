@@ -35,22 +35,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Obtém questões para um conteúdo combinando três fontes, nesta ordem:
- *
- * 1. CACHE: questões já aprovadas do mesmo conteúdo e dificuldade — evita
- *    chamar a IA (e gastar tokens) para o que já foi coberto;
- * 2. GEMINI: gera o que faltar. Questões novas nascem PENDENTE e exigem
- *    revisão do professor antes de reaproveitadas ou lançadas;
- * 3. FALLBACK: se o Gemini falhar, completa com outras questões aprovadas do
- *    conteúdo, relaxando dificuldade/tipo, nunca o requisito de APROVADA.
- *
- * Cada chamada gera um registro em HistoricoGeracaoIA, com qualquer resultado.
- */
+/** Obtém questões para um conteúdo combinando três fontes, nesta ordem: 1 */
 @Service
 @RequiredArgsConstructor
 public class GeracaoQuestaoIAService {
-
     private final QuestaoRepository questaoRepository;
     private final QuestaoConteudoRepository questaoConteudoRepository;
     private final AlternativaRepository alternativaRepository;
@@ -71,7 +59,7 @@ public class GeracaoQuestaoIAService {
 
         List<QuestaoConteudo> vinculosExistentes = questaoConteudoRepository.findByConteudoPlano_Id(conteudoPlanoId);
 
-        // 1) Cache: questões já aprovadas, mesmo conteúdo + mesma dificuldade/tipo.
+        // 1) Cache: questões já aprovadas, mesmo conteúdo + mesma dificuldade/tipo
         List<Questao> selecionadas = new ArrayList<>();
         Set<Long> idsUsados = new LinkedHashSet<>();
         for (QuestaoConteudo vinculo : vinculosExistentes) {
@@ -86,7 +74,7 @@ public class GeracaoQuestaoIAService {
         }
         int reaproveitadasCache = selecionadas.size();
 
-        // 2) Gemini para completar o que falta.
+        // 2) Gemini para completar o que falta
         int faltanteAntesGemini = quantidade - selecionadas.size();
         int geradasGemini = 0;
         String erroGemini = null;
@@ -109,7 +97,7 @@ public class GeracaoQuestaoIAService {
             }
         }
 
-        // 3) Fallback: banco de questões aprovadas do mesmo conteúdo, relaxando dificuldade/tipo.
+        // 3) Fallback: banco de questões aprovadas do mesmo conteúdo, relaxando dificuldade/tipo
         int faltanteAposGemini = quantidade - selecionadas.size();
         int fallbackBanco = 0;
         if (faltanteAposGemini > 0) {
@@ -147,11 +135,7 @@ public class GeracaoQuestaoIAService {
         return null;
     }
 
-    /**
-     * Disciplina e curso entram no texto porque título e descrição sozinhos
-     * levam a IA a perguntas genéricas: o mesmo assunto pede abordagens
-     * diferentes num curso infantil e num técnico.
-     */
+    /** Disciplina e curso entram no texto porque título e descrição sozinhos levam a IA a perguntas genéricas */
     private String montarTextoConteudo(ConteudoPlano conteudo, Disciplina disciplina) {
         StringBuilder sb = new StringBuilder();
         if (disciplina != null && disciplina.getTitulo() != null) {
@@ -173,7 +157,7 @@ public class GeracaoQuestaoIAService {
         questao.setDisciplina(disciplina);
         questao.setNivelDificuldade(nivel);
         questao.setOrigem(OrigemQuestao.IA);
-        // Questões de origem IA nascem PENDENTE: exigem revisão humana antes de reaproveitamento.
+        // Questões de origem IA nascem PENDENTE: exigem revisão humana antes de reaproveitamento
         questao.setStatus(StatusQuestao.PENDENTE);
         questao = questaoRepository.save(questao);
 
@@ -184,10 +168,7 @@ public class GeracaoQuestaoIAService {
                 Alternativa alternativa = new Alternativa();
                 alternativa.setQuestao(questao);
                 alternativa.setTexto(altDto.getTexto());
-                // Garante no máximo uma alternativa correta mesmo que a IA devolva
-                // várias: a persistência aqui não passa por
-                // AlternativaService.validarCorretaUnica, e a correção em
-                // SimuladoAlunoService.finalizar depende dessa invariante.
+                // Garante no máximo uma alternativa correta mesmo que a IA devolva várias
                 boolean correta = altDto.isCorreta() && !jaTemCorreta;
                 if (correta) jaTemCorreta = true;
                 alternativa.setCorreta(correta);

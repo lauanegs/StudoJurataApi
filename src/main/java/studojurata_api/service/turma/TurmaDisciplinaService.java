@@ -30,11 +30,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Só aceita disciplinas da grade curricular do curso da turma. */
+/** Só aceita disciplinas da grade curricular do curso da turma */
 @Service
 @RequiredArgsConstructor
 public class TurmaDisciplinaService {
-
     private final TurmaDisciplinaRepository repository;
     private final TurmaRepository turmaRepository;
     private final CursoDisciplinaRepository cursoDisciplinaRepository;
@@ -45,10 +44,7 @@ public class TurmaDisciplinaService {
     private final UsuarioAutenticado usuarioAutenticado;
     private final PlanejamentoAccessGuard planejamentoAccessGuard;
 
-    /**
-     * Listagem escopada: ADMINISTRADOR vê todos os vínculos; PROFESSOR vê apenas
-     * os seus; ALUNO vê os vínculos das turmas em que está matriculado.
-     */
+    /** Listagem escopada: ADMINISTRADOR vê todos os vínculos; PROFESSOR vê apenas os seus */
     public List<TurmaDisciplina> listar() {
         Usuario usuario = usuarioAutenticado.atual();
 
@@ -93,10 +89,7 @@ public class TurmaDisciplinaService {
         return repository.save(obj);
     }
 
-    /**
-     * Soft-delete, recusado enquanto houver plano de ensino ou de aula ATIVO
-     * no vínculo: o professor perderia o rastro do que está ministrando.
-     */
+    /** Soft-delete, recusado enquanto houver plano de ensino ou de aula ATIVO no vínculo */
     public void deletar(Long id) {
         TurmaDisciplina turmaDisciplina = buscar(id);
         planejamentoAccessGuard.garantirEscrita(turmaDisciplina.getId(),
@@ -132,9 +125,7 @@ public class TurmaDisciplinaService {
         Long cursoId = turma.getCurso() != null ? turma.getCurso().getId() : null;
         Long disciplinaId = obj.getDisciplina().getId();
 
-        // Disciplina inativada não pode ser ofertada em turma nova: o vínculo
-        // ficaria inutilizável (sem plano de ensino possível). Vínculos
-        // históricos continuam válidos, porque só o cadastro de novos passa aqui.
+        // Disciplina inativada não pode ser ofertada em turma nova
         Disciplina disciplinaDoVinculo = disciplinaRepository.findById(disciplinaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Disciplina " + disciplinaId + " não encontrada."));
         if (disciplinaDoVinculo.getStatus() == StatusAtivoInativo.INATIVO) {

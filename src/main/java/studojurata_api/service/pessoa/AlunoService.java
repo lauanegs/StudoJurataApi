@@ -27,18 +27,12 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AlunoService {
-
     private final AlunoRepository repository;
     private final AlunoTurmaRepository alunoTurmaRepository;
     private final UsuarioAutenticado usuarioAutenticado;
     private final EscopoProfessor escopoProfessor;
 
-    /**
-     * Listagem escopada: ADMINISTRADOR mantem a visao completa (Aluno/Pessoa nao
-     * tem vinculo de escola no modelo); PROFESSOR ve os alunos matriculados nas
-     * turmas em que leciona, em qualquer status de matricula (historico
-     * preservado); ALUNO ve apenas o proprio cadastro.
-     */
+    /** Listagem escopada: ADMINISTRADOR mantem a visao completa (Aluno/Pessoa nao tem vinculo de escola no modelo) */
     public List<Aluno> listar() {
         var usuario = usuarioAutenticado.atual();
 
@@ -57,8 +51,7 @@ public class AlunoService {
             return List.of();
         }
 
-        // Uma consulta de matriculas + uma de alunos; ids distintos evitam
-        // duplicidade de quem esta em mais de uma turma.
+        // Uma consulta de matriculas + uma de alunos
         Set<Long> alunoIds = alunoTurmaRepository.findByTurma_IdIn(turmaIds).stream()
                 .map(AlunoTurma::getAluno)
                 .filter(Objects::nonNull)
@@ -76,8 +69,7 @@ public class AlunoService {
 
     public Aluno salvar(Aluno obj) {
         exigirDataNascimento(obj);
-        // Matrícula é código da escola, não do usuário: o servidor gera o
-        // próximo da sequência do ano (AAAA9999) em vez de aceitar o digitado.
+        // Matrícula é código da escola, não do usuário
         obj.setMatricula(gerarMatricula());
         return repository.save(obj);
     }
@@ -85,23 +77,20 @@ public class AlunoService {
     public Aluno atualizar(Long id, Aluno obj) {
         Aluno existente = buscar(id);
         exigirDataNascimento(obj);
-        // A matrícula acompanha o cadastro: o cliente não a informa nem a altera.
+        // A matrícula acompanha o cadastro: o cliente não a informa nem a altera
         obj.setMatricula(existente.getMatricula());
         obj.setId(id);
         return repository.save(obj);
     }
 
-    /**
-     * Data de nascimento é obrigatória no cadastro do aluno: é ela que define a
-     * exigência de responsável (menor de idade) e a idade exibida nas telas.
-     */
+    /** Data de nascimento é obrigatória no cadastro do aluno */
     private void exigirDataNascimento(Aluno obj) {
         if (obj.getPessoa() == null || obj.getPessoa().getDataNascimento() == null) {
             throw new RequisicaoInvalidaException("Data de nascimento é obrigatória para o aluno.");
         }
     }
 
-    /** Próxima matrícula livre do ano: AAAA + sequência de 4 dígitos. */
+    /** Próxima matrícula livre do ano: AAAA + sequência de 4 dígitos */
     private String gerarMatricula() {
         String prefixo = String.valueOf(LocalDate.now().getYear());
         int proximo = repository.buscarUltimaMatriculaComPrefixo(prefixo)
@@ -119,17 +108,12 @@ public class AlunoService {
         try {
             return Integer.parseInt(matricula.substring(prefixo.length()));
         } catch (RuntimeException erro) {
-            // Matrícula antiga fora do padrão: reinicia a sequência; o laço de
-            // colisão acima garante que nenhum código existente seja repetido.
+            // Matrícula antiga fora do padrão
             return 0;
         }
     }
 
-    /**
-     * Soft-delete pela Pessoa, já que Aluno não tem status próprio. Recusa
-     * aluno com qualquer matrícula: a exclusão serve só para descartar
-     * cadastro feito por engano.
-     */
+    /** Soft-delete pela Pessoa, já que Aluno não tem status próprio */
     @Transactional
     public void deletar(Long id) {
         Aluno aluno = buscar(id);

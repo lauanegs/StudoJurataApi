@@ -12,7 +12,6 @@ import studojurata_api.model.BaseEntity;
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class ConteudoPlano extends BaseEntity {
-
     @ManyToOne
     private PlanoEnsino planoEnsino;
 
@@ -21,7 +20,6 @@ public class ConteudoPlano extends BaseEntity {
     private String descricao;
     private Integer ordem;
 
-    /** INATIVO é o soft-delete: conteúdo com questões ou aulas vinculadas nunca é apagado. */
     @Enumerated(EnumType.STRING)
     private StatusAtivoInativo status;
 }

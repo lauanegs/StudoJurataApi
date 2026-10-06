@@ -6,11 +6,9 @@ import org.springframework.stereotype.Component;
 import studojurata_api.model.gamificacao.Skin;
 import studojurata_api.repository.gamificacao.SkinRepository;
 
-/** Popula o catálogo inicial de skins na primeira subida, sem sobrescrever as existentes. */
 @Component
 @RequiredArgsConstructor
 public class GamificacaoSeeder implements CommandLineRunner {
-
     private final SkinRepository skinRepository;
 
     @Override

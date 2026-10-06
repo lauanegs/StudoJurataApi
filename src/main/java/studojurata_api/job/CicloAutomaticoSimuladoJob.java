@@ -14,16 +14,10 @@ import studojurata_api.service.simulado.SimuladoService;
 
 import java.time.LocalDateTime;
 
-/**
- * Publica o simulado na data de início e o encerra na data final declaradas na
- * criação, sem ação do professor. Cada simulado roda em transação e captura de
- * erro próprias: um que não está pronto (sem questões, questões pendentes de
- * revisão, destinatários indefinidos) não impede os demais.
- */
+/** Publica o simulado na data de início e o encerra na data final declaradas na criação, sem ação do professor */
 @Component
 @RequiredArgsConstructor
 public class CicloAutomaticoSimuladoJob {
-
     private static final Logger log = LoggerFactory.getLogger(CicloAutomaticoSimuladoJob.class);
 
     private final SimuladoRepository simuladoRepository;
@@ -38,7 +32,7 @@ public class CicloAutomaticoSimuladoJob {
 
     void publicarIniciados(LocalDateTime agora) {
         for (Simulado simulado : simuladoRepository.findByStatusAndDataInicioLessThanEqual(StatusSimulado.RASCUNHO, agora)) {
-            // Janela já vencida: publicar agora só criaria uma prova que ninguém pode fazer.
+            // Janela já vencida: publicar agora só criaria uma prova que ninguém pode fazer
             if (simulado.getDataFim() != null && !simulado.getDataFim().isAfter(agora)) {
                 continue;
             }

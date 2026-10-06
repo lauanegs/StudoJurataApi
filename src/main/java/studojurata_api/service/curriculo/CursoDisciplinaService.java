@@ -18,7 +18,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class CursoDisciplinaService {
-
     private final CursoDisciplinaRepository repository;
     private final CursoRepository cursoRepository;
     private final DisciplinaRepository disciplinaRepository;
@@ -41,7 +40,7 @@ public class CursoDisciplinaService {
         return salvo;
     }
 
-    /** Soft-delete: turmas/planos de ensino que já usam esta disciplina no curso preservam a referência histórica. */
+    /** Soft-delete: turmas/planos de ensino que já usam esta disciplina no curso preservam a referência histórica */
     public void deletar(Long id) {
         CursoDisciplina obj = buscar(id);
         obj.setStatus(StatusAtivoInativo.INATIVO);
@@ -60,9 +59,7 @@ public class CursoDisciplinaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Curso " + obj.getCurso().getId() + " não encontrado."));
         Disciplina disciplina = disciplinaRepository.findById(obj.getDisciplina().getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Disciplina " + obj.getDisciplina().getId() + " não encontrada."));
-        // Disciplina inativada não entra em grade nova: o professor não pode
-        // ofertá-la em turma/plano de ensino, então vinculá-la seria criar uma
-        // linha que nunca vira aula. Grades históricas seguem intactas.
+        // Disciplina inativada não entra em grade nova
         if (disciplina.getStatus() == StatusAtivoInativo.INATIVO) {
             throw new RegraNegocioException(
                     "A disciplina \"" + disciplina.getTitulo() + "\" está inativa e não pode entrar na grade curricular.");
@@ -72,7 +69,7 @@ public class CursoDisciplinaService {
         validarCargaHoraria(obj);
     }
 
-    /** Carga horária é obrigatória: é ela que soma a carga total do curso. */
+    /** Carga horária é obrigatória: é ela que soma a carga total do curso */
     private void validarCargaHoraria(CursoDisciplina obj) {
         if (obj.getCargaHoraria() == null || obj.getCargaHoraria() <= 0) {
             throw new RequisicaoInvalidaException("Informe uma carga horária maior que zero.");

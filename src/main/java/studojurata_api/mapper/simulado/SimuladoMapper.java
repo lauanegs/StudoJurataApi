@@ -17,7 +17,6 @@ import studojurata_api.repository.turma.TurmaRepository;
 @Component
 @RequiredArgsConstructor
 public class SimuladoMapper {
-
     private final DisciplinaRepository disciplinaRepository;
     private final PlanoEnsinoRepository planoEnsinoRepository;
     private final TurmaRepository turmaRepository;
@@ -32,8 +31,6 @@ public class SimuladoMapper {
         simulado.setDataFim(dto.getDataFim());
         simulado.setTempoLimite(dto.getTempoLimite());
         simulado.setNotaMaxima(dto.getNotaMaxima());
-        // quantidadeQuestoes não vem do cliente: o service grava a contagem real
-        // de vínculos ativos (ver SimuladoService.sincronizarQuantidadeDeQuestoes).
 
         if (dto.getDisciplinaId() != null) {
             Disciplina disciplina = disciplinaRepository.findById(dto.getDisciplinaId())

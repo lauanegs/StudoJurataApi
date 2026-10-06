@@ -31,15 +31,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import studojurata_api.service.turma.AlunoTurmaService;
 
-/**
- * Transições de status do simulado: publicação (cria as tentativas dos alunos
- * elegíveis) e encerramento. Quem chama decide a autorização — o professor
- * passa pelo {@link SimuladoService}, e os jobs agendados rodam sem sessão.
- */
+/** Transições de status do simulado */
 @Component
 @RequiredArgsConstructor
 public class PublicacaoDeSimulado {
-
     private final SimuladoRepository repository;
     private final SimuladoQuestaoRepository simuladoQuestaoRepository;
     private final SimuladoAlunoRepository simuladoAlunoRepository;
@@ -122,15 +117,7 @@ public class PublicacaoDeSimulado {
                 .toList();
     }
 
-    /**
-     * Destinatário de simulado gerado pela IA: quem manda é o vínculo
-     * aluno × conteúdo gravado na geração, não o corpo da requisição — o
-     * professor aprova as questões e o simulado vai para o aluno que a IA
-     * indicou. Mandar outro aluno é recusado.
-     *
-     * @return alunos do vínculo, ou {@code null} quando o simulado não veio da
-     *         IA (aí vale a regra normal de destinação específica).
-     */
+    /** Destinatário de simulado gerado pela IA */
     private List<Aluno> elegiveisDoVinculoIA(Simulado simulado, List<Long> alunoIdsInformados) {
         if (simulado.getId() == null) {
             return null;
@@ -158,16 +145,7 @@ public class PublicacaoDeSimulado {
                 .toList();
     }
 
-    /**
-     * Simulado específico de professor só convoca aluno matriculado na turma do
-     * simulado (qualquer status de matrícula: o histórico também vale, como no
-     * resto do domínio). O acesso do professor à turma e à disciplina já foi
-     * decidido pelo {@code SimuladoAccessGuard} antes daqui, então o que falta
-     * validar é o vínculo do aluno com a turma — uma consulta só, sem N+1.
-     *
-     * <p>Roda antes de criar qualquer tentativa: lista com aluno inválido não
-     * gera efeito parcial. O ADMIN mantém a liberdade do fluxo administrativo.
-     */
+    /** Simulado específico de professor só convoca aluno matriculado na turma do simulado */
     private void validarAlunosMatriculadosNaTurma(Simulado simulado, List<Aluno> alunos) {
         if (alunos.isEmpty() || usuarioAutenticado.ehAdministrador()) {
             return;

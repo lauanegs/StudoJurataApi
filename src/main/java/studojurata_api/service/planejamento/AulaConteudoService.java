@@ -16,15 +16,10 @@ import studojurata_api.repository.planejamento.ConteudoPlanoRepository;
 
 import java.util.List;
 
-/**
- * Só é permitido vincular conteúdos do mesmo PlanoEnsino do PlanoAula da
- * aula: cada turma tem o próprio plano de ensino, e um conteúdo de outro
- * plano não faz parte do que foi planejado para aquela turma.
- */
+/** Só é permitido vincular conteúdos do mesmo PlanoEnsino do PlanoAula da aula */
 @Service
 @RequiredArgsConstructor
 public class AulaConteudoService {
-
     private final AulaConteudoRepository repository;
     private final AulaRepository aulaRepository;
     private final ConteudoPlanoRepository conteudoPlanoRepository;

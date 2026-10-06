@@ -22,32 +22,17 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * deletar() inativa o professor e o desvincula das turmas em que lecionava,
- * para que o Administrador reatribua em vez de a turma continuar associada a
- * quem saiu da escola.
- */
+/** deletar() inativa o professor e o desvincula das turmas em que lecionava */
 @Service
 @RequiredArgsConstructor
 public class ProfessorService {
-
     private final ProfessorRepository repository;
     private final TurmaDisciplinaRepository turmaDisciplinaRepository;
     private final AlunoTurmaRepository alunoTurmaRepository;
     private final UsuarioAutenticado usuarioAutenticado;
     private final ProfessorAccessGuard professorAccessGuard;
 
-    /**
-     * Listagem escopada pelo usuário logado:
-     * <ul>
-     *   <li>ADMINISTRADOR: todos — {@code Professor} não tem vínculo de escola no
-     *       modelo, então a administração mantém a visão completa;</li>
-     *   <li>PROFESSOR: apenas o próprio cadastro (as telas que precisam dele
-     *       como referência continuam funcionando);</li>
-     *   <li>ALUNO: professores que lecionam nas turmas em que está matriculado;</li>
-     *   <li>sem autenticação: 403.</li>
-     * </ul>
-     */
+    /** Listagem escopada pelo usuário logado */
     public List<Professor> listar() {
         Usuario usuario = usuarioAutenticado.atual();
 
@@ -60,7 +45,7 @@ public class ProfessorService {
         return professoresDasTurmasDoAluno(usuario);
     }
 
-    /** Professor enxerga só o próprio cadastro; sem vínculo, ninguém. */
+    /** Professor enxerga só o próprio cadastro; sem vínculo, ninguém */
     private List<Professor> apenasOMesmo(Usuario usuario) {
         if (usuario.getProfessor() == null || usuario.getProfessor().getId() == null) {
             return List.of();
@@ -70,11 +55,7 @@ public class ProfessorService {
                 .orElseGet(List::of);
     }
 
-    /**
-     * Professores das turmas do aluno. Três consultas fixas (matrículas,
-     * vínculos das turmas, professores), sem 1+N; escopo vazio não consulta as
-     * etapas seguintes.
-     */
+    /** Professores das turmas do aluno */
     private List<Professor> professoresDasTurmasDoAluno(Usuario usuario) {
         if (usuario.getAluno() == null || usuario.getAluno().getId() == null) {
             return List.of();
@@ -121,7 +102,7 @@ public class ProfessorService {
         return repository.save(obj);
     }
 
-    /** Turmas/disciplinas em que este professor é titular. */
+    /** Turmas/disciplinas em que este professor é titular */
     public List<TurmaDisciplina> turmasLecionadas(Long professorId) {
         professorAccessGuard.garantir(professorId);
         return turmaDisciplinaRepository.findByProfessorId(professorId);

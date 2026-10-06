@@ -12,16 +12,10 @@ import java.util.List;
 @RequestMapping("/responsavel-aluno")
 @RequiredArgsConstructor
 public class ResponsavelAlunoController {
-
     private final ResponsavelAlunoService service;
     private final AlunoAccessGuard alunoAccessGuard;
 
-    /**
-     * Responsáveis de um aluno: o próprio aluno, o professor que leciona para ele
-     * ou o administrador. O vínculo carrega o responsável (com dados pessoais da
-     * Pessoa), então a leitura passa pelo mesmo guard das demais rotas
-     * indexadas por aluno — antes de consultar o repositório.
-     */
+    /** Responsáveis de um aluno: o próprio aluno, o professor que leciona para ele ou o administrador */
     @GetMapping("/por-aluno/{alunoId}")
     public List<ResponsavelAluno> porAluno(@PathVariable Long alunoId) {
         alunoAccessGuard.garantir(alunoId);

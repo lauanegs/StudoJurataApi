@@ -23,7 +23,6 @@ import studojurata_api.security.CustomUserDetailsService;
 
 @Configuration
 public class SecurityConfig {
-
     @Value("${studojurata.cors.allowed-origins:}")
     private String origensExtras;
 
@@ -46,16 +45,6 @@ public class SecurityConfig {
         return configuration.getAuthenticationManager();
     }
 
-    /**
-     * Autenticação é por cookie de sessão, então o CORS precisa de
-     * allowCredentials e o front precisa enviar credentials: "include".
-     *
-     * Aceita localhost em qualquer porta porque o Vite troca sozinho de porta
-     * (5174, 5175...) quando a 5173 está ocupada — com origem fixa, o login
-     * falharia com 403 sem nenhuma pista de que o problema é CORS. As origens
-     * extras (domínio do front em produção, caso a API seja chamada por outro
-     * domínio) entram por studojurata.cors.allowed-origins.
-     */
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -77,27 +66,16 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Sem isso o Spring Security bloqueia o preflight (OPTIONS) antes
-            // de a configuração de CORS acima ser considerada.
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/login").permitAll()
 
-                // Conveniência de desenvolvimento: expõe a documentação de todos
-                // os endpoints. Restringir ou desligar
-                // (springdoc.swagger-ui.enabled=false) antes de produção.
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
                         "/v3/api-docs.yaml").permitAll()
 
                 .requestMatchers("/usuarios/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/escolas/**").hasRole("ADMINISTRADOR")
 
-                // Cadastro de perfis: escrita só do Administrador. A consulta
-                // carrega dado pessoal (CPF, endereço, contato, data de
-                // nascimento), então não fica aberta a qualquer autenticado:
-                // /responsaveis/** é do Administrador e /pessoas/** (usado
-                // também pelos aniversariantes da Home do professor) é de
-                // professor ou administrador.
                 .requestMatchers(HttpMethod.GET, "/responsaveis/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.GET, "/pessoas/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.POST, "/pessoas/**", "/alunos/**", "/professores/**",
@@ -106,10 +84,6 @@ public class SecurityConfig {
                         "/responsaveis/**", "/responsavel-aluno/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/pessoas/**", "/alunos/**", "/professores/**",
                         "/responsaveis/**", "/responsavel-aluno/**").hasRole("ADMINISTRADOR")
-                // Lista de dependentes de um responsável é dado de cadastro: só o
-                // administrador consulta (a tela é administrativa e o responsável não
-                // tem login no sistema). O caminho por aluno continua autenticado e é
-                // recortado pelo AlunoAccessGuard.
                 .requestMatchers(HttpMethod.GET, "/responsavel-aluno/por-responsavel/**")
                         .hasRole("ADMINISTRADOR")
 
@@ -118,24 +92,13 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/eventos/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/eventos/**").hasRole("ADMINISTRADOR")
 
-                // Listagem geral e recálculo são operações de gestão. As demais
-                // consultas de nota ficam abertas a autenticados porque o
-                // NotaController aplica AlunoAccessGuard (aluno só vê as próprias).
                 .requestMatchers(HttpMethod.GET, "/notas").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.POST, "/notas/recalcular").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/notas/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/notas/**").authenticated()
 
-                // Sempre por aluno específico; o GamificacaoController aplica
-                // AlunoAccessGuard.
                 .requestMatchers("/gamificacao/**").authenticated()
 
-                // Gestão pedagógica: consulta para qualquer autenticado, escrita
-                // só para quem gerencia o conteúdo. /horarios/** cobre o DELETE de
-                // HorarioTurma, que tem rota própria fora de /turmas/**.
-                // Catálogo curricular (curso, disciplina e grade do curso) é do
-                // administrador: as telas são administrativas e nenhum fluxo de
-                // professor cria ou edita esses registros.
                 .requestMatchers(HttpMethod.POST, "/cursos/**", "/disciplinas/**", "/curso-disciplina/**")
                         .hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PUT, "/cursos/**", "/disciplinas/**").hasRole("ADMINISTRADOR")
@@ -155,18 +118,12 @@ public class SecurityConfig {
                         "/turma-disciplina/**", "/curso-disciplina/**", "/plano-ensino/**", "/conteudo-plano/**", "/plano-aula/**",
                         "/aulas/**", "/frequencia/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
 
-                // Sem estas regras, um Aluno logado poderia se automatricular ou
-                // cancelar a matrícula de outro aluno via API.
                 .requestMatchers(HttpMethod.GET, "/aluno-turma/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/aluno-turma/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PUT, "/aluno-turma/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
 
-                // Montagem, moderação e lançamento de simulados são do professor;
-                // o aluno só consulta e finaliza a própria tentativa.
                 .requestMatchers(HttpMethod.POST, "/simulado-aluno/*/finalizar").authenticated()
                 .requestMatchers(HttpMethod.POST, "/simulado-aluno/*/conferir-questao").authenticated()
-                // A listagem geral traz as notas de todos os alunos; o aluno usa
-                // /simulado-aluno/aluno/{id} e /simulado-aluno/{id}.
                 .requestMatchers(HttpMethod.GET, "/simulado-aluno", "/professores/*/desempenho")
                         .hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.GET, "/simulados/**", "/questoes/**", "/alternativas/**",
@@ -177,13 +134,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/simulados/**", "/questoes/**", "/alternativas/**",
                         "/simulado-questao/**", "/questao-aluno/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PATCH, "/simulados/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
-                // Desvincular conteúdo não é excluir a questão: precisa vir antes
-                // do DELETE /questoes/**, que é só do Administrador.
                 .requestMatchers(HttpMethod.DELETE, "/questoes/*/conteudos/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
-                // Desvincular questão de simulado não é excluir a questão: o
-                // professor dono do simulado em RASCUNHO também pode (escopo e
-                // status são decididos no service), então vem antes do DELETE
-                // /simulado-questao/**, que é só do Administrador.
                 .requestMatchers(HttpMethod.DELETE, "/simulado-questao/**").hasAnyRole("PROFESSOR", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/simulados/**", "/questoes/**", "/alternativas/**",
                         "/simulado-questao/**", "/simulado-aluno/**", "/questao-aluno/**").hasRole("ADMINISTRADOR")
@@ -193,8 +144,6 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
-                // Limita sessões concorrentes; o timeout por inatividade fica em
-                // server.servlet.session.timeout.
                 .maximumSessions(1)
             )
             .formLogin(AbstractHttpConfigurer::disable)

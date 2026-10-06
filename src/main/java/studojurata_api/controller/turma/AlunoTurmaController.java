@@ -12,14 +12,12 @@ import java.util.List;
 @RequestMapping("/aluno-turma")
 @RequiredArgsConstructor
 public class AlunoTurmaController {
-
     private final AlunoTurmaService service;
     private final AlunoAccessGuard alunoAccessGuard;
 
     @GetMapping
     public List<AlunoTurma> listar() {
-        // Listagem agregada de matrículas: hoje alimenta telas de gestão; o
-        // recorte por turma para o professor fica no C2.
+        // Listagem agregada de matrículas
         alunoAccessGuard.garantirAcessoDeGestao();
         return service.listar();
     }
@@ -31,14 +29,14 @@ public class AlunoTurmaController {
         return matricula;
     }
 
-    /** Matrículas (ativas e concluídas) de um aluno: alimenta a escolha do curso no portal do aluno. */
+    /** Matrículas (ativas e concluídas) de um aluno */
     @GetMapping("/aluno/{alunoId}")
     public List<AlunoTurma> porAluno(@PathVariable Long alunoId) {
         alunoAccessGuard.garantir(alunoId);
         return service.matriculasDoAluno(alunoId);
     }
 
-    /** Histórico completo de matrículas de uma turma (ativas, concluídas, canceladas). */
+    /** Histórico completo de matrículas de uma turma (ativas, concluídas, canceladas) */
     @GetMapping("/turma/{turmaId}/historico")
     public List<AlunoTurma> historicoPorTurma(@PathVariable Long turmaId) {
         alunoAccessGuard.garantirAcessoATurma(turmaId);

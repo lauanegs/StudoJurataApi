@@ -30,7 +30,6 @@ import studojurata_api.service.auditoria.AuditLogService;
 @Service
 @RequiredArgsConstructor
 public class SimuladoAlunoService {
-
     private final SimuladoAlunoRepository repository;
     private final SimuladoQuestaoRepository simuladoQuestaoRepository;
     private final QuestaoAlunoRepository questaoAlunoRepository;
@@ -42,13 +41,7 @@ public class SimuladoAlunoService {
     private final CorrecaoDeRespostas correcaoDeRespostas;
     private final EfeitosDaFinalizacao efeitosDaFinalizacao;
 
-    /**
-     * Listagem escopada: ADMINISTRADOR ve todas as tentativas; PROFESSOR ve as
-     * tentativas dos simulados das suas turmas (e dos orfaos preservados por
-     * D-C1); ALUNO ve apenas as proprias.
-     *
-     * <p>Nao filtra status: tentativas PENDENTE continuam na lista.
-     */
+    /** Listagem escopada: ADMINISTRADOR ve todas as tentativas */
     public List<SimuladoAluno> listar() {
         var usuario = usuarioAutenticado.atual();
 
@@ -78,24 +71,16 @@ public class SimuladoAlunoService {
         return repository.findBySimuladoId(simuladoId);
     }
 
-    /** Id do aluno dono da tentativa; null vira recusa no guard (falha fechado). */
+    /** Id do aluno dono da tentativa; null vira recusa no guard (falha fechado) */
     private Long alunoDaTentativa(SimuladoAluno simuladoAluno) {
         return simuladoAluno.getAluno() != null ? simuladoAluno.getAluno().getId() : null;
     }
 
-    /**
-     * Questoes da tentativa para o proprio aluno (ou ADMIN): vinculos ATIVA do
-     * simulado, na ordem, com alternativas em lote e sem gabarito enquanto a
-     * tentativa estiver PENDENTE. Professor recebe 403 neste endpoint.
-     *
-     * <p>Nao usa nada do que o cliente envia: a correcao continua sendo feita no
-     * servidor em {@link #finalizar}.
-     */
+    /** Questoes da tentativa para o proprio aluno (ou ADMIN) */
     @Transactional(readOnly = true)
     public studojurata_api.dto.simulado.QuestaoDaTentativaDTO questoesDaTentativa(Long simuladoAlunoId) {
         SimuladoAluno tentativa = buscar(simuladoAlunoId);
-        // Em andamento, a prova é só do aluno; depois de concluída, o professor
-        // que leciona para ele também lê a correção (questões + gabarito).
+        // Em andamento, a prova é só do aluno; depois de concluída
         if (tentativa.getStatus() == StatusSimuladoAluno.CONCLUIDO) {
             alunoAccessGuard.garantir(alunoDaTentativa(tentativa));
         } else {
@@ -151,14 +136,10 @@ public class SimuladoAlunoService {
         return dto;
     }
 
-    /** Resultado da conferência imediata: se acertou e quais alternativas da questão são as corretas. */
+    /** Resultado da conferência imediata */
     public record ConferenciaQuestao(boolean acertou, List<Long> alternativasCorretasIds) {}
 
-    /**
-     * Feedback imediato durante a prova. A resposta é gravada e fica travada:
-     * uma questão só pode ser conferida uma vez (senão o aluno testaria
-     * alternativa por alternativa) e a finalização respeita o que foi gravado.
-     */
+    /** Feedback imediato durante a prova */
     @Transactional
     public ConferenciaQuestao conferirQuestao(Long simuladoAlunoId, FinalizarSimuladoRequest.Item resposta) {
         SimuladoAluno simuladoAluno = buscar(simuladoAlunoId);
@@ -205,19 +186,12 @@ public class SimuladoAlunoService {
 
     public record ResultadoFinalizacao(SimuladoAluno simuladoAluno, Integer diasProximaRevisao) {}
 
-    /**
-     * Aceita respostas parciais: questões ausentes contam como em branco (erro).
-     * A nota é proporcional à pontuação de cada questão ativa sobre a
-     * notaMaxima. Serve também ao auto-envio por tempo esgotado. Uma
-     * tentativa CONCLUIDA não pode ser finalizada de novo.
-     */
+    /** Aceita respostas parciais: questões ausentes contam como em branco (erro) */
     @Transactional
     public ResultadoFinalizacao finalizar(Long simuladoAlunoId, FinalizarSimuladoRequest request) {
         SimuladoAluno simuladoAluno = buscar(simuladoAlunoId);
 
-        // Autorização ANTES de qualquer efeito: tentativa de outro aluno não
-        // grava respostas, não recalcula nota, não concede moedas, não registra
-        // revisão e não escreve auditoria.
+        // Autorização ANTES de qualquer efeito
         alunoAccessGuard.garantirEscritaDoAluno(alunoDaTentativa(simuladoAluno));
 
         if (simuladoAluno.getStatus() == StatusSimuladoAluno.CONCLUIDO) {
@@ -259,5 +233,4 @@ public class SimuladoAlunoService {
 
         return salvo;
     }
-
 }

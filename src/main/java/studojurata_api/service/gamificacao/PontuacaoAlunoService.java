@@ -17,8 +17,7 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class PontuacaoAlunoService {
-
-    /** Independente da nota, mas só quando todas as questões foram respondidas. */
+    /** Independente da nota, mas só quando todas as questões foram respondidas */
     public static final int MOEDAS_POR_SIMULADO_CONCLUIDO = 10;
 
     private final PontuacaoAlunoRepository repository;
@@ -39,10 +38,7 @@ public class PontuacaoAlunoService {
         });
     }
 
-    /**
-     * Na criação da pontuação, concede e equipa a skin gratuita, para o aluno
-     * não precisar "comprar" uma skin de custo zero.
-     */
+    /** Na criação da pontuação, concede e equipa a skin gratuita */
     private void concederSkinPadrao(Aluno aluno) {
         skinRepository.findByDisponivelTrue().stream()
                 .filter(skin -> skin.getCustoMoedas() != null && skin.getCustoMoedas() == 0)

@@ -13,16 +13,11 @@ import studojurata_api.repository.planejamento.ConteudoPlanoRepository;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * Repetição espaçada (ver RevisaoConteudo para os intervalos). Cada reforço
- * concede as mesmas moedas de um simulado concluído, para que revisar seja
- * tão recompensado quanto acertar de primeira.
- */
+/** Repetição espaçada (ver RevisaoConteudo para os intervalos) */
 @Service
 @RequiredArgsConstructor
 public class RevisaoConteudoService {
-
-    /** Reforços com intervalo agendado — o 4º encerra a repetição espaçada (conteúdo dominado). */
+    /** Reforços com intervalo agendado — o 4º encerra a repetição espaçada (conteúdo dominado) */
     private static final int LIMITE_REFORCOS_AGENDADOS = 3;
 
     private final RevisaoConteudoRepository repository;
@@ -33,10 +28,7 @@ public class RevisaoConteudoService {
         return repository.findByAlunoId(alunoId);
     }
 
-    /**
-     * Registra um reforço feito hoje (simulado concluído ou revisão manual),
-     * recalculando a próxima data e o nível de domínio.
-     */
+    /** Registra um reforço feito hoje (simulado concluído ou revisão manual), recalculando a próxima data */
     @Transactional
     public RevisaoConteudo registrarReforco(Long alunoId, Long conteudoPlanoId, NivelDominio nivelDominioObservado) {
         RevisaoConteudo revisao = repository.findByAlunoIdAndConteudoPlanoId(alunoId, conteudoPlanoId)
@@ -50,14 +42,14 @@ public class RevisaoConteudoService {
 
         revisao.setQuantidadeReforcos(quantidade);
         revisao.setDataUltimoReforco(hoje);
-        // Dominado: para de agendar (null some sozinho das consultas "devidos").
+        // Dominado: para de agendar (null some sozinho das consultas "devidos")
         revisao.setDataProximoReforco(dominado ? null : hoje.plusDays(diasAteProximoReforco(quantidade)));
         revisao.setNivelDominio(dominado ? NivelDominio.ALTO : nivelDominioObservado != null ? nivelDominioObservado : revisao.getNivelDominio());
 
         return repository.save(revisao);
     }
 
-    /** 7 dias após o 1º reforço, 14 após o 2º, 3 meses (90 dias) após o 3º. */
+    /** 7 dias após o 1º reforço, 14 após o 2º, 3 meses (90 dias) após o 3º */
     private static long diasAteProximoReforco(int quantidadeReforcos) {
         return switch (quantidadeReforcos) {
             case 1 -> 7L;

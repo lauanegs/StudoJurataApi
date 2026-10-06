@@ -43,19 +43,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-/**
- * A geração roda sem intervenção humana, mas o simulado nasce em RASCUNHO com
- * questões possivelmente PENDENTE: só chega ao aluno depois que o professor
- * aprova as questões, porque SimuladoService.lancar recusa questões não
- * aprovadas.
- *
- * `motivos` só é registrado em SimuladoGeradoIA, para a tela de aprovação
- * mostrar por que cada simulado foi gerado.
- */
+/** A geração roda sem intervenção humana, mas o simulado nasce em RASCUNHO com questões possivelmente PENDENTE */
 @Service
 @RequiredArgsConstructor
 public class GeracaoSimuladoIAService {
-
     public static final int QUANTIDADE_QUESTOES = 5;
 
     private static final NivelDificuldade NIVEL_PADRAO = NivelDificuldade.MEDIA;
@@ -73,14 +64,7 @@ public class GeracaoSimuladoIAService {
     private final SimuladoAccessGuard simuladoAccessGuard;
     private final AulaConteudoRepository aulaConteudoRepository;
 
-    /**
-     * Vínculos de simulado gerado por IA visíveis ao usuário logado, com o
-     * <b>mesmo escopo da listagem de simulados</b> ({@link SimuladoService}):
-     * ADMIN recebe tudo; PROFESSOR só os vínculos cujos simulados estão nas
-     * turmas dele (vínculo de simulado órfão fica de fora); professor sem turmas
-     * recebe lista vazia. O DTO devolvido ao cliente não muda — muda só o
-     * conjunto de registros.
-     */
+    /** Vínculos de simulado gerado por IA visíveis ao usuário logado, com o mesmo escopo da listagem de simulados */
     public List<SimuladoGeradoIA> listarGerados() {
         if (usuarioAutenticado.ehAdministrador()) {
             return simuladoGeradoIARepository.findAll();
@@ -98,22 +82,16 @@ public class GeracaoSimuladoIAService {
         ConteudoPlano conteudo = conteudoPlanoRepository.findById(conteudoPlanoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Conteúdo não encontrado."));
 
-        // O reforço precisa nascer dentro de uma oferta: turma, disciplina e plano
-        // específico. Sem isso o simulado ficaria órfão — fora do escopo de qualquer
-        // professor (visível só ao administrador) e sem poder ser lançado.
+        // O reforço precisa nascer dentro de uma oferta: turma, disciplina e plano específico
         PlanoEnsino planoEnsino = exigirContextoDaTurma(conteudo);
         exigirConteudoJaMinistrado(conteudo);
 
-        // Camada de machine learning: decide necessidade de revisão, quantidade,
-        // dificuldade, questões candidatas e se precisa gerar por IA. Ela reaproveita
-        // a regra pedagógica existente (motivo e nível prioritário) e cai para o
-        // determinístico quando não há histórico ou modelo treinável.
+        // Camada de machine learning: decide necessidade de revisão, quantidade, dificuldade, questões candidatas
         RecomendacaoSimuladoDTO recomendacao =
                 machineLearningRecomendacaoService.recomendar(alunoId, conteudoPlanoId, nivel, motivos);
 
         if (recomendacao.isAlertaColetivo()) {
-            // Maioria da turma abaixo do limiar: o caso é de revisão em sala, não de
-            // simulado individual por IA.
+            // Maioria da turma abaixo do limiar
             throw new RegraNegocioException(recomendacao.getAlertaProfessor());
         }
 
@@ -138,7 +116,7 @@ public class GeracaoSimuladoIAService {
 
         simulado = simuladoRepository.save(simulado);
 
-        // Fecha o rastro do aprendizado: qual recomendação gerou este simulado.
+        // Fecha o rastro do aprendizado: qual recomendação gerou este simulado
         machineLearningRecomendacaoService.vincularSimulado(recomendacao.getId(), simulado);
 
         SimuladoGeradoIA vinculo = new SimuladoGeradoIA();
@@ -153,8 +131,7 @@ public class GeracaoSimuladoIAService {
                 recomendacao, conteudoPlanoId, nivelEfetivo, quantidadeQuestoes, simulado, aluno);
 
         if (questoes.isEmpty()) {
-            // Sem questão adequada e sem autorização para gerar por IA: um rascunho
-            // vazio seria pior que recusar (a transação desfaz o que já foi gravado).
+            // Sem questão adequada e sem autorização para gerar por IA
             throw new RegraNegocioException(
                     "Não há questões adequadas no banco para este reforço e a geração por IA exige gatilho de "
                             + "repetição espaçada vencida ou baixo aproveitamento.");
@@ -171,26 +148,14 @@ public class GeracaoSimuladoIAService {
             simuladoQuestaoRepository.save(simuladoQuestao);
         }
 
-        // A quantidade planejada passa a ser a quantidade real: a geração por IA pode
-        // devolver menos que o pedido, e o simulado não pode anunciar questão que não tem.
+        // A quantidade planejada passa a ser a quantidade real
         simulado.setQuantidadeQuestoes(questoes.size());
         return simuladoRepository.save(simulado);
     }
 
-    /**
-     * Decide de onde saem as questões, seguindo a decisão explícita do ML:
-     * <ul>
-     *   <li>{@code REUTILIZAR_BANCO} — usa as candidatas já selecionadas do banco
-     *       (conteúdos prioritários, dificuldade e limite de 10 já aplicados na
-     *       seleção) e <b>não</b> chama a IA;</li>
-     *   <li>{@code GERAR_POR_IA} — segue com a geração existente (cache do
-     *       conteúdo → IA → fallback de banco), que é o único caminho que aciona
-     *       a API de IA, uma vez por simulado.</li>
-     * </ul>
-     */
+    /** Decide de onde saem as questões, seguindo a decisão explícita do ML */
     private List<Questao> comporQuestoes(RecomendacaoSimuladoDTO recomendacao, Long conteudoPlanoId,
             NivelDificuldade nivelEfetivo, int quantidadeQuestoes, Simulado simulado, Aluno aluno) {
-
         if (recomendacao.getDecisaoGeracao() != DecisaoGeracao.GERAR_POR_IA) {
             return recomendacao.getQuestoesCandidatas();
         }
@@ -204,11 +169,7 @@ public class GeracaoSimuladoIAService {
         return aluno.getMatricula() != null ? "matrícula " + aluno.getMatricula() : "aluno #" + aluno.getId();
     }
 
-    /**
-     * O reforço gerado precisa nascer dentro de uma oferta: plano de ensino com
-     * turma e disciplina. Conteúdo de plano genérico (D-C2) não gera simulado por
-     * IA — não há turma para atribuir e o simulado ficaria órfão.
-     */
+    /** O reforço gerado precisa nascer dentro de uma oferta */
     private PlanoEnsino exigirContextoDaTurma(ConteudoPlano conteudo) {
         PlanoEnsino planoEnsino = conteudo.getPlanoEnsino();
         var vinculo = planoEnsino != null ? planoEnsino.getTurmaDisciplina() : null;
@@ -221,15 +182,7 @@ public class GeracaoSimuladoIAService {
         return planoEnsino;
     }
 
-    /**
-     * Conteúdo comprovadamente futuro — tem aulas vinculadas e nenhuma delas foi
-     * realizada — não gera reforço por IA: o simulado cobraria assunto que a turma
-     * ainda não viu.
-     *
-     * <p>Conteúdo sem nenhuma aula vinculada é inconclusivo (a escola pode não
-     * registrar aulas) e continua liberado. Uma única aula com data de publicação
-     * não futura libera o conteúdo para sempre, inclusive nas revisões espaçadas.
-     */
+    /** Conteúdo comprovadamente futuro */
     private void exigirConteudoJaMinistrado(ConteudoPlano conteudo) {
         List<AulaConteudo> aulasDoConteudo = aulaConteudoRepository.findByConteudoPlano_Id(conteudo.getId());
         if (aulasDoConteudo.isEmpty()) {
@@ -251,31 +204,20 @@ public class GeracaoSimuladoIAService {
         }
     }
 
-    /**
-     * Geração pedida por professor precisa cair no escopo dele. Reusa o guard de
-     * escrita do simulado (turma, disciplina e plano do professor). ADMIN e
-     * fluxos sem sessão — os jobs agendados, que rodam sem autenticação — não
-     * passam por esta checagem.
-     */
+    /** Geração pedida por professor precisa cair no escopo dele */
     private void garantirEscopoDoProfessor(Simulado simulado) {
         usuarioAutenticado.opcional()
                 .filter(usuario -> usuario.getTipoUsuario() == TipoUsuario.PROFESSOR)
                 .ifPresent(usuario -> simuladoAccessGuard.garantirEscrita(simulado));
     }
 
-    /**
-     * Usada para adequar a linguagem do enunciado. Null sem data de nascimento:
-     * o prompt fica genérico em vez de travar a geração.
-     */
+    /** Usada para adequar a linguagem do enunciado */
     private Integer calcularIdade(Aluno aluno) {
         LocalDate nascimento = aluno.getPessoa() != null ? aluno.getPessoa().getDataNascimento() : null;
         return nascimento != null ? Period.between(nascimento, LocalDate.now()).getYears() : null;
     }
 
-    /**
-     * A data em que a repetição espaçada venceu, quando existe (esta geração
-     * não a avança); senão, hoje.
-     */
+    /** A data em que a repetição espaçada venceu, quando existe (esta geração não a avança); senão, hoje */
     private LocalDate calcularPrazoLancamento(Long alunoId, Long conteudoPlanoId) {
         return revisaoConteudoRepository.findByAlunoIdAndConteudoPlanoId(alunoId, conteudoPlanoId)
                 .map(RevisaoConteudo::getDataProximoReforco)

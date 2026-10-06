@@ -12,15 +12,11 @@ import studojurata_api.mapper.simulado.SimuladoMapper;
 
 import java.util.List;
 
-/**
- * O simulado gerado nasce em RASCUNHO: só chega ao aluno depois que o
- * professor aprova as questões e lança o simulado.
- */
+/** O simulado gerado nasce em RASCUNHO */
 @RestController
 @RequestMapping("/ia/geracao")
 @RequiredArgsConstructor
 public class GeracaoIAController {
-
     private final GeracaoSimuladoIAService service;
     private final SimuladoMapper simuladoMapper;
     private final SimuladoGeradoIAMapper simuladoGeradoIAMapper;
@@ -34,7 +30,7 @@ public class GeracaoIAController {
                 request.getMotivos()));
     }
 
-    /** Simulados criados manualmente não aparecem aqui — só os gerados pela IA têm esse vínculo. */
+    /** Simulados criados manualmente não aparecem aqui — só os gerados pela IA têm esse vínculo */
     @GetMapping("/simulado")
     public List<SimuladoGeradoIAResponse> listarVinculos() {
         return service.listarGerados().stream().map(simuladoGeradoIAMapper::toResponse).toList();

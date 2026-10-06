@@ -24,7 +24,6 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class PlanoAulaService {
-
     private final PlanoAulaRepository repository;
     private final AulaRepository aulaRepository;
     private final PlanoEnsinoRepository planoEnsinoRepository;
@@ -32,11 +31,7 @@ public class PlanoAulaService {
     private final EscopoUsuario escopoUsuario;
     private final PlanejamentoAccessGuard planejamentoAccessGuard;
 
-    /**
-     * Escopado: ADMINISTRADOR ve tudo; PROFESSOR e ALUNO veem apenas os planos
-     * de aula dos seus vinculos. turmaDisciplina e obrigatorio no plano de aula,
-     * entao nao ha caso "generico" a preservar.
-     */
+    /** Escopado: ADMINISTRADOR ve tudo; PROFESSOR e ALUNO veem apenas os planos de aula dos seus vinculos */
     public List<PlanoAula> listar() {
         var usuario = usuarioAutenticado.atual();
 
@@ -53,7 +48,7 @@ public class PlanoAulaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Plano de aula " + id + " não encontrado."));
     }
 
-    /** Leitura individual com a mesma visibilidade da listagem. */
+    /** Leitura individual com a mesma visibilidade da listagem */
     public PlanoAula buscarParaLeitura(Long id) {
         PlanoAula planoAula = buscar(id);
         planejamentoAccessGuard.garantirLeitura(vinculoId(planoAula),
@@ -95,10 +90,7 @@ public class PlanoAulaService {
         return repository.save(obj);
     }
 
-    /**
-     * O plano de aula nasce junto com o plano de ensino que já tem turma. Não
-     * gera de novo se já existir, nem para plano de ensino genérico.
-     */
+    /** O plano de aula nasce junto com o plano de ensino que já tem turma */
     @Transactional
     public void gerarSeNecessario(PlanoEnsino planoEnsino) {
         if (planoEnsino.getTurmaDisciplina() == null) return;
@@ -110,7 +102,7 @@ public class PlanoAulaService {
         salvar(planoAula);
     }
 
-    /** Soft delete: vira CONCLUIDO, preservando aulas e conteúdos vinculados. */
+    /** Soft delete: vira CONCLUIDO, preservando aulas e conteúdos vinculados */
     @Transactional
     public void deletar(Long id) {
         PlanoAula obj = buscar(id);
@@ -147,7 +139,7 @@ public class PlanoAulaService {
             throw new RequisicaoInvalidaException("Plano de ensino é obrigatório para o plano de aula.");
         }
 
-        // 1:1 entre PlanoEnsino e PlanoAula.
+        // 1:1 entre PlanoEnsino e PlanoAula
         boolean jaExistePlanoParaEsseEnsino = repository.findByPlanoEnsino_Id(obj.getPlanoEnsino().getId()).stream()
                 .anyMatch(existente -> !existente.getId().equals(obj.getId()));
         if (jaExistePlanoParaEsseEnsino) {
@@ -155,8 +147,7 @@ public class PlanoAulaService {
                     "Este plano de ensino já tem um plano de aula vinculado.");
         }
 
-        // Um único plano ATIVO por turma+disciplina, para não haver dois ciclos
-        // simultâneos; planos CONCLUIDO ficam como histórico.
+        // Um único plano ATIVO por turma+disciplina, para não haver dois ciclos simultâneos
         StatusPlano statusFinal = obj.getStatus() != null ? obj.getStatus() : StatusPlano.ATIVO;
         if (statusFinal == StatusPlano.ATIVO) {
             boolean jaTemAtivoNaTurmaDisciplina = repository

@@ -16,18 +16,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Gera o simulado de reforço assim que a repetição espaçada de um
- * aluno+conteúdo vence, sem ação do professor (ele só revisa e lança).
- * Baixo aproveitamento fica em GeracaoAutomaticaBaixoAproveitamentoJob.
- *
- * Cada revisão devida roda em transação e captura de erro próprias, para que
- * uma falha isolada não derrube as demais.
- */
+/** Gera o simulado de reforço assim que a repetição espaçada de um aluno+conteúdo vence, sem ação do professor */
 @Component
 @RequiredArgsConstructor
 public class GeracaoAutomaticaSimuladoJob {
-
     private static final Logger log = LoggerFactory.getLogger(GeracaoAutomaticaSimuladoJob.class);
 
     private final RevisaoConteudoRepository revisaoConteudoRepository;
@@ -43,8 +35,7 @@ public class GeracaoAutomaticaSimuladoJob {
             Long conteudoPlanoId = revisao.getConteudoPlano().getId();
             LocalDate prazo = revisao.getDataProximoReforco();
 
-            // dataProximoReforco só avança quando o professor revisa; sem isto o
-            // job geraria um simulado novo a cada execução enquanto o rascunho espera.
+            // dataProximoReforco só avança quando o professor revisa
             boolean jaGerado = simuladoGeradoIARepository
                     .existsByAlunoIdAndConteudoPlanoIdAndPrazoLancamento(alunoId, conteudoPlanoId, prazo);
             if (jaGerado) continue;
@@ -53,12 +44,11 @@ public class GeracaoAutomaticaSimuladoJob {
                 geracaoSimuladoIAService.gerarParaAluno(
                         alunoId, conteudoPlanoId, null, Set.of(MotivoRecomendacao.REPETICAO_ESPACADA));
             } catch (RegraNegocioException regra) {
-                // Regra de negócio (ex.: baixo aproveitamento coletivo pede revisão em
-                // sala) não é falha do job; fica no log informativo.
+                // Regra de negócio (ex.: baixo aproveitamento coletivo pede revisão em sala) não é falha do job
                 log.info("Geração de reforço ignorada (aluno {}, conteúdo {}): {}",
                         alunoId, conteudoPlanoId, regra.getMessage());
             } catch (RuntimeException erro) {
-                // Uma falha pontual não pode interromper a geração das demais revisões.
+                // Uma falha pontual não pode interromper a geração das demais revisões
                 log.error(
                         "Falha ao gerar simulado automático (aluno {}, conteúdo {}, prazo {})",
                         alunoId, conteudoPlanoId, prazo, erro);

@@ -8,16 +8,11 @@ import studojurata_api.service.nota.NotaService;
 
 import java.util.List;
 
-/**
- * Não há escrita livre de nota: ela é sempre derivada dos simulados via
- * /recalcular. Consultas por aluno passam por AlunoAccessGuard para que um
- * aluno só veja as próprias notas.
- */
+/** Não há escrita livre de nota: ela é sempre derivada dos simulados via /recalcular */
 @RestController
 @RequestMapping("/notas")
 @RequiredArgsConstructor
 public class NotaController {
-
     private final NotaService service;
     private final AlunoAccessGuard alunoAccessGuard;
 

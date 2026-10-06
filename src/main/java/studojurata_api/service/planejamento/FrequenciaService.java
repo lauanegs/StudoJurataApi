@@ -28,7 +28,6 @@ import studojurata_api.service.turma.AlunoTurmaService;
 @Service
 @RequiredArgsConstructor
 public class FrequenciaService {
-
     private final FrequenciaRepository repository;
     private final AulaRepository aulaRepository;
     private final AlunoRepository alunoRepository;
@@ -49,11 +48,7 @@ public class FrequenciaService {
 
     public record ResumoFrequenciaAluno(Long alunoId, double cargaHoraria, long faltas) {}
 
-    /**
-     * Carga horária cursada (aulas com presença) e faltas de cada aluno com
-     * matrícula ativa, considerando só as disciplinas não inativas da turma —
-     * uma disciplina removida da turma não conta mais para o aluno.
-     */
+    /** Carga horária cursada (aulas com presença) e faltas de cada aluno com matrícula ativa */
     public List<ResumoFrequenciaAluno> resumoPorTurma(Long turmaId) {
         alunoAccessGuard.garantirAcessoATurma(turmaId);
         Map<Long, List<Frequencia>> frequenciasPorAluno = repository.findByAula_PlanoAula_TurmaDisciplina_Turma_Id(turmaId)
@@ -77,7 +72,7 @@ public class FrequenciaService {
                 .toList();
     }
 
-    /** Só aceita alunos com matrícula ATIVA na turma da aula. */
+    /** Só aceita alunos com matrícula ATIVA na turma da aula */
     @Transactional
     public List<Frequencia> registrarChamada(Long aulaId, ChamadaRequest request) {
         if (request == null || request.getAlunos() == null || request.getAlunos().isEmpty()) {
@@ -127,10 +122,7 @@ public class FrequenciaService {
         return salva;
     }
 
-    /**
-     * Conclui a matrícula quando a carga horária cursada atinge a do curso.
-     * A escola pode reativá-la se decidir por carga horária adicional.
-     */
+    /** Conclui a matrícula quando a carga horária cursada atinge a do curso */
     private void concluirSeAtingiuCargaHoraria(Long alunoId, Long turmaId) {
         Turma turma = turmaRepository.findById(turmaId).orElse(null);
         Integer cargaHorariaTotal = turma != null && turma.getCurso() != null

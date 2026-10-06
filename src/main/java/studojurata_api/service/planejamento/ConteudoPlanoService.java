@@ -22,18 +22,13 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ConteudoPlanoService {
-
     private final ConteudoPlanoRepository repository;
     private final AulaConteudoRepository aulaConteudoRepository;
     private final UsuarioAutenticado usuarioAutenticado;
     private final EscopoUsuario escopoUsuario;
     private final PlanejamentoAccessGuard planejamentoAccessGuard;
 
-    /**
-     * Escopado: ADMINISTRADOR ve tudo; PROFESSOR e ALUNO veem os conteudos dos
-     * planos dos seus vinculos. Conteudo de plano generico ou sem plano
-     * permanece visivel, mesma cautela de D-C2 ate haver levantamento de uso.
-     */
+    /** Escopado: ADMINISTRADOR ve tudo; PROFESSOR e ALUNO veem os conteudos dos planos dos seus vinculos */
     public List<ConteudoPlano> listar() {
         var usuario = usuarioAutenticado.atual();
 
@@ -57,7 +52,7 @@ public class ConteudoPlanoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Conteúdo do plano " + id + " não encontrado."));
     }
 
-    /** Leitura individual com a mesma visibilidade da listagem (genéricos e sem plano por D-C2). */
+    /** Leitura individual com a mesma visibilidade da listagem (genéricos e sem plano por D-C2) */
     public ConteudoPlano buscarParaLeitura(Long id) {
         ConteudoPlano conteudo = buscar(id);
         planejamentoAccessGuard.garantirLeitura(vinculoId(conteudo),
@@ -73,7 +68,7 @@ public class ConteudoPlanoService {
     }
 
     public ConteudoPlano atualizar(Long id, ConteudoPlano obj) {
-        // Escopo das duas pontas: o conteúdo atual e o plano enviado.
+        // Escopo das duas pontas: o conteúdo atual e o plano enviado
         planejamentoAccessGuard.garantirEscrita(vinculoId(buscar(id)),
                 "Você só pode alterar conteúdos das suas turmas.");
         planejamentoAccessGuard.garantirEscrita(vinculoId(obj),
@@ -82,10 +77,7 @@ public class ConteudoPlanoService {
         return repository.save(obj);
     }
 
-    /**
-     * Soft-delete, recusado quando o conteúdo já foi ministrado (vinculado a
-     * uma aula com dataPublicacao).
-     */
+    /** Soft-delete, recusado quando o conteúdo já foi ministrado (vinculado a uma aula com dataPublicacao) */
     public void deletar(Long id) {
         ConteudoPlano conteudo = buscar(id);
         planejamentoAccessGuard.garantirEscrita(vinculoId(conteudo),

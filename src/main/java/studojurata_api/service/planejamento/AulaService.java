@@ -37,8 +37,7 @@ import studojurata_api.service.auditoria.AuditLogService;
 @Service
 @RequiredArgsConstructor
 public class AulaService {
-
-    /** Tolerância pra evitar falso positivo por arredondamento de double (ex.: 7.999999999 vs 8). */
+    /** Tolerância pra evitar falso positivo por arredondamento de double (ex.: 7.999999999 vs 8) */
     private static final double TOLERANCIA_CARGA_HORARIA = 0.01;
 
     private final AulaRepository repository;
@@ -55,7 +54,7 @@ public class AulaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Aula " + id + " não encontrada."));
     }
 
-    /** Leitura individual com a mesma regra de {@code listarPorPlanoAula}. */
+    /** Leitura individual com a mesma regra de listarPorPlanoAula */
     public Aula buscarParaLeitura(Long id) {
         Aula aula = buscar(id);
         planejamentoAccessGuard.garantirLeitura(vinculoId(aula),
@@ -70,10 +69,7 @@ public class AulaService {
         return repository.findByPlanoAula_IdOrderByOrdemAsc(planoAulaId);
     }
 
-    /**
-     * ADMINISTRADOR passa; PROFESSOR e ALUNO so acessam o plano de aula se o
-     * vinculo dele estiver no escopo do usuario logado.
-     */
+    /** ADMINISTRADOR passa; PROFESSOR e ALUNO so acessam o plano de aula se o vinculo dele estiver no escopo do */
     private void garantirAcessoAoPlanoDeAula(PlanoAula planoAula) {
         if (usuarioAutenticado.ehAdministrador()) {
             return;
@@ -112,14 +108,13 @@ public class AulaService {
         return salva;
     }
 
-    /** A data de publicação é a base das estatísticas de aulas realizadas do plano. */
+    /** A data de publicação é a base das estatísticas de aulas realizadas do plano */
     @Transactional
     public Aula publicar(Long id, LocalDate dataPublicacao) {
         Aula aula = buscar(id);
         planejamentoAccessGuard.garantirEscrita(vinculoId(aula),
                 "Você só pode publicar aulas das suas turmas.");
-        // "Ministrada" é o que sustenta as estatísticas do plano e a liberação de
-        // conteúdo para reforço: data futura não pode contar como realizada.
+        // "Ministrada" é o que sustenta as estatísticas do plano e a liberação de conteúdo para reforço
         if (dataPublicacao != null && dataPublicacao.isAfter(LocalDate.now())) {
             throw new RequisicaoInvalidaException("A data de publicação não pode ser futura.");
         }
@@ -131,10 +126,7 @@ public class AulaService {
         return salva;
     }
 
-    /**
-     * Publicada a última aula ativa, conclui o plano de aula e o de ensino.
-     * Nunca reabre um plano já concluído.
-     */
+    /** Publicada a última aula ativa, conclui o plano de aula e o de ensino */
     private void concluirPlanoSeUltimaAula(PlanoAula planoAula) {
         if (planoAula == null || planoAula.getStatus() == StatusPlano.CONCLUIDO) return;
 
@@ -151,11 +143,7 @@ public class AulaService {
         }
     }
 
-    /**
-     * Percorre os horários semanais da turma em ordem de dia/hora a partir de
-     * dataInicio até completar a quantidade pedida. Cada aula já sai com o
-     * horário vinculado, então a carga horária é calculada.
-     */
+    /** Percorre os horários semanais da turma em ordem de dia/hora a partir de dataInicio até completar a quantidade */
     @Transactional
     public List<Aula> gerarLote(Long planoAulaId, GerarAulasLoteRequest pedido) {
         PlanoAula planoAula = planoAulaRepository.findById(planoAulaId)
@@ -191,7 +179,7 @@ public class AulaService {
                 ? pedido.getTituloBase().trim()
                 : "Aula";
 
-        // O plano de aula não pode ultrapassar a carga horária do plano de ensino; null = sem limite.
+        // O plano de aula não pode ultrapassar a carga horária do plano de ensino; null = sem limite
         Integer limiteCargaHoraria = planoAula.getPlanoEnsino() != null
                 ? planoAula.getPlanoEnsino().getCargaHoraria()
                 : null;
@@ -201,8 +189,7 @@ public class AulaService {
 
         List<Aula> geradas = new ArrayList<>();
         LocalDate data = pedido.getDataInicio() != null ? pedido.getDataInicio() : LocalDate.now();
-        // Trava contra loop infinito: com 1 horário cadastrado, sai 1 aula por
-        // semana, então a quantidade pedida nunca precisa de mais semanas que isso.
+        // Trava contra loop infinito: com 1 horário cadastrado, sai 1 aula por semana
         int diasVarridosNoMaximo = pedido.getQuantidade() * 7 * horarios.size();
         int diasVarridos = 0;
         boolean limiteAtingido = false;
@@ -267,8 +254,7 @@ public class AulaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Plano de aula " + obj.getPlanoAula().getId() + " não encontrado."));
         obj.setPlanoAula(planoAula);
 
-        // Com horário vinculado, a carga horária é calculada e o valor enviado
-        // pelo cliente é ignorado; sem horário (reposição), vale o digitado.
+        // Com horário vinculado, a carga horária é calculada e o valor enviado pelo cliente é ignorado; sem horário
         if (obj.getHorarioTurma() != null && obj.getHorarioTurma().getId() != null) {
             HorarioTurma horario = horarioTurmaRepository.findById(obj.getHorarioTurma().getId())
                     .orElseThrow(() -> new RecursoNaoEncontradoException(
@@ -291,7 +277,7 @@ public class AulaService {
             }
         }
 
-        // A soma das aulas não pode ultrapassar a carga horária herdada do plano de ensino.
+        // A soma das aulas não pode ultrapassar a carga horária herdada do plano de ensino
         Integer limiteCargaHoraria = planoAula.getPlanoEnsino() != null
                 ? planoAula.getPlanoEnsino().getCargaHoraria()
                 : null;
@@ -307,12 +293,12 @@ public class AulaService {
         }
     }
 
-    /** Vínculo da aula (via plano de aula), já carregado do banco. */
+    /** Vínculo da aula (via plano de aula), já carregado do banco */
     private static Long vinculoId(Aula aula) {
         return aula != null && aula.getPlanoAula() != null ? vinculoId(aula.getPlanoAula().getTurmaDisciplina()) : null;
     }
 
-    /** Vínculo do plano de aula informado no corpo, antes de validar a aula. */
+    /** Vínculo do plano de aula informado no corpo, antes de validar a aula */
     private Long vinculoIdDoPlanoAula(Aula aula) {
         if (aula == null || aula.getPlanoAula() == null || aula.getPlanoAula().getId() == null) {
             return null;
@@ -326,7 +312,7 @@ public class AulaService {
         return vinculo != null ? vinculo.getId() : null;
     }
 
-    /** Soma a carga horária das aulas ATIVAS do plano, opcionalmente excluindo uma (edição de aula existente). */
+    /** Soma a carga horária das aulas ATIVAS do plano, opcionalmente excluindo uma (edição de aula existente) */
     private double somarCargaHorariaAtiva(Long planoAulaId, Long excluirAulaId) {
         return repository.findByPlanoAula_IdAndStatus(planoAulaId, StatusAtivoInativo.ATIVO).stream()
                 .filter(aula -> excluirAulaId == null || !aula.getId().equals(excluirAulaId))

@@ -11,22 +11,12 @@ import studojurata_api.model.pessoa.Aluno;
 import studojurata_api.model.BaseEntity;
 import studojurata_api.model.planejamento.ConteudoPlano;
 
-/**
- * Repetição espaçada de um aluno sobre um conteúdo, baseada na curva de
- * esquecimento. A cada reforço, dataProximoReforco avança 7 dias (1º), 14 (2º)
- * e 90 (3º); a partir do 4º o conteúdo é considerado dominado
- * (dataProximoReforco nula, nivelDominio ALTO).
- *
- * Um único registro por aluno+conteúdo: quantidadeReforcos resume o
- * histórico em vez de uma linha por evento.
- */
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"aluno_id", "conteudo_plano_id"}))
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class RevisaoConteudo extends BaseEntity {
-
     @ManyToOne(optional = false)
     private Aluno aluno;
 

@@ -14,33 +14,21 @@ import studojurata_api.security.PerfilDeGestao;
 
 import java.util.List;
 
-/**
- * Leitura e escrita de alternativas.
- *
- * <p>A alternativa pertence a uma questao, e e a disciplina dessa questao que
- * decide quem pode escrever nela: o escopo de leitura do C2.7a vale igualmente
- * para a escrita do C2.7d, inclusive na questao de destino quando o corpo
- * reaponta a alternativa para outra questao.
- */
+/** Leitura e escrita de alternativas */
 @Service
 @RequiredArgsConstructor
 public class AlternativaService {
-
     private final AlternativaRepository repository;
     private final studojurata_api.security.UsuarioAutenticado usuarioAutenticado;
     private final studojurata_api.security.EscopoProfessor escopoProfessor;
 
-    /** 403 de perfil — mensagens do domínio de alternativa, preservadas. */
+    /** 403 de perfil — mensagens do domínio de alternativa, preservadas */
     private static final String MENSAGEM_PERFIL_LISTAR =
             "Apenas professor ou administrador pode listar alternativas.";
     private static final String MENSAGEM_PERFIL_ESCRITA =
             "Apenas professor ou administrador pode alterar alternativas.";
 
-    /**
-     * ADMINISTRADOR ve tudo; PROFESSOR ve apenas alternativas de questoes das
-     * disciplinas que leciona (nunca questoes sem disciplina); demais perfis
-     * recebem 403 — e com isso o gabarito deixa de trafegar para o aluno.
-     */
+    /** ADMINISTRADOR ve tudo; PROFESSOR ve apenas alternativas de questoes das disciplinas que leciona */
     public List<Alternativa> listar() {
         var usuario = usuarioAutenticado.atual();
 
@@ -54,11 +42,7 @@ public class AlternativaService {
         return disciplinas.isEmpty() ? List.of() : repository.findByQuestao_Disciplina_IdIn(disciplinas);
     }
 
-    /**
-     * Questões ALTERNATIVAS têm no máximo uma correta, pois a correção lê a
-     * única alternativa escolhida. Em VERDADEIRO_FALSO cada afirmação é
-     * julgada à parte, então várias podem ser verdadeiras.
-     */
+    /** Questões ALTERNATIVAS têm no máximo uma correta, pois a correção lê a única alternativa escolhida */
     @Transactional
     public Alternativa salvar(Alternativa obj) {
         PerfilDeGestao.exigir(usuarioAutenticado.atual(), MENSAGEM_PERFIL_ESCRITA);
@@ -68,17 +52,7 @@ public class AlternativaService {
         return repository.save(obj);
     }
 
-    /**
-     * Edição de alternativa (PUT /alternativas/{id}).
-     *
-     * <p>A alternativa existente é carregada antes de qualquer alteração porque
-     * o escopo é decidido pela questão a que ela pertence <b>hoje</b>: quem só
-     * manda o id não escolhe de quem é a alternativa. Quando o corpo reaponta a
-     * alternativa para outra questão, a questão de destino passa pela mesma
-     * validação — o que impede mover o gabarito para fora do escopo. Sem
-     * {@code questaoId} no corpo, o vínculo atual é preservado (a coluna é
-     * obrigatória e o cliente não deve conseguir órfão).
-     */
+    /** Edição de alternativa (PUT /alternativas/{id}) */
     @Transactional
     public Alternativa atualizar(Long id, Alternativa obj) {
         PerfilDeGestao.exigir(usuarioAutenticado.atual(), MENSAGEM_PERFIL_ESCRITA);
@@ -98,19 +72,13 @@ public class AlternativaService {
         return repository.save(obj);
     }
 
-    /** Alternativa existente por id; 404 quando não existe. */
+    /** Alternativa existente por id; 404 quando não existe */
     private Alternativa buscar(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Alternativa " + id + " não encontrada."));
     }
 
-    /**
-     * Escrita restrita às questões das disciplinas que o professor leciona — a
-     * mesma fonte de escopo da leitura, com uma única consulta e sem tocar no
-     * repositório de alternativas. Questão sem disciplina (ou alternativa sem
-     * questão) é exclusiva do administrador, e o ADMIN passa direto, sem
-     * consultar escopo.
-     */
+    /** Escrita restrita às questões das disciplinas que o professor leciona */
     private void garantirEscritaNaQuestao(Questao questao) {
         if (usuarioAutenticado.ehAdministrador()) {
             return;

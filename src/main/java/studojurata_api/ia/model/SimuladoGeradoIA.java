@@ -14,17 +14,11 @@ import studojurata_api.model.BaseEntity;
 import studojurata_api.model.planejamento.ConteudoPlano;
 import studojurata_api.model.simulado.Simulado;
 
-/**
- * Aluno, conteúdo e motivo que originaram um simulado gerado pela IA. Fica
- * fora de Simulado porque simulados criados pelo professor nunca têm esse
- * contexto.
- */
 @Entity
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class SimuladoGeradoIA extends BaseEntity {
-
     @OneToOne(optional = false)
     private Simulado simulado;
 
@@ -38,9 +32,5 @@ public class SimuladoGeradoIA extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private Set<MotivoRecomendacao> motivos = new LinkedHashSet<>();
 
-    /**
-     * Data em que a repetição espaçada venceu ou, para baixo aproveitamento, a
-     * data de geração. Ainda em RASCUNHO depois dela, o simulado está atrasado.
-     */
     private LocalDate prazoLancamento;
 }

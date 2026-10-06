@@ -20,15 +20,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Sem api-key configurada, gerarQuestoes falha imediatamente com
- * GeminiIndisponivelException, o que aciona o fallback de
- * GeracaoQuestaoIAService — o backend roda em desenvolvimento sem chave real.
- */
 @Component
 @RequiredArgsConstructor
 public class GeminiApiClient implements GeminiQuestaoClient {
-
     private final ObjectMapper objectMapper;
 
     @Value("${studojurata.ia.gemini.api-key:}")
@@ -43,9 +37,6 @@ public class GeminiApiClient implements GeminiQuestaoClient {
     @Value("${studojurata.ia.gemini.timeout-ms:8000}")
     private long timeoutMs;
 
-    // Criado sob demanda: o HttpClient abre um socket de loopback ao ser
-    // construído, e alguns ambientes o restringem na inicialização. Assim o
-    // boot da aplicação não depende disso, só a geração por IA.
     private HttpClient httpClient;
 
     private HttpClient httpClient() {
@@ -98,11 +89,6 @@ public class GeminiApiClient implements GeminiQuestaoClient {
         }
     }
 
-    /**
-     * O prompt adequa a linguagem à idade do aluno (público infantojuvenil),
-     * pede situações práticas e orienta a IA a perguntar sobre o assunto, não
-     * sobre o texto do plano de ensino.
-     */
     private String montarPrompt(String conteudoTexto, NivelDificuldade nivel, TipoQuestao tipo, int quantidade, Integer idadeAluno) {
         String instrucaoTipo = tipo == TipoQuestao.VERDADEIRO_FALSO
                 ? "Cada questão deve ter exatamente 2 alternativas, com os textos \"Verdadeiro\" e \"Falso\", e apenas uma marcada como correta."

@@ -16,49 +16,22 @@ import studojurata_api.model.enums.StatusMatricula;
 import studojurata_api.repository.turma.AlunoTurmaRepository;
 import studojurata_api.repository.turma.TurmaDisciplinaRepository;
 
-/**
- * Resolve o escopo de leitura de um professor: <b>quais ids ele pode
- * enxergar</b>. O escopo de um professor nasce do vínculo
- * {@code TurmaDisciplina} em que ele é o titular — a mesma origem que o
- * {@code ProfessorService.turmasLecionadas} usa.
- *
- * <p>Responsabilidade única, e por isso este componente <b>não</b>:
- * <ul>
- *   <li>decide autorização — quem decide é o {@link ProfessorAccessGuard};</li>
- *   <li>monta consultas JPA novas — usa apenas métodos que já existem nos
- *       repositórios;</li>
- *   <li>devolve sentinela: nenhum método significa "tudo". Um conjunto
- *       <b>vazio</b> quer dizer "sem escopo", e o caso irrestrito do
- *       administrador é decidido por quem chama, via
- *       {@link ProfessorAccessGuard#ehAdministrador()}.</li>
- * </ul>
- *
- * <p>Os vínculos <b>não</b> são filtrados por status: manter os inativos é o
- * que preserva o acesso do professor ao histórico das turmas em que lecionou.
- * Coincide com o comportamento atual do frontend, que monta o recorte a partir
- * de {@code turmasLecionadas} (sem filtro de status). Restringir a leitura nova
- * a vínculos ATIVOS é decisão de cada caso de uso, no bloco em que os guardas
- * forem aplicados.
- */
+/** Resolve o escopo de leitura de um professor: quais ids ele pode enxergar  */
 @Component
 @RequiredArgsConstructor
 public class EscopoProfessor {
-
     private final TurmaDisciplinaRepository turmaDisciplinaRepository;
     private final AlunoTurmaRepository alunoTurmaRepository;
 
-    /** Ids das turmas em que o professor é titular. */
+    /** Ids das turmas em que o professor é titular */
     public Set<Long> turmaIdsDoProfessor(Long professorId) {
         return turmaIdsDosVinculos(vinculosDoProfessor(professorId));
     }
 
-    /** Par turma + disciplina em que o professor é titular. */
+    /** Par turma + disciplina em que o professor é titular */
     public record ParTurmaDisciplina(Long turmaId, Long disciplinaId) {}
 
-    /**
-     * Pares turma+disciplina do professor. Duas pessoas podem lecionar na mesma
-     * turma disciplinas diferentes: o simulado de uma não é escopo da outra.
-     */
+    /** Pares turma+disciplina do professor */
     public Set<ParTurmaDisciplina> paresTurmaDisciplinaDoProfessor(Long professorId) {
         return vinculosDoProfessor(professorId).stream()
                 .filter(vinculo -> vinculo.getTurma() != null && vinculo.getDisciplina() != null)
@@ -66,7 +39,7 @@ public class EscopoProfessor {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    /** Ids dos vínculos turma+disciplina do professor. */
+    /** Ids dos vínculos turma+disciplina do professor */
     public Set<Long> turmaDisciplinaIdsDoProfessor(Long professorId) {
         Set<Long> vinculoIds = new LinkedHashSet<>();
         for (TurmaDisciplina vinculo : vinculosDoProfessor(professorId)) {
@@ -77,18 +50,7 @@ public class EscopoProfessor {
         return vinculoIds;
     }
 
-    /**
-     * O professor leciona para este aluno?
-     *
-     * <p>Custo <b>fixo de duas consultas</b> — as turmas do professor e uma
-     * verificação de pertencimento com {@code IN} — em vez de materializar a
-     * lista de todos os alunos das turmas dele ({@link #alunoIdsDoProfessor}),
-     * que seria 1+N em endpoint individual.
-     *
-     * <p>Não filtra o status da matrícula: o professor consulta notas de alunos
-     * com matrícula concluída no modo histórico da tela de Notas, e essa leitura
-     * segue legítima.
-     */
+    /** O professor leciona para este aluno? */
     public boolean lecionaPara(Long professorId, Long alunoId) {
         if (professorId == null || alunoId == null) {
             return false;
@@ -102,11 +64,7 @@ public class EscopoProfessor {
         return alunoTurmaRepository.existsByAluno_IdAndTurma_IdIn(alunoId, turmaIds);
     }
 
-    /**
-     * Ids das disciplinas que o professor leciona, sem duplicidade — uma unica
-     * consulta nos vinculos (sem N+1). Questoes sem disciplina nao entram aqui:
-     * elas ficam restritas ao administrador.
-     */
+    /** Ids das disciplinas que o professor leciona, sem duplicidade */
     public Set<Long> disciplinaIdsDoProfessor(Long professorId) {
         return vinculosDoProfessor(professorId).stream()
                 .map(TurmaDisciplina::getDisciplina)
@@ -116,13 +74,7 @@ public class EscopoProfessor {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    /**
-     * Ids dos alunos com matrícula <b>ATIVA</b> em alguma turma do professor.
-     * Só matrículas ativas porque é o mesmo critério de
-     * {@code AlunoTurmaService.ativosPorTurma}, usado pelas telas hoje; alunos
-     * com matrícula encerrada em uma turma continuam visíveis por outra turma,
-     * caso tenham uma.
-     */
+    /** Ids dos alunos com matrícula ATIVA em alguma turma do professor */
     public Set<Long> alunoIdsDoProfessor(Long professorId) {
         Set<Long> alunoIds = new LinkedHashSet<>();
 
@@ -137,7 +89,7 @@ public class EscopoProfessor {
         return alunoIds;
     }
 
-    /** Vínculos em que o professor é titular; lista vazia quando não há id. */
+    /** Vínculos em que o professor é titular; lista vazia quando não há id */
     private List<TurmaDisciplina> vinculosDoProfessor(Long professorId) {
         if (professorId == null) {
             return List.of();
@@ -146,7 +98,7 @@ public class EscopoProfessor {
         return vinculos != null ? vinculos : List.of();
     }
 
-    /** Turmas distintas dos vínculos, ignorando vínculo sem turma ou turma sem id. */
+    /** Turmas distintas dos vínculos, ignorando vínculo sem turma ou turma sem id */
     private Set<Long> turmaIdsDosVinculos(List<TurmaDisciplina> vinculos) {
         Set<Long> turmaIds = new LinkedHashSet<>();
         for (TurmaDisciplina vinculo : vinculos) {

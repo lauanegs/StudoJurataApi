@@ -22,32 +22,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Recomenda reforço por dois sinais: repetição espaçada vencida e
- * aproveitamento abaixo de 60% no conteúdo. Não aciona geração sozinho.
- *
- * A taxa por conteúdo diz SE reforçar; a taxa por nível de dificuldade
- * (sugerirNivelReforco) diz EM QUE NÍVEL, já que errar o fácil e acertar o
- * difícil pede um reforço bem diferente do caso inverso.
- */
+/** Recomenda reforço por dois sinais */
 @Service
 @RequiredArgsConstructor
 public class RecomendacaoService {
-
     private static final double LIMIAR_BAIXO_APROVEITAMENTO = 0.6;
 
-    /**
-     * Amostra mínima de respostas, NUM NÍVEL de um conteúdo, antes de
-     * confiar na taxa de acerto daquele nível — sem isso, uma única questão
-     * errada por azar já bastaria pra apontar um nível como fraco.
-     */
+    /** Amostra mínima de respostas, NUM NÍVEL de um conteúdo, antes de confiar na taxa de acerto daquele nível */
     private static final int AMOSTRA_MINIMA_NIVEL = 3;
 
-    /**
-     * Limiar por nível: errar o básico é mais grave que errar o avançado,
-     * então o fácil exige uma taxa de acerto bem mais alta que o difícil
-     * antes de ser considerado "ok".
-     */
+    /** Limiar por nível: errar o básico é mais grave que errar o avançado */
     private static final Map<NivelDificuldade, Double> LIMIAR_POR_NIVEL = new EnumMap<>(NivelDificuldade.class);
     static {
         LIMIAR_POR_NIVEL.put(NivelDificuldade.FACIL, 0.8);
@@ -55,12 +39,7 @@ public class RecomendacaoService {
         LIMIAR_POR_NIVEL.put(NivelDificuldade.DIFICIL, 0.5);
     }
 
-    /**
-     * Da base pro avançado: o reforço sempre aponta pro nível mais baixo que
-     * ainda está fraco, mesmo que o aluno tenha ido bem em níveis mais
-     * difíceis — acerto no difícil com o fácil furado é sinal de chute ou
-     * inconsistência, não de domínio, e não faz sentido avançar sem a base.
-     */
+    /** Da base pro avançado: o reforço sempre aponta pro nível mais baixo que ainda está fraco */
     private static final List<NivelDificuldade> ORDEM_NIVEIS =
             List.of(NivelDificuldade.FACIL, NivelDificuldade.MEDIA, NivelDificuldade.DIFICIL);
 
@@ -99,11 +78,7 @@ public class RecomendacaoService {
         return new ArrayList<>(porConteudo.values());
     }
 
-    /**
-     * O nível mais baixo em que a taxa de acerto, com amostra suficiente, está
-     * abaixo do limiar daquele nível. Null quando nenhum nível tem dados
-     * suficientes.
-     */
+    /** O nível mais baixo em que a taxa de acerto, com amostra suficiente, está abaixo do limiar daquele nível */
     public NivelDificuldade sugerirNivelReforco(Long alunoId, Long conteudoPlanoId) {
         Map<NivelDificuldade, double[]> porNivel = calcularTaxaAcertoPorConteudoENivel(alunoId).get(conteudoPlanoId);
         if (porNivel == null) return null;
@@ -136,11 +111,7 @@ public class RecomendacaoService {
         });
     }
 
-    /**
-     * conteudoPlanoId -> [quantidadeAcertos, quantidadeRespondidas], todos os
-     * níveis juntos. Separada da agregação por nível porque nivelDificuldade é
-     * opcional e a taxa geral não pode depender dele.
-     */
+    /** conteudoPlanoId -> [quantidadeAcertos, quantidadeRespondidas], todos os níveis juntos */
     private Map<Long, double[]> calcularTaxaAcertoPorConteudo(Long alunoId) {
         RespostasComConteudo dados = carregarRespostasComConteudo(alunoId);
         if (dados.respostas().isEmpty()) {
@@ -162,7 +133,7 @@ public class RecomendacaoService {
         return agregado;
     }
 
-    /** conteudoPlanoId -> nível -> [quantidadeAcertos, quantidadeRespondidas] — só questões com nível preenchido. */
+    /** conteudoPlanoId -> nível -> [quantidadeAcertos, quantidadeRespondidas] */
     private Map<Long, Map<NivelDificuldade, double[]>> calcularTaxaAcertoPorConteudoENivel(Long alunoId) {
         RespostasComConteudo dados = carregarRespostasComConteudo(alunoId);
         if (dados.respostas().isEmpty()) {
@@ -190,7 +161,7 @@ public class RecomendacaoService {
         return agregado;
     }
 
-    /** Respostas do aluno e os conteúdos vinculados a cada questão — busca compartilhada pelas duas agregações acima. */
+    /** Respostas do aluno e os conteúdos vinculados a cada questão */
     private record RespostasComConteudo(List<QuestaoAluno> respostas, Map<Long, List<Long>> conteudosPorQuestao) {}
 
     private RespostasComConteudo carregarRespostasComConteudo(Long alunoId) {
@@ -199,7 +170,7 @@ public class RecomendacaoService {
         return new RespostasComConteudo(respostas, conteudosPorQuestao);
     }
 
-    /** questaoId -> conteudoPlanoIds vinculados, resolvido só pras questões respondidas passadas. */
+    /** questaoId -> conteudoPlanoIds vinculados, resolvido só pras questões respondidas passadas */
     private Map<Long, List<Long>> mapearConteudosPorQuestao(List<QuestaoAluno> respostas) {
         List<Long> questaoIds = respostas.stream().map(qa -> qa.getQuestao().getId()).distinct().toList();
         List<QuestaoConteudo> vinculos = questaoConteudoRepository.findByQuestao_IdIn(questaoIds);

@@ -13,19 +13,11 @@ import studojurata_api.model.curriculo.Disciplina;
 import studojurata_api.model.planejamento.PlanoEnsino;
 import studojurata_api.model.turma.Turma;
 
-/**
- * Em RASCUNHO o professor monta as questões; ao ser lançado
- * (SimuladoService.lancar) passa a PUBLICADO e cria uma tentativa PENDENTE
- * para cada aluno elegível, conforme tipoDestinacao:
- * - TODOS: todos os alunos com matrícula ATIVA na turma;
- * - ESPECIFICO: apenas os alunos informados no momento do lançamento.
- */
 @Entity
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class Simulado extends BaseEntity {
-
     private String titulo;
 
     @ManyToOne

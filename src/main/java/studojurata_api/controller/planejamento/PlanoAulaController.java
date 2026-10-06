@@ -12,7 +12,6 @@ import java.util.Map;
 @RequestMapping("/plano-aula")
 @RequiredArgsConstructor
 public class PlanoAulaController {
-
     private final PlanoAulaService service;
 
     @GetMapping
@@ -26,22 +25,22 @@ public class PlanoAulaController {
         return service.listarPorTurmaDisciplina(turmaDisciplinaId);
     }
 
-    /** Plano(s) de aula gerado(s) a partir de um Plano de Ensino específico. */
+    /** Plano(s) de aula gerado(s) a partir de um Plano de Ensino específico */
     @GetMapping("/plano-ensino/{planoEnsinoId}")
     public List<PlanoAula> listarPorPlanoEnsino(@PathVariable Long planoEnsinoId) {
         return service.listarPorPlanoEnsino(planoEnsinoId);
     }
 
-    /** Estatísticas exibidas na tela "Aulas": aulas realizadas / total previsto e carga horária realizada. */
+    /** Estatísticas exibidas na tela "Aulas" */
     @GetMapping("/{id}/estatisticas")
     public Map<String, Object> estatisticas(@PathVariable Long id) { return service.estatisticas(id); }
 
-    // Sem POST: o plano de aula nasce junto com o plano de ensino (ver PlanoEnsinoService).
+    // Sem POST: o plano de aula nasce junto com o plano de ensino (ver PlanoEnsinoService)
 
     @PutMapping("/{id}")
     public PlanoAula atualizar(@PathVariable Long id, @RequestBody PlanoAula o) { return service.atualizar(id, o); }
 
-    /** Soft delete: preserva o histórico. */
+    /** Soft delete: preserva o histórico */
     @DeleteMapping("/{id}")
     public void deletar(@PathVariable Long id) { service.deletar(id); }
 }

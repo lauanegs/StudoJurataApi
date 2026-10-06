@@ -35,14 +35,10 @@ import studojurata_api.repository.turma.TurmaRepository;
 import java.util.List;
 import studojurata_api.service.auditoria.AuditLogService;
 
-/**
- * A nota é sempre derivada dos simulados concluídos (regra de cálculo em
- * Nota). Toda alteração é registrada em AuditLog.
- */
+/** A nota é sempre derivada dos simulados concluídos (regra de cálculo em Nota) */
 @Service
 @RequiredArgsConstructor
 public class NotaService {
-
     private final NotaRepository repository;
     private final AlunoRepository alunoRepository;
     private final DisciplinaRepository disciplinaRepository;
@@ -53,24 +49,11 @@ public class NotaService {
     private final UsuarioAutenticado usuarioAutenticado;
     private final EscopoProfessor escopoProfessor;
 
-    /** 403 de perfil — mensagem do domínio de nota, preservada. */
+    /** 403 de perfil — mensagem do domínio de nota, preservada */
     private static final String MENSAGEM_PERFIL_DE_GESTAO =
             "Apenas professor ou administrador pode listar notas.";
 
-    /**
-     * Listagem escopada:
-     * <ul>
-     *   <li>ADMINISTRADOR: todas as notas (comportamento atual);</li>
-     *   <li>PROFESSOR: notas das suas turmas, mais as notas sem turma dos alunos
-     *       que estao no escopo dessas turmas;</li>
-     *   <li>ALUNO e demais perfis: 403 — o aluno consulta as proprias notas por
-     *       {@code /notas/aluno/{id}/historico};</li>
-     *   <li>sem autenticacao: 403.</li>
-     * </ul>
-     *
-     * <p>Consulta em lote (4 consultas fixas) e chave por id, para nao repetir
-     * nota que apareca nas duas origens.
-     */
+    /** Listagem escopada: ADMINISTRADOR: todas as notas (comportamento atual); PROFESSOR: notas das suas turmas */
     public List<Nota> listar() {
         var usuario = usuarioAutenticado.atual();
 
@@ -107,7 +90,7 @@ public class NotaService {
         return repository.findByAluno_IdOrderByCreatedAtDesc(alunoId);
     }
 
-    /** Chamado a cada simulado finalizado e, manualmente, para reprocessamento. */
+    /** Chamado a cada simulado finalizado e, manualmente, para reprocessamento */
     @Transactional
     public Nota recalcular(Long alunoId, Long disciplinaId, Long turmaId) {
         AlunoTurma matricula = alunoTurmaRepository
@@ -155,10 +138,7 @@ public class NotaService {
         return salva;
     }
 
-    /**
-     * Sem matrícula encontrada, conta o simulado: um dado de matrícula
-     * inconsistente não deve zerar a nota do aluno.
-     */
+    /** Sem matrícula encontrada, conta o simulado */
     private boolean elegivelPelaMatricula(SimuladoAluno simuladoAluno, AlunoTurma matricula) {
         if (matricula == null || matricula.getDataInicio() == null) return true;
         var dataAplicacao = simuladoAluno.getSimulado().getDataInicio();

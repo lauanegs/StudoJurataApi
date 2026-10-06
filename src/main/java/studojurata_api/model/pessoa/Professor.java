@@ -12,10 +12,6 @@ import studojurata_api.model.BaseEntity;
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class Professor extends BaseEntity {
-
-    /**
-     * 1 Pessoa = no máximo 1 Professor.
-     */
     @OneToOne
     @JoinColumn(unique = true, nullable = false)
     private Pessoa pessoa;

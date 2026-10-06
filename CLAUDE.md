@@ -91,6 +91,9 @@ Forma/obrigatoriedade → Bean Validation no DTO. Regra dependente de estado do 
 - Multi-tenant (`EscolaContext`) é parcial hoje (5 de 30 services) — não presumir que é o padrão universal nem "consertar" isso silenciosamente; é uma decisão de produto a confirmar.
 - Nunca commitar segredo real; em produção, banco, chave do Gemini e admin inicial vêm só de variáveis de ambiente (ver `docs/deploy.md`); o padrão de senha do Postgres em `application.properties` é só do ambiente local.
 
+### Comentários
+Só em controllers, services, security, jobs, exceptions e módulos ia/ML (service, job, controller), em uma linha sobre a regra de negócio. Nada de comentário em entidades, DTOs, repositories, mappers, enums e config.
+
 ### Testes
 Não há testes automatizados (removidos de propósito). Ao alterar comportamento, verificar manualmente contra a API e relatar o que foi verificado.
 

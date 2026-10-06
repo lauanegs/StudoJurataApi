@@ -15,22 +15,14 @@ import studojurata_api.model.turma.TurmaDisciplina;
 import studojurata_api.repository.turma.AlunoTurmaRepository;
 import studojurata_api.repository.turma.TurmaDisciplinaRepository;
 
-/**
- * Escopo de leitura de um aluno: as turmas em que está matriculado (qualquer
- * status de matrícula, para preservar o histórico) e os vínculos
- * turma+disciplina dessas turmas.
- *
- * <p>Custo fixo: 1 consulta para as turmas e, quando houver alguma, mais 1 para
- * os vínculos — nunca uma consulta por turma.
- */
+/** Escopo de leitura de um aluno: as turmas em que está matriculado (qualquer status de matrícula */
 @Component
 @RequiredArgsConstructor
 public class EscopoAluno {
-
     private final AlunoTurmaRepository alunoTurmaRepository;
     private final TurmaDisciplinaRepository turmaDisciplinaRepository;
 
-    /** Ids das turmas do aluno. */
+    /** Ids das turmas do aluno */
     public Set<Long> turmaIdsDoAluno(Long alunoId) {
         if (alunoId == null) {
             return Set.of();
@@ -43,7 +35,7 @@ public class EscopoAluno {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    /** Ids dos vínculos turma+disciplina das turmas do aluno. */
+    /** Ids dos vínculos turma+disciplina das turmas do aluno */
     public Set<Long> turmaDisciplinaIdsDoAluno(Long alunoId) {
         Set<Long> turmaIds = turmaIdsDoAluno(alunoId);
         if (turmaIds.isEmpty()) {

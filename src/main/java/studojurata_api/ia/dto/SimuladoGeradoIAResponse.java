@@ -15,6 +15,5 @@ public class SimuladoGeradoIAResponse {
     private Long conteudoPlanoId;
     private String conteudoTitulo;
     private Set<MotivoRecomendacao> motivos;
-    /** Prazo pra lançar este simulado — ver SimuladoGeradoIA.prazoLancamento. */
     private LocalDate prazoLancamento;
 }

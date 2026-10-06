@@ -13,10 +13,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
-/** Traduz as exceções de negócio para HTTP, mantendo os services livres de detalhes de HTTP. */
+/** Traduz as exceções de negócio para HTTP, mantendo os services livres de detalhes de HTTP */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
     @ExceptionHandler(RecursoNaoEncontradoException.class)
     public ResponseEntity<ErrorResponse> handleRecursoNaoEncontrado(RecursoNaoEncontradoException ex, HttpServletRequest request) {
         return corpo(HttpStatus.NOT_FOUND, ex.getMessage(), request);
@@ -40,10 +39,7 @@ public class GlobalExceptionHandler {
         return corpo(HttpStatus.BAD_REQUEST, mensagem.isBlank() ? "Dados inválidos." : mensagem, request);
     }
 
-    /**
-     * Exclusão física de um registro com dependentes é recusada pelo banco;
-     * sem este handler, isso chegaria ao cliente como 500 genérico.
-     */
+    /** Exclusão física de um registro com dependentes é recusada pelo banco; sem este handler */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleIntegridade(DataIntegrityViolationException ex, HttpServletRequest request) {
         return corpo(HttpStatus.CONFLICT,
@@ -57,12 +53,7 @@ public class GlobalExceptionHandler {
         return corpo(status, ex.getReason(), request);
     }
 
-    /**
-     * AuthController chama o AuthenticationManager fora do filtro padrão do
-     * Spring Security, então falhas de login chegam aqui. A mensagem é
-     * genérica de propósito: informar se o usuário existe facilitaria a
-     * enumeração de contas.
-     */
+    /** AuthController chama o AuthenticationManager fora do filtro padrão do Spring Security */
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) {
         return corpo(HttpStatus.UNAUTHORIZED, "Usuário ou senha inválidos.", request);

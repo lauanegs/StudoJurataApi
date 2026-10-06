@@ -16,18 +16,10 @@ import studojurata_api.model.pessoa.Aluno;
 import studojurata_api.model.enums.StatusSimulado;
 import studojurata_api.repository.pessoa.AlunoRepository;
 
-/**
- * Baixo aproveitamento não tem data de vencimento própria (ao contrário da
- * repetição espaçada), então é reavaliado por intervalo fixo para todos os
- * alunos.
- *
- * Para não empilhar rascunhos, não gera um novo para aluno+conteúdo enquanto
- * existir um simulado gerado por IA, de qualquer motivo, ainda em RASCUNHO.
- */
+/** Baixo aproveitamento não tem data de vencimento própria (ao contrário da repetição espaçada) */
 @Component
 @RequiredArgsConstructor
 public class GeracaoAutomaticaBaixoAproveitamentoJob {
-
     private static final Logger log = LoggerFactory.getLogger(GeracaoAutomaticaBaixoAproveitamentoJob.class);
 
     private final AlunoRepository alunoRepository;
@@ -35,7 +27,7 @@ public class GeracaoAutomaticaBaixoAproveitamentoJob {
     private final SimuladoGeradoIARepository simuladoGeradoIARepository;
     private final GeracaoSimuladoIAService geracaoSimuladoIAService;
 
-    /** fixedDelay em vez de cron: cron não expressa "a cada 7 dias" de forma exata. */
+    /** fixedDelay em vez de cron: cron não expressa "a cada 7 dias" de forma exata */
     @Scheduled(fixedDelayString = "${studojurata.ia.geracao-automatica.baixo-aproveitamento.intervalo-ms:604800000}")
     public void gerarParaBaixoAproveitamento() {
         for (Aluno aluno : alunoRepository.findAll()) {
@@ -52,12 +44,11 @@ public class GeracaoAutomaticaBaixoAproveitamentoJob {
                             recomendacao.getNivelPrioritario(),
                             recomendacao.getMotivos());
                 } catch (RegraNegocioException regra) {
-                    // Regra de negócio (ex.: baixo aproveitamento coletivo pede revisão em
-                    // sala) não é falha do job; fica no log informativo.
+                    // Regra de negócio (ex.: baixo aproveitamento coletivo pede revisão em sala) não é falha do job
                     log.info("Geração por baixo aproveitamento ignorada (aluno {}, conteúdo {}): {}",
                             alunoId, recomendacao.getConteudoPlanoId(), regra.getMessage());
                 } catch (RuntimeException erro) {
-                    // Uma falha pontual não pode interromper a geração dos demais alunos.
+                    // Uma falha pontual não pode interromper a geração dos demais alunos
                     log.error(
                             "Falha ao gerar simulado automático por baixo aproveitamento (aluno {}, conteúdo {})",
                             alunoId, recomendacao.getConteudoPlanoId(), erro);

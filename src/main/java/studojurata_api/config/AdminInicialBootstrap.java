@@ -15,17 +15,9 @@ import studojurata_api.repository.institucional.EscolaRepository;
 import studojurata_api.repository.pessoa.PessoaRepository;
 import studojurata_api.repository.pessoa.UsuarioRepository;
 
-/**
- * Cria o primeiro administrador num banco vazio (produção), a partir das
- * variáveis ADMIN_USERNAME e ADMIN_PASSWORD. Não faz nada se as variáveis
- * faltam ou se já existe algum administrador; depois do primeiro acesso, o
- * administrador completa o cadastro (CPF, e-mail) e troca a senha pela tela de
- * usuários.
- */
 @Component
 @RequiredArgsConstructor
 public class AdminInicialBootstrap implements CommandLineRunner {
-
     private static final String CPF_PROVISORIO = "000.000.000-00";
 
     private final UsuarioRepository usuarioRepository;

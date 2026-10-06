@@ -18,7 +18,6 @@ import java.util.List;
 @RequestMapping("/simulado-aluno")
 @RequiredArgsConstructor
 public class SimuladoAlunoController {
-
     private final SimuladoAlunoService service;
     private final SimuladoAlunoMapper mapper;
     private final SimuladoService simuladoService;
@@ -47,9 +46,7 @@ public class SimuladoAlunoController {
     public List<SimuladoAlunoResponse> listarPorSimulado(@PathVariable Long simuladoId) {
         Simulado simulado = simuladoService.buscar(simuladoId);
 
-        // Simulado sem turma não tem escopo verificável: só o administrador
-        // consulta as tentativas dele. Com turma, vale o escopo da turma — o que
-        // já barra o aluno, que só vê as próprias tentativas pelas rotas dele.
+        // Simulado sem turma não tem escopo verificável
         simuladoAccessGuard.garantirLeituraDeOrfao(simulado);
         if (simulado.getTurma() != null) {
             alunoAccessGuard.garantirAcessoATurma(simulado.getTurma().getId());
@@ -58,21 +55,18 @@ public class SimuladoAlunoController {
         return service.listarPorSimulado(simuladoId).stream().map(mapper::toResponse).toList();
     }
 
-    /**
-     * Conteudo da prova para o proprio aluno: questoes e alternativas da
-     * tentativa, com gabarito apenas quando ela ja foi concluida.
-     */
+    /** Conteudo da prova para o proprio aluno */
     @GetMapping("/{id}/questoes")
     public studojurata_api.dto.simulado.QuestaoDaTentativaDTO questoesDaTentativa(@PathVariable Long id) {
         return service.questoesDaTentativa(id);
     }
 
-    /** Id do aluno dono da tentativa; null vira recusa no guard (falha fechado). */
+    /** Id do aluno dono da tentativa; null vira recusa no guard (falha fechado) */
     private Long alunoDaTentativa(SimuladoAluno tentativa) {
         return tentativa.getAluno() != null ? tentativa.getAluno().getId() : null;
     }
 
-    /** Além de nota e acertos, devolve em quantos dias cai a próxima revisão espaçada. */
+    /** Além de nota e acertos, devolve em quantos dias cai a próxima revisão espaçada */
     @PostMapping("/{id}/finalizar")
     public SimuladoAlunoResponse finalizar(@PathVariable Long id, @RequestBody FinalizarSimuladoRequest request) {
         SimuladoAlunoService.ResultadoFinalizacao resultado = service.finalizar(id, request);
@@ -81,7 +75,7 @@ public class SimuladoAlunoController {
         return dto;
     }
 
-    /** Feedback imediato: confere a resposta da questão e a trava para a finalização. */
+    /** Feedback imediato: confere a resposta da questão e a trava para a finalização */
     @PostMapping("/{id}/conferir-questao")
     public SimuladoAlunoService.ConferenciaQuestao conferirQuestao(
             @PathVariable Long id, @RequestBody FinalizarSimuladoRequest.Item resposta) {

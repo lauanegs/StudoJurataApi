@@ -14,7 +14,6 @@ import java.util.List;
 @RequestMapping("/simulado-questao")
 @RequiredArgsConstructor
 public class SimuladoQuestaoController {
-
     private final SimuladoQuestaoService service;
     private final SimuladoQuestaoMapper mapper;
 
@@ -28,7 +27,7 @@ public class SimuladoQuestaoController {
         return mapper.toResponse(service.salvar(mapper.toEntity(dto)));
     }
 
-    /** Tira a questão do simulado; a questão em si continua existindo. */
+    /** Tira a questão do simulado; a questão em si continua existindo */
     @DeleteMapping("/simulado/{simuladoId}/questao/{questaoId}")
     public void desvincular(@PathVariable Long simuladoId, @PathVariable Long questaoId) {
         service.desvincular(simuladoId, questaoId);

@@ -28,14 +28,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/**
- * validarCurso recusa curso de outra escola (403) ou inativo (409), como em
- * TurmaService.
- */
+/** validarCurso recusa curso de outra escola (403) ou inativo (409), como em TurmaService */
 @Service
 @RequiredArgsConstructor
 public class PlanoEnsinoService {
-
     private final PlanoEnsinoRepository repository;
     private final CursoRepository cursoRepository;
     private final TurmaDisciplinaRepository turmaDisciplinaRepository;
@@ -46,7 +42,7 @@ public class PlanoEnsinoService {
     private final EscopoUsuario escopoUsuario;
     private final PlanejamentoAccessGuard planejamentoAccessGuard;
 
-    /** Filtra pela escola do curso; sem escola resolvível (antes do cadastro inicial), não filtra. */
+    /** Filtra pela escola do curso; sem escola resolvível (antes do cadastro inicial), não filtra */
     public List<PlanoEnsino> listar() {
         var usuario = usuarioAutenticado.atual();
 
@@ -70,7 +66,7 @@ public class PlanoEnsinoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Plano de ensino " + id + " não encontrado."));
     }
 
-    /** Leitura individual com a mesma visibilidade da listagem (genéricos por D-C2). */
+    /** Leitura individual com a mesma visibilidade da listagem (genéricos por D-C2) */
     public PlanoEnsino buscarParaLeitura(Long id) {
         PlanoEnsino plano = buscar(id);
         planejamentoAccessGuard.garantirLeitura(vinculoId(plano),
@@ -90,7 +86,7 @@ public class PlanoEnsinoService {
     }
 
     public PlanoEnsino atualizar(Long id, PlanoEnsino obj) {
-        // Escopo das duas pontas: o plano atual e o vínculo enviado.
+        // Escopo das duas pontas: o plano atual e o vínculo enviado
         planejamentoAccessGuard.garantirEscrita(vinculoId(buscar(id)),
                 "Você só pode alterar planos de ensino das suas turmas.");
         planejamentoAccessGuard.garantirEscrita(vinculoId(obj),
@@ -99,21 +95,12 @@ public class PlanoEnsinoService {
         validarTurmaDisciplina(obj, buscar(id));
         obj.setId(id);
         PlanoEnsino salvo = repository.save(obj);
-        // Plano genérico que ganhou turma numa edição também passa a ter plano de aula.
+        // Plano genérico que ganhou turma numa edição também passa a ter plano de aula
         planoAulaService.gerarSeNecessario(salvo);
         return salvo;
     }
 
-    /**
-     * O vínculo turma+disciplina do plano precisa estar utilizável: vínculo
-     * ativo, disciplina ativa e disciplina ainda na grade ativa do curso. É aqui
-     * que o back fecha o caminho para o vínculo indevido — a tela já esconde as
-     * opções inativadas, mas quem manda o id direto não passaria por ela.
-     *
-     * <p>A checagem vale só quando o vínculo é definido ou trocado: plano que
-     * mantém o vínculo atual continua editável, para o histórico de quem já
-     * usava a disciplina antes de ela ser inativada não ficar travado.
-     */
+    /** O vínculo turma+disciplina do plano precisa estar utilizável */
     private void validarTurmaDisciplina(PlanoEnsino obj, PlanoEnsino existente) {
         Long vinculoId = obj.getTurmaDisciplina() != null ? obj.getTurmaDisciplina().getId() : null;
         if (vinculoId == null) return; // plano genérico segue como sempre foi
@@ -172,7 +159,7 @@ public class PlanoEnsinoService {
         obj.setCurso(curso);
     }
 
-    /** Soft delete: vira CONCLUIDO, preservando conteúdos, planos de aula e simulados. */
+    /** Soft delete: vira CONCLUIDO, preservando conteúdos, planos de aula e simulados */
     public void deletar(Long id) {
         PlanoEnsino plano = buscar(id);
         planejamentoAccessGuard.garantirEscrita(vinculoId(plano),

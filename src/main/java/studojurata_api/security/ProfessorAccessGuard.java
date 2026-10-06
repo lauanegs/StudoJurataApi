@@ -11,36 +11,14 @@ import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.model.pessoa.Usuario;
 import studojurata_api.model.enums.TipoUsuario;
 
-/**
- * Proteção contra acesso indevido entre professores: sem ela, um professor
- * poderia trocar o id na URL e ver turmas, planos, simulados e desempenho de
- * outro professor.
- *
- * <p>Espelha o {@link AlunoAccessGuard}, inclusive na leitura do principal.
- * Essa duplicação é consciente nesta etapa: extrair um helper compartilhado
- * mexeria numa classe já em produção e coberta por teste; a extração fica para
- * quando os dois guardas forem efetivamente aplicados.
- *
- * <p>Regras:
- * <ul>
- *   <li>ADMINISTRADOR passa — é o perfil de gestão e enxerga a escola em que
- *       está vinculado (o recorte por escola continua sendo o
- *       {@link EscolaContext});</li>
- *   <li>PROFESSOR só passa no próprio id;</li>
- *   <li>qualquer outro perfil, e também a requisição sem autenticação, recebe
- *       403 — o guard falha fechado, mesmo quando a rota nem está liberada
- *       para aquele perfil no {@code SecurityConfig}.</li>
- * </ul>
- */
+/** Proteção contra acesso indevido entre professores */
 @Component
 public class ProfessorAccessGuard {
-
-    /** Lança 403 se o professor logado tentar acessar dados de outro professor. */
+    /** Lança 403 se o professor logado tentar acessar dados de outro professor */
     public void garantir(Long professorId) {
         CustomUserDetails principal = usuarioLogado();
         if (principal == null) {
-            // Não deveria acontecer atrás do Spring Security (a rota já exige
-            // autenticação), mas falha fechado por segurança.
+            // Não deveria acontecer atrás do Spring Security (a rota já exige autenticação)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Não autenticado.");
         }
 
@@ -59,12 +37,7 @@ public class ProfessorAccessGuard {
         }
     }
 
-    /**
-     * Id do professor logado. Vazio quando não há autenticação, quando o perfil
-     * não é PROFESSOR ou quando o usuário ainda não tem vínculo com um
-     * {@code Professor} — assim quem chama decide o que fazer sem depender de
-     * {@code null}.
-     */
+    /** Id do professor logado */
     public Optional<Long> professorLogadoId() {
         CustomUserDetails principal = usuarioLogado();
         if (principal == null) {
@@ -78,7 +51,7 @@ public class ProfessorAccessGuard {
         return Optional.ofNullable(usuario.getProfessor().getId());
     }
 
-    /** O perfil logado é administrador — usado para decidir recorte irrestrito. */
+    /** O perfil logado é administrador — usado para decidir recorte irrestrito */
     public boolean ehAdministrador() {
         CustomUserDetails principal = usuarioLogado();
         return principal != null

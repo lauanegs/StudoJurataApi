@@ -19,44 +19,14 @@ import studojurata_api.model.turma.TurmaDisciplina;
 import studojurata_api.model.enums.StatusAtivoInativo;
 import studojurata_api.model.enums.TipoUsuario;
 
-/**
- * Guarda de escrita de simulado: quem pode criar, editar, lançar, encerrar,
- * estender a disponibilidade e vincular questão em um simulado.
- *
- * <p>O simulado é lido por vários perfis (o aluno enxerga os que têm tentativa,
- * o professor enxerga os das suas turmas e D-C1 mantém os órfãos visíveis), mas a
- * escrita tem dono. Para o professor o escopo precisa ser <b>verificável</b>:
- * turma e disciplina nos vínculos dele e, quando houver plano de ensino, um
- * plano de vínculo dele. Simulado sem turma, sem disciplina ou com plano
- * genérico fica restrito ao administrador — melhor recusar a escrita do que
- * atribuir posse por suposição.
- *
- * <p>Existe para que {@link studojurata_api.service.simulado.SimuladoService} e
- * {@link studojurata_api.service.simulado.SimuladoQuestaoService} compartilhem a mesma
- * regra em vez de manter cada um a sua cópia.
- *
- * <p>O par turma × disciplina do simulado precisa ser uma oferta do professor —
- * não basta cada ponta isolada. Essa garantia vem de
- * {@link #garantirPlanoCompativel(Simulado)}: o plano de ensino exigido no
- * simulado de professor pertence a um vínculo turma-disciplina dele e precisa
- * apontar a mesma turma e a mesma disciplina do simulado, então não existe
- * simulado apontando par fora dos vínculos de quem cria.
- *
- * <p>Responsabilidade: decidir a escrita e falhar fechado com 403. O papel é
- * declarado no {@code SecurityConfig}; aqui a decisão é de escopo.
- */
+/** Guarda de escrita de simulado: quem pode criar, editar, lançar, encerrar, estender a disponibilidade */
 @Component
 @RequiredArgsConstructor
 public class SimuladoAccessGuard {
-
     private final UsuarioAutenticado usuarioAutenticado;
     private final EscopoProfessor escopoProfessor;
 
-    /**
-     * 403 para quem não é professor nem administrador. Separado do escopo porque
-     * quem carrega o simulado por id pode chamar isto antes da consulta e negar o
-     * perfil sem tocar no banco.
-     */
+    /** 403 para quem não é professor nem administrador */
     public void garantirPerfilDeEscrita() {
         var usuario = usuarioAutenticado.atual();
         if (usuario.getTipoUsuario() != TipoUsuario.PROFESSOR
@@ -66,20 +36,12 @@ public class SimuladoAccessGuard {
         }
     }
 
-    /** 403 quando o simulado não está no escopo do professor logado. */
+    /** 403 quando o simulado não está no escopo do professor logado */
     public void garantirEscrita(Simulado alvo) {
         garantirEscrita(alvo, null);
     }
 
-    /**
-     * Leitura de simulado <b>sem turma</b> (órfão): sem vínculo verificável não
-     * há como atribuir posse, então só o administrador consulta — a mesma
-     * cautela aplicada à escrita. Simulado com turma passa direto: quem decide
-     * ali é o escopo da turma.
-     *
-     * <p>É o par de leitura de {@code SimuladoService.simuladoIdsVisiveis()},
-     * onde órfão também fica fora do alcance de professor e aluno.
-     */
+    /** Leitura de simulado sem turma (órfão) */
     public void garantirLeituraDeOrfao(Simulado alvo) {
         if (alvo == null || alvo.getTurma() != null) {
             return;
@@ -90,11 +52,7 @@ public class SimuladoAccessGuard {
         }
     }
 
-    /**
-     * Mesma validação para o simulado atual e para os valores de uma edição,
-     * resolvendo o escopo uma única vez: a edição precisa dos dois, e repetir a
-     * resolução só duplicaria as consultas.
-     */
+    /** Mesma validação para o simulado atual e para os valores de uma edição, resolvendo o escopo uma única vez */
     public void garantirEscrita(Simulado alvo, Simulado novosValores) {
         if (deixarPassarAdministrador()) {
             return;
@@ -103,25 +61,13 @@ public class SimuladoAccessGuard {
         Long professorId = usuarioAutenticado.professorId();
         List<Simulado> alvos = alvosDe(alvo, novosValores);
 
-        // Uma fase por dimensão, e cada consulta de escopo só acontece depois do
-        // teste de presença da dimensão — simulado órfão e simulado sem disciplina
-        // são recusados sem consultar nada. Nenhuma consulta se repete por causa
-        // do segundo alvo (o caso da edição).
+        // Uma fase por dimensão, e cada consulta de escopo só acontece depois do teste de presença da dimensão
         garantirTurmas(alvos, professorId);
         garantirDisciplinas(alvos, professorId);
         garantirPlanos(alvos, professorId);
     }
 
-    /**
-     * Simulado de professor exige plano de ensino <b>compatível</b> com a turma e
-     * a disciplina escolhidas: o plano é o que liga o simulado ao conteúdo da
-     * turma (e à geração por IA). Plano genérico ou de outro vínculo não serve.
-     *
-     * <p>Vale só na criação e na edição — lançar, encerrar e estender
-     * disponibilidade não revisitam esta regra, para não travar simulado que já
-     * existe. O administrador mantém a liberdade do fluxo administrativo
-     * (simulado órfão e sem plano continuam possíveis para ele).
-     */
+    /** Simulado de professor exige plano de ensino compatível com a turma e a disciplina escolhidas */
     public void garantirPlanoCompativel(Simulado alvo) {
         if (usuarioAutenticado.ehAdministrador()) {
             return;
@@ -151,13 +97,7 @@ public class SimuladoAccessGuard {
         }
     }
 
-    /**
-     * Disciplina inativada não entra em simulado novo nem em edição: ela sai dos
-     * vínculos e da grade, e o simulado ficaria sem oferta. Vale só na criação e
-     * na edição — lançar, encerrar e estender disponibilidade não revisitam a
-     * regra, para não travar simulado que já existe. O ADMIN mantém a liberdade
-     * do fluxo administrativo.
-     */
+    /** Disciplina inativada não entra em simulado novo nem em edição */
     public void garantirDisciplinaAtiva(Simulado alvo) {
         if (usuarioAutenticado.ehAdministrador()) {
             return;
@@ -172,13 +112,7 @@ public class SimuladoAccessGuard {
         }
     }
 
-    /**
-     * Vínculo simulado × questão: o simulado passa pelas mesmas dimensões
-     * (turma, disciplina e plano) e a questão precisa ter disciplina que o
-     * professor lecione. As duas pontas compartilham a resolução de escopo. Sem
-     * simulado não há escopo de simulado a validar — a obrigatoriedade é regra
-     * estrutural do service.
-     */
+    /** Vínculo simulado × questão: o simulado passa pelas mesmas dimensões (turma, disciplina e plano) */
     public void garantirEscritaDoVinculo(Simulado simulado, Questao questao) {
         if (deixarPassarAdministrador() || simulado == null) {
             return;
@@ -188,13 +122,13 @@ public class SimuladoAccessGuard {
         List<Simulado> alvos = alvosDe(simulado, null);
 
         garantirTurmas(alvos, professorId);
-        // Com um alvo, a fase de disciplina ou lança 403 ou devolve o conjunto resolvido.
+        // Com um alvo, a fase de disciplina ou lança 403 ou devolve o conjunto resolvido
         Set<Long> disciplinas = garantirDisciplinas(alvos, professorId);
         garantirPlanos(alvos, professorId);
         garantirDisciplinaDaQuestao(questao, disciplinas);
     }
 
-    /** ADMIN passa sem consultar escopo; demais perfis já foram barrados antes. */
+    /** ADMIN passa sem consultar escopo; demais perfis já foram barrados antes */
     private boolean deixarPassarAdministrador() {
         garantirPerfilDeEscrita();
         return usuarioAutenticado.ehAdministrador();
@@ -219,7 +153,7 @@ public class SimuladoAccessGuard {
         }
     }
 
-    /** Devolve o conjunto resolvido para quem também precisa validar a questão. */
+    /** Devolve o conjunto resolvido para quem também precisa validar a questão */
     private Set<Long> garantirDisciplinas(List<Simulado> alvos, Long professorId) {
         Set<Long> disciplinas = null;
 
@@ -251,12 +185,7 @@ public class SimuladoAccessGuard {
         }
     }
 
-    /**
-     * Plano de ensino do simulado precisa ser um dos vínculos do professor.
-     * Plano genérico (sem turma/disciplina) não tem escopo verificável, então ele
-     * recusa — a consistência entre o par turma/disciplina do plano e o do
-     * simulado é responsabilidade de quem cadastra (ver relatório do C2.7d).
-     */
+    /** Plano de ensino do simulado precisa ser um dos vínculos do professor */
     private void garantirPlanos(List<Simulado> alvos, Long professorId) {
         Set<Long> vinculos = null;
 

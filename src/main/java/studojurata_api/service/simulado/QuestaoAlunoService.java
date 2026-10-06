@@ -14,29 +14,16 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * O caminho principal de escrita das respostas é SimuladoAlunoService.finalizar;
- * este service atende consultas pontuais.
- */
+/** O caminho principal de escrita das respostas é SimuladoAlunoService.finalizar */
 @Service
 @RequiredArgsConstructor
 public class QuestaoAlunoService {
-
     private final QuestaoAlunoRepository repository;
     private final SimuladoAlunoRepository simuladoAlunoRepository;
     private final SimuladoService simuladoService;
     private final UsuarioAutenticado usuarioAutenticado;
 
-    /**
-     * Listagem escopada: ADMINISTRADOR ve todas as respostas; os demais perfis veem
-     * apenas as respostas das tentativas dos simulados que podem acessar - para o
-     * professor, os simulados das turmas em que leciona (mesma fonte de
-     * {@link SimuladoService#simuladoIdsVisiveis()}). O aluno nao chega aqui: o
-     * controller exige perfil de gestao antes de consultar.
-     *
-     * <p>O recorte e obrigatorio no servidor porque a resposta carrega a alternativa
-     * marcada e se o aluno acertou: a combinacao revela o gabarito da questao.
-     */
+    /** Listagem escopada: ADMINISTRADOR ve todas as respostas */
     public List<QuestaoAluno> listar() {
         if (usuarioAutenticado.ehAdministrador()) {
             return repository.findAll();

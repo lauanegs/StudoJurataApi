@@ -13,7 +13,6 @@ import studojurata_api.model.institucional.Escola;
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class Curso extends BaseEntity {
-
     @ManyToOne(optional = false)
     private Escola escola;
 
@@ -24,7 +23,6 @@ public class Curso extends BaseEntity {
 
     private String descricao;
 
-    /** Soma das cargas horárias ativas da grade (CursoDisciplinaService); não é editável. */
     private Integer cargaHorariaTotal;
 
     @Enumerated(EnumType.STRING)

@@ -15,13 +15,9 @@ import studojurata_api.model.institucional.Escola;
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class Usuario extends BaseEntity {
-
     @ManyToOne(optional = false)
     private Escola escola;
 
-    /**
-     * 1 Pessoa = no máximo 1 Usuario (login).
-     */
     @OneToOne
     @JoinColumn(unique = true, nullable = false)
     private Pessoa pessoa;
@@ -29,10 +25,6 @@ public class Usuario extends BaseEntity {
     @Column(unique = true, nullable = false)
     private String username;
 
-    /**
-     * Hash BCrypt. WRITE_ONLY e não @JsonIgnore: a senha precisa ser aceita na
-     * entrada, só nunca serializada na resposta.
-     */
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String senha;
 
@@ -43,14 +35,10 @@ public class Usuario extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private StatusAtivoInativo status;
 
-    /** Preenchido apenas quando tipoUsuario = ALUNO. */
     @OneToOne
     @JoinColumn(unique = true)
     private Aluno aluno;
 
-    /**
-     * Preenchido apenas quando tipoUsuario = PROFESSOR.
-     */
     @OneToOne
     @JoinColumn(unique = true)
     private Professor professor;

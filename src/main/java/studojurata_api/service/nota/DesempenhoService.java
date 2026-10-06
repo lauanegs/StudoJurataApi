@@ -18,21 +18,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Base das telas de Desempenho do professor: as tentativas concluídas dos
- * simulados das turmas em que ele leciona, já com os dados do simulado. As
- * agregações (por simulado, disciplina e ao longo do tempo) seguem no front
- * porque dependem dos filtros aplicados na tela.
- *
- * <p>A consulta é escopada pelo {@link ProfessorAccessGuard}: o id do professor
- * chega pela URL, então sem o guarda um professor leria o desempenho das turmas
- * de outro (o administrador continua passando por qualquer id).
- */
+/** Base das telas de Desempenho do professor */
 @Service
 @RequiredArgsConstructor
 public class DesempenhoService {
-
-    /** Simulado sem nota máxima definida é tratado como nota de 0 a 10. */
+    /** Simulado sem nota máxima definida é tratado como nota de 0 a 10 */
     private static final double NOTA_MAXIMA_PADRAO = 10;
 
     private final SimuladoAlunoRepository simuladoAlunoRepository;
@@ -50,16 +40,15 @@ public class DesempenhoService {
             String disciplina,
             double nota,
             double notaMaxima,
-            /** 0 a 100. */
+            /** 0 a 100 */
             double percentual,
-            /** dataInicio do simulado, com createdAt como reserva. */
+            /** dataInicio do simulado, com createdAt como reserva */
             LocalDateTime data,
             TipoDestinacaoSimulado tipoDestinacao) {}
 
     @Transactional(readOnly = true)
     public List<TentativaDesempenho> tentativasDoProfessor(Long professorId) {
-        // Antes de qualquer consulta: quem não é o próprio professor (nem
-        // administrador) recebe 403 sem tocar nos repositórios.
+        // Antes de qualquer consulta: quem não é o próprio professor
         professorAccessGuard.garantir(professorId);
 
         Set<Long> turmaIds = turmaDisciplinaRepository.findByProfessorId(professorId).stream()

@@ -15,11 +15,10 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class DisciplinaService {
-
     private final DisciplinaRepository repository;
     private final EscolaContext escolaContext;
 
-    /** Sem escola resolvível (antes do cadastro inicial da escola), não filtra. */
+    /** Sem escola resolvível (antes do cadastro inicial da escola), não filtra */
     public List<Disciplina> listar() {
         Long escolaId = escolaContext.escolaAtualId();
         return escolaId != null ? repository.findByEscola_Id(escolaId) : repository.findAll();
@@ -30,7 +29,7 @@ public class DisciplinaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Disciplina " + id + " não encontrada."));
     }
 
-    /** Leitura individual: catálogo da mesma escola da listagem (disciplina não é dado pessoal). */
+    /** Leitura individual: catálogo da mesma escola da listagem (disciplina não é dado pessoal) */
     public Disciplina buscarParaLeitura(Long id) {
         Disciplina disciplina = buscar(id);
         Long escolaId = escolaContext.escolaAtualId();
@@ -50,7 +49,7 @@ public class DisciplinaService {
         return repository.save(obj);
     }
 
-    /** Soft-delete: disciplina pode ter questões, notas e planos de ensino vinculados. */
+    /** Soft-delete: disciplina pode ter questões, notas e planos de ensino vinculados */
     public void deletar(Long id) {
         Disciplina disciplina = buscar(id);
         disciplina.setStatus(StatusAtivoInativo.INATIVO);

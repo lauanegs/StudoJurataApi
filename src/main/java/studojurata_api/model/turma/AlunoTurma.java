@@ -10,17 +10,11 @@ import studojurata_api.model.enums.StatusMatricula;
 import studojurata_api.model.pessoa.Aluno;
 import studojurata_api.model.BaseEntity;
 
-/**
- * Matrícula de um Aluno em uma Turma. A unicidade de matrícula ATIVA é por
- * par (aluno, turma), garantida em AlunoTurmaService: um aluno pode estar
- * ativo em várias turmas ao mesmo tempo.
- */
 @Entity
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class AlunoTurma extends BaseEntity {
-
     @ManyToOne(optional = false)
     private Aluno aluno;
 
@@ -29,7 +23,6 @@ public class AlunoTurma extends BaseEntity {
 
     private LocalDate dataInicio;
 
-    /** Preenchida quando a matrícula deixa de estar ATIVA (conclusão ou cancelamento). */
     private LocalDate dataFim;
 
     @Enumerated(EnumType.STRING)

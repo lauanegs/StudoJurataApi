@@ -6,13 +6,11 @@ import lombok.Getter;
 import lombok.Setter;
 import studojurata_api.model.BaseEntity;
 
-/** Skins do mascote, compráveis com moedas. Catálogo inicial em GamificacaoSeeder. */
 @Entity
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class Skin extends BaseEntity {
-
     @Column(nullable = false, unique = true)
     private String nome;
 
@@ -21,7 +19,6 @@ public class Skin extends BaseEntity {
     @Column(nullable = false)
     private Integer custoMoedas;
 
-    /** URL/caminho do asset visual da skin. */
     private String urlAsset;
 
     @Column(nullable = false)

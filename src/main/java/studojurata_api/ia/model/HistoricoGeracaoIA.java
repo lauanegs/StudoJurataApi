@@ -14,24 +14,17 @@ import studojurata_api.model.simulado.Simulado;
 import studojurata_api.model.enums.NivelDificuldade;
 import studojurata_api.model.enums.TipoQuestao;
 
-/**
- * Um registro por chamada de GeracaoQuestaoIAService.gerar, com qualquer
- * resultado: permite auditar a origem das questões, diagnosticar falhas do
- * Gemini e medir o quanto o cache evita chamadas.
- */
 @Entity
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class HistoricoGeracaoIA extends BaseEntity {
-
     @ManyToOne
     private ConteudoPlano conteudoPlano;
 
     @ManyToOne
     private Disciplina disciplina;
 
-    /** Simulado que motivou/recebeu esta geração, quando aplicável. */
     @ManyToOne
     private Simulado simulado;
 
@@ -53,7 +46,6 @@ public class HistoricoGeracaoIA extends BaseEntity {
 
     private Long tempoRespostaMs;
 
-    /** Preenchida quando a chamada ao Gemini falhou (mesmo que o fallback tenha coberto a demanda). */
     @Column(length = 1000)
     private String mensagemErro;
 

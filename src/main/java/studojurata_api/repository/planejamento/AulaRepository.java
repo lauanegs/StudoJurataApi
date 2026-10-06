@@ -9,12 +9,10 @@ import studojurata_api.model.enums.StatusAtivoInativo;
 import java.util.List;
 
 public interface AulaRepository extends JpaRepository<Aula, Long> {
-
     List<Aula> findByPlanoAula_IdOrderByOrdemAsc(Long planoAulaId);
 
     List<Aula> findByPlanoAula_IdAndStatus(Long planoAulaId, StatusAtivoInativo status);
 
-    /** Aulas realizadas = aquelas cuja data de publicação já foi preenchida. */
     long countByPlanoAula_IdAndDataPublicacaoIsNotNull(Long planoAulaId);
 
     long countByPlanoAula_Id(Long planoAulaId);

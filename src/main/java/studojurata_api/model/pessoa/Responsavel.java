@@ -11,11 +11,6 @@ import studojurata_api.model.BaseEntity;
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class Responsavel extends BaseEntity {
-
-    /**
-     * 1 Pessoa = no máximo 1 Responsavel. Os alunos ficam em ResponsavelAluno
-     * (N:N, com parentesco).
-     */
     @OneToOne
     @JoinColumn(unique = true, nullable = false)
     private Pessoa pessoa;

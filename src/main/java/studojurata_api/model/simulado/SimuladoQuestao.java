@@ -7,13 +7,11 @@ import lombok.Setter;
 import studojurata_api.model.enums.StatusSimuladoQuestao;
 import studojurata_api.model.BaseEntity;
 
-/** status permite remover a questão do simulado sem perder as respostas já registradas. */
 @Entity
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class SimuladoQuestao extends BaseEntity {
-
     @ManyToOne(optional = false)
     private Simulado simulado;
 

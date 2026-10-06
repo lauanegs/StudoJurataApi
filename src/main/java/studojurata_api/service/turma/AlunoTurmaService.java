@@ -27,7 +27,6 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class AlunoTurmaService {
-
     private final AlunoTurmaRepository repository;
     private final AlunoRepository alunoRepository;
     private final ResponsavelAlunoRepository responsavelAlunoRepository;
@@ -36,11 +35,7 @@ public class AlunoTurmaService {
     private final EscopoProfessor escopoProfessor;
     private final PlanejamentoAccessGuard planejamentoAccessGuard;
 
-    /**
-     * Listagem escopada: ADMINISTRADOR vê todas as matrículas; PROFESSOR vê
-     * apenas as das turmas em que leciona. O controller só chega aqui depois de
-     * {@code AlunoAccessGuard.garantirAcessoDeGestao()}, então ALUNO não passa.
-     */
+    /** Listagem escopada: ADMINISTRADOR vê todas as matrículas; PROFESSOR vê apenas as das turmas em que leciona */
     public List<AlunoTurma> listar() {
         if (usuarioAutenticado.ehAdministrador()) {
             return repository.findAll();
@@ -71,12 +66,7 @@ public class AlunoTurmaService {
         return repository.countByTurmaIdAndStatus(turmaId, StatusMatricula.ATIVA);
     }
 
-    /**
-     * Cria uma nova matrícula, aplicando as regras de negócio:
-     * - não permite duas matrículas ATIVAS para o mesmo par (aluno, turma);
-     * - não permite matricular além da capacidadeMaxima da turma;
-     * - status default é ATIVA quando não informado.
-     */
+    /** Cria uma nova matrícula, aplicando as regras de negócio */
     @Transactional
     public AlunoTurma matricular(AlunoTurma obj) {
         if (obj.getAluno() == null || obj.getAluno().getId() == null) {
@@ -92,7 +82,7 @@ public class AlunoTurmaService {
             obj.setDataInicio(LocalDate.now());
         }
 
-        // Antes das regras de negócio: o professor só matricula nas próprias turmas.
+        // Antes das regras de negócio: o professor só matricula nas próprias turmas
         planejamentoAccessGuard.garantirEscritaNaTurma(obj.getTurma().getId(),
                 "Você só pode matricular alunos nas suas turmas.");
         exigirResponsavelParaMenor(obj.getAluno().getId());
@@ -111,8 +101,7 @@ public class AlunoTurmaService {
         AlunoTurma existente = buscar(id);
         obj.setId(id);
 
-        // A matrícula atual e a turma de destino precisam estar no escopo: sem
-        // isso, o id da URL deixaria um professor mexer na matrícula de outro.
+        // A matrícula atual e a turma de destino precisam estar no escopo
         Long turmaAtualId = existente.getTurma() != null ? existente.getTurma().getId() : null;
         Long turmaDestinoId = obj.getTurma() != null ? obj.getTurma().getId() : turmaAtualId;
 
@@ -156,7 +145,7 @@ public class AlunoTurmaService {
         }
     }
 
-    /** Não é permitido matricular (ou reativar matrícula) em turma que não esteja ATIVA. */
+    /** Não é permitido matricular (ou reativar matrícula) em turma que não esteja ATIVA */
     private void validarTurmaAtiva(Long turmaId) {
         Turma turma = turmaRepository.findById(turmaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Turma " + turmaId + " não encontrada."));
@@ -177,12 +166,7 @@ public class AlunoTurmaService {
         }
     }
 
-    /**
-     * Aluno menor de idade precisa de ao menos um responsável vinculado: é a
-     * escola que responde por ele. A tela de matrícula já exige esse cadastro
-     * quando o aluno é novo; aqui a mesma regra vale para quem chama a API
-     * direto. Aluno sem data de nascimento (cadastro antigo) não é bloqueado.
-     */
+    /** Aluno menor de idade precisa de ao menos um responsável vinculado */
     private void exigirResponsavelParaMenor(Long alunoId) {
         Aluno aluno = alunoRepository.findById(alunoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Aluno " + alunoId + " não encontrado."));

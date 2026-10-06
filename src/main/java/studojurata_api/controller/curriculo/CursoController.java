@@ -13,7 +13,6 @@ import java.util.List;
 @RequestMapping("/cursos")
 @RequiredArgsConstructor
 public class CursoController {
-
     private final CursoService service;
     private final CursoDisciplinaService cursoDisciplinaService;
 
@@ -24,7 +23,7 @@ public class CursoController {
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
     @PostMapping("/{id}/ativar") public Curso ativar(@PathVariable Long id){ return service.ativar(id); }
 
-    /** Grade curricular (disciplinas + carga horária) deste curso — ver CursoDisciplina. */
+    /** Grade curricular (disciplinas + carga horária) deste curso — ver CursoDisciplina */
     @GetMapping("/{id}/disciplinas")
     public List<CursoDisciplina> disciplinas(@PathVariable Long id) {
         return cursoDisciplinaService.listarPorCurso(id);

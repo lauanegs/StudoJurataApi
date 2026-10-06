@@ -19,7 +19,6 @@ import java.util.List;
 @RequestMapping("/aulas")
 @RequiredArgsConstructor
 public class AulaController {
-
     private final AulaService service;
     private final AulaConteudoService aulaConteudoService;
     private final FrequenciaService frequenciaService;
@@ -27,7 +26,7 @@ public class AulaController {
     @GetMapping("/{id}")
     public Aula buscar(@PathVariable Long id) { return service.buscarParaLeitura(id); }
 
-    /** Aulas de um plano de aula, na ordem em que devem ser ministradas. */
+    /** Aulas de um plano de aula, na ordem em que devem ser ministradas */
     @GetMapping("/plano-aula/{planoAulaId}")
     public List<Aula> listarPorPlanoAula(@PathVariable Long planoAulaId) {
         return service.listarPorPlanoAula(planoAulaId);
@@ -36,7 +35,7 @@ public class AulaController {
     @PostMapping
     public Aula salvar(@RequestBody Aula o) { return service.salvar(o); }
 
-    /** Gera as aulas do plano seguindo os horários já cadastrados na turma. */
+    /** Gera as aulas do plano seguindo os horários já cadastrados na turma */
     @PostMapping("/plano-aula/{planoAulaId}/gerar-lote")
     public List<Aula> gerarLote(@PathVariable Long planoAulaId, @RequestBody GerarAulasLoteRequest pedido) {
         return service.gerarLote(planoAulaId, pedido);
@@ -45,14 +44,14 @@ public class AulaController {
     @PutMapping("/{id}")
     public Aula atualizar(@PathVariable Long id, @RequestBody Aula o) { return service.atualizar(id, o); }
 
-    /** Marca a aula como ministrada, preenchendo a data de publicação. */
+    /** Marca a aula como ministrada, preenchendo a data de publicação */
     @PostMapping("/{id}/publicar")
     public Aula publicar(@PathVariable Long id,
                           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataPublicacao) {
         return service.publicar(id, dataPublicacao);
     }
 
-    /** Soft delete: preserva frequências e conteúdos já vinculados. */
+    /** Soft delete: preserva frequências e conteúdos já vinculados */
     @DeleteMapping("/{id}")
     public void deletar(@PathVariable Long id) { service.deletar(id); }
 

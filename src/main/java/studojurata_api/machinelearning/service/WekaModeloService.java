@@ -23,38 +23,16 @@ import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 
-/**
- * Estrutura de treino e predição do Weka.
- *
- * <p><b>Algoritmo: J48</b> (árvore de decisão, implementação do C4.5 no Weka).
- * Justificativa: é interpretável (dá para ler por que a recomendação foi
- * classificada daquela forma), aceita atributos numéricos e nominais sem
- * normalização, permite valor ausente e é o algoritmo mais tolerante a
- * conjuntos pequenos — o cenário real aqui, em que o histórico dos alunos ainda
- * está começando. Um modelo mais pesado (redes, ensembles) só se justificaria
- * com volume de dados que hoje não existe.
- *
- * <p><b>Dados de treino:</b> as recomendações já registradas que têm desfecho
- * observado ({@code percentualAcertoPosterior}), com o rótulo vindo do
- * desempenho posterior real do aluno — nunca da decisão que o próprio sistema
- * tomou. Nada de dado sintético: sem registros reais suficientes, o modelo não é
- * treinado e {@link #classificar} devolve vazio, deixando a decisão para a regra
- * determinística.
- *
- * <p><b>Ciclo de vida:</b> o modelo é reconstruído sob demanda a partir dos
- * registros (persistência não é necessária), fica em memória por um período
- * limitado e é invalidado quando um novo desfecho é registrado.
- */
+/** Estrutura de treino e predição do Weka */
 @Service
 @RequiredArgsConstructor
 public class WekaModeloService {
-
     private static final Logger log = LoggerFactory.getLogger(WekaModeloService.class);
 
-    /** Mínimo de exemplos rotulados para tentar treinar. Abaixo disso não há sinal confiável. */
+    /** Mínimo de exemplos rotulados para tentar treinar */
     public static final int MINIMO_EXEMPLOS = 30;
 
-    /** Validade do modelo em memória antes de reconstruir a partir dos registros. */
+    /** Validade do modelo em memória antes de reconstruir a partir dos registros */
     private static final Duration VALIDADE_MODELO = Duration.ofHours(1);
 
     private static final String ATRIBUTO_CONTEUDO = "percentualAcertoConteudo";
@@ -72,18 +50,14 @@ public class WekaModeloService {
 
     private final AtomicReference<Modelo> cache = new AtomicReference<>();
 
-    /** Exemplo rotulado para treino — feature snapshot + desfecho observado. */
+    /** Exemplo rotulado para treino — feature snapshot + desfecho observado */
     public record Exemplo(AtributosRecomendacao atributos, NecessidadeRevisao rotulo) {}
 
     private record Modelo(Classifier classificador, Instances estrutura, Instant treinadoEm, int exemplos) {}
 
     private record Treino(Classifier classificador, Instances dados) {}
 
-    /**
-     * Classifica a necessidade de revisão com o modelo treinado.
-     * Vazio quando não há dados suficientes, quando o treino falhou ou quando a
-     * predição falha — em todos esses casos quem decide é a regra determinística.
-     */
+    /** Classifica a necessidade de revisão com o modelo treinado */
     public Optional<NecessidadeRevisao> classificar(AtributosRecomendacao atributos) {
         try {
             Modelo modelo = modeloAtual();
@@ -96,22 +70,18 @@ public class WekaModeloService {
             String rotulo = modelo.estrutura().classAttribute().value((int) predicao);
             return Optional.of(NecessidadeRevisao.valueOf(rotulo));
         } catch (Exception erro) {
-            // Qualquer problema do modelo (treino, dados, predição) só desliga o Weka
-            // nesta chamada: a recomendação continua pela regra determinística.
+            // Qualquer problema do modelo (treino, dados, predição) só desliga o Weka nesta chamada
             log.warn("Falha ao classificar com o modelo Weka; seguindo com a regra determinística.", erro);
             return Optional.empty();
         }
     }
 
-    /** Novo desfecho registrado invalida o modelo: o próximo uso reconstrói com os dados novos. */
+    /** Novo desfecho registrado invalida o modelo: o próximo uso reconstrói com os dados novos */
     public void invalidarModelo() {
         cache.set(null);
     }
 
-    /**
-     * Treina uma árvore J48. Devolve vazio (sem exceção) quando não há o mínimo
-     * de exemplos ou quando o treino falha — o chamador segue para o fallback.
-     */
+    /** Treina uma árvore J48 */
     public Optional<Classifier> treinar(List<Exemplo> exemplos) {
         return treinarComDataset(exemplos).map(Treino::classificador);
     }
@@ -154,8 +124,7 @@ public class WekaModeloService {
                 exemplos.add(new Exemplo(atributosDe(registro), rotulo));
             }
         } catch (Exception erro) {
-            // Sem leitura dos registros não há treino: fica sem modelo e a decisão segue
-            // pela regra determinística, sem interromper a geração do simulado.
+            // Sem leitura dos registros não há treino
             log.warn("Não foi possível ler os registros de treino do modelo Weka.", erro);
             cache.set(new Modelo(null, estruturaVazia(), Instant.now(), 0));
             return null;
@@ -170,7 +139,7 @@ public class WekaModeloService {
         return modelo.classificador() != null ? modelo : null;
     }
 
-    /** Rótulo do treino = necessidade observada depois da recomendação (desfecho real). */
+    /** Rótulo do treino = necessidade observada depois da recomendação (desfecho real) */
     private static NecessidadeRevisao rotuloDoDesfecho(Double percentualPosterior) {
         if (percentualPosterior == null) return null;
         if (percentualPosterior < AtributosRecomendacao.LIMIAR_BAIXO_DESEMPENHO) return NecessidadeRevisao.REVISAR_AGORA;
@@ -204,7 +173,7 @@ public class WekaModeloService {
         return dados;
     }
 
-    /** Cabeçalho do dataset (sem instâncias), reaproveitado para montar cada linha. */
+    /** Cabeçalho do dataset (sem instâncias), reaproveitado para montar cada linha */
     private static Instances estruturaVazia() {
         ArrayList<Attribute> atributos = new ArrayList<>();
         atributos.add(new Attribute(ATRIBUTO_CONTEUDO));
@@ -238,8 +207,7 @@ public class WekaModeloService {
         DenseInstance instancia = new DenseInstance(estrutura.numAttributes());
         instancia.setDataset(estrutura);
 
-        // Valor ausente entra como missing ("?"), não como zero: zero significaria
-        // "mediu e deu zero", que é informação diferente de "não há histórico".
+        // Valor ausente entra como missing ("?"), não como zero
         preencher(instancia, 0, atributos.percentualAcertoConteudo());
         preencher(instancia, 1, atributos.percentualAcertoRecente());
         preencher(instancia, 2, atributos.percentualAcertoDisciplina());

@@ -11,16 +11,11 @@ import studojurata_api.service.gamificacao.SkinService;
 
 import java.util.List;
 
-/**
- * Sempre por aluno específico, sem listagem comparativa (não há ranking).
- * Todo endpoint recebe o alunoId na URL, então todos passam por
- * AlunoAccessGuard: sem isso, um aluno poderia gastar as moedas de outro.
- */
+/** Sempre por aluno específico, sem listagem comparativa (não há ranking) */
 @RestController
 @RequestMapping("/gamificacao")
 @RequiredArgsConstructor
 public class GamificacaoController {
-
     private final PontuacaoAlunoService pontuacaoAlunoService;
     private final SkinService skinService;
     private final AlunoAccessGuard alunoAccessGuard;

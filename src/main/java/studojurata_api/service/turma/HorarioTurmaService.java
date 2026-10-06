@@ -15,7 +15,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class HorarioTurmaService {
-
     private final HorarioTurmaRepository repository;
     private final TurmaRepository turmaRepository;
 
@@ -52,7 +51,7 @@ public class HorarioTurmaService {
         }
     }
 
-    /** Impede cadastrar, para a mesma turma e o mesmo dia, dois horários que se sobrepõem. */
+    /** Impede cadastrar, para a mesma turma e o mesmo dia, dois horários que se sobrepõem */
     private void validarSemSobreposicao(Long turmaId, HorarioTurma novo) {
         List<HorarioTurma> doMesmoDia = repository.findByTurma_IdAndDiaSemana(turmaId, novo.getDiaSemana());
         boolean sobrepoe = doMesmoDia.stream().anyMatch(existente ->

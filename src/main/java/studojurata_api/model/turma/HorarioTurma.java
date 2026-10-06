@@ -9,13 +9,11 @@ import lombok.Setter;
 import studojurata_api.model.enums.DiaSemana;
 import studojurata_api.model.BaseEntity;
 
-/** Entidade própria porque uma turma costuma ter aula em mais de um dia da semana. */
 @Entity
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class HorarioTurma extends BaseEntity {
-
     @ManyToOne(optional = false)
     private Turma turma;
 

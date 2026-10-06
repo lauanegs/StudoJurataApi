@@ -11,7 +11,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ResponsavelAlunoService {
-
     private final ResponsavelAlunoRepository repository;
 
     public ResponsavelAluno buscar(Long id) {
@@ -30,7 +29,7 @@ public class ResponsavelAlunoService {
         return repository.save(obj);
     }
 
-    /** Exclusão física é aceitável: o vínculo não guarda histórico pedagógico. */
+    /** Exclusão física é aceitável: o vínculo não guarda histórico pedagógico */
     public void deletar(Long id) {
         buscar(id);
         repository.deleteById(id);

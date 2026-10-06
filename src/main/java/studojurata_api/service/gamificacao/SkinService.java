@@ -21,7 +21,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class SkinService {
-
     private final SkinRepository skinRepository;
     private final SkinAlunoRepository skinAlunoRepository;
     private final AlunoRepository alunoRepository;
@@ -31,7 +30,7 @@ public class SkinService {
 
     public List<SkinAluno> skinsDoAluno(Long alunoId) { return skinAlunoRepository.findByAluno_Id(alunoId); }
 
-    /** Compra a skin com as moedas do aluno; falha se ele já não tem moedas suficientes. */
+    /** Compra a skin com as moedas do aluno; falha se ele já não tem moedas suficientes */
     @Transactional
     public SkinAluno comprar(Long alunoId, Long skinId) {
         if (skinAlunoRepository.existsByAluno_IdAndSkin_Id(alunoId, skinId)) {

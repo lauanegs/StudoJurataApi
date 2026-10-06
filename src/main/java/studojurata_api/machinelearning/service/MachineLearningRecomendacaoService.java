@@ -40,29 +40,13 @@ import studojurata_api.repository.planejamento.ConteudoPlanoRepository;
 import studojurata_api.repository.simulado.QuestaoAlunoRepository;
 import studojurata_api.service.auditoria.AuditLogService;
 
-/**
- * Orquestra a recomendação de simulado individual: monta os atributos reais do
- * aluno, tenta a classificação pelo Weka, cai para a regra determinística quando
- * não há modelo, calcula o intervalo de revisão, seleciona questões do banco,
- * decide entre reutilizar o banco ou gerar por IA e registra tudo para o
- * aprendizado futuro.
- *
- * <p>Não gera simulado nem chama a IA: essa parte continua em
- * {@code GeracaoSimuladoIAService}, que consome o resultado daqui. Também não
- * trata autorização — quem decide se o usuário pode pedir isso é o controller e
- * o {@code SecurityConfig}, como no resto do projeto.
- *
- * <p>As regras pedagógicas que já existiam (motivo do reforço, nível
- * prioritário) são reaproveitadas de {@link RecomendacaoService} em vez de
- * reescritas aqui.
- */
+/** Orquestra a recomendação de simulado individual */
 @Service
 @RequiredArgsConstructor
 public class MachineLearningRecomendacaoService {
-
     private static final Logger log = LoggerFactory.getLogger(MachineLearningRecomendacaoService.class);
 
-    /** Proporção das questões no nível prioritário quando há um nível definido. */
+    /** Proporção das questões no nível prioritário quando há um nível definido */
     private static final double PROPORCAO_NIVEL_PRIORITARIO = 0.6;
 
     private final AtributosAlunoService atributosAlunoService;
@@ -79,18 +63,10 @@ public class MachineLearningRecomendacaoService {
     private final QuestaoAlunoRepository questaoAlunoRepository;
     private final AuditLogService auditLogService;
 
-    /**
-     * Recomenda (e registra) um simulado individual para o aluno no conteúdo.
-     *
-     * @param nivelForcado quando o professor escolhe o nível manualmente, ele prevalece
-     *                     sobre o nível sugerido pela análise;
-     * @param motivos      motivos já conhecidos pelo chamador; quando vazios, são
-     *                     resolvidos pela regra pedagógica existente.
-     */
+    /** Recomenda (e registra) um simulado individual para o aluno no conteúdo */
     @Transactional
     public RecomendacaoSimuladoDTO recomendar(
             Long alunoId, Long conteudoPlanoId, NivelDificuldade nivelForcado, Set<MotivoRecomendacao> motivos) {
-
         Aluno aluno = alunoRepository.findById(alunoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Aluno não encontrado."));
         ConteudoPlano conteudo = conteudoPlanoRepository.findById(conteudoPlanoId)
@@ -120,8 +96,7 @@ public class MachineLearningRecomendacaoService {
                 ? OrigemDecisao.WEKA
                 : atributos.temHistorico() ? OrigemDecisao.REGRA_DETERMINISTICA : OrigemDecisao.FALLBACK_SEM_HISTORICO;
 
-        // Defensivo: a tabela de quantidades já respeita o limite, mas o simulado
-        // nunca pode passar de 10 questões, venha de onde vier.
+        // Defensivo: a tabela de quantidades já respeita o limite, mas o simulado nunca pode passar de 10 questões
         int quantidade = Math.min(
                 repeticaoEspacadaService.quantidadeQuestoes(necessidade), SelecaoQuestoesService.MAXIMO_QUESTOES);
         int intervalo = repeticaoEspacadaService.intervaloDias(atributos, necessidade);
@@ -156,7 +131,7 @@ public class MachineLearningRecomendacaoService {
                 origem, dadosInsuficientes, previsao.isPresent(), alertaProfessor, nivelPrioritario);
     }
 
-    /** Liga o simulado gerado à recomendação que o originou (fecha o rastro do aprendizado). */
+    /** Liga o simulado gerado à recomendação que o originou (fecha o rastro do aprendizado) */
     @Transactional
     public void vincularSimulado(Long recomendacaoId, Simulado simulado) {
         if (recomendacaoId == null || simulado == null) return;
@@ -167,16 +142,7 @@ public class MachineLearningRecomendacaoService {
         });
     }
 
-    /**
-     * Registra o desfecho real do aluno nas recomendações ainda em aberto que
-     * tocaram as questões aplicadas. É esse número que vira rótulo de treino do
-     * Weka depois — por isso vem do simulado corrigido, nunca de estimativa.
-     *
-     * <p>Uma tentativa rotula no máximo <b>uma</b> recomendação: primeiro a que
-     * gerou este simulado (vínculo explícito) e, quando não há vínculo, a mais
-     * recente em aberto que contenha as questões aplicadas. Assim o mesmo
-     * desfecho não vira rótulo de duas recomendações diferentes.
-     */
+    /** Registra o desfecho real do aluno nas recomendações ainda em aberto que tocaram as questões aplicadas */
     @Transactional
     public int registrarResultado(
             Long alunoId, Long simuladoId, double percentualAcerto, Collection<Long> questaoIdsAplicadas) {
@@ -194,14 +160,13 @@ public class MachineLearningRecomendacaoService {
         alvo.setDataResultado(LocalDate.now());
         recomendacaoSimuladoRepository.save(alvo);
 
-        // Dado novo de treino: o próximo uso reconstrói o modelo.
+        // Dado novo de treino: o próximo uso reconstrói o modelo
         wekaModeloService.invalidarModelo();
         return 1;
     }
 
     private RecomendacaoSimulado recomendacaoQueExplicaATentativa(
             Long alunoId, Long simuladoId, Set<Long> questaoIdsAplicadas) {
-
         List<RecomendacaoSimulado> pendentes = recomendacaoSimuladoRepository
                 .findByAluno_IdAndPercentualAcertoPosteriorIsNullOrderByCreatedAtDesc(alunoId);
         if (pendentes.isEmpty()) {
@@ -218,8 +183,7 @@ public class MachineLearningRecomendacaoService {
             }
         }
 
-        // Sem vínculo explícito (ex.: simulado tradicional com as mesmas questões):
-        // usa a recomendação aberta mais recente que tocou o que foi aplicado.
+        // Sem vínculo explícito (ex.: simulado tradicional com as mesmas questões): usa a recomendação aberta mais
         return pendentes.stream()
                 .filter(registro -> registro.getQuestoesSelecionadas().stream()
                         .map(Questao::getId)
@@ -228,10 +192,7 @@ public class MachineLearningRecomendacaoService {
                 .orElse(null);
     }
 
-    /**
-     * Conteúdo alvo primeiro e, depois, os conteúdos da mesma disciplina/turma
-     * em que a regra pedagógica já apontou baixo aproveitamento.
-     */
+    /** Conteúdo alvo primeiro e, depois, os conteúdos da mesma disciplina/turma em que a regra pedagógica já apontou */
     private List<Long> conteudosPrioritarios(ConteudoPlano conteudo, List<RecomendacaoDTO> pedagogicas) {
         Set<Long> prioritarios = new LinkedHashSet<>();
         prioritarios.add(conteudo.getId());
@@ -256,14 +217,9 @@ public class MachineLearningRecomendacaoService {
         return List.copyOf(prioritarios);
     }
 
-    /**
-     * Distribuição de dificuldade do simulado: com nível prioritário definido, a
-     * maior parte vai nele (com um pouco de base e de desafio); sem nível, a
-     * distribuição acompanha a urgência da revisão (revisar agora pede base).
-     */
+    /** Distribuição de dificuldade do simulado */
     private Map<NivelDificuldade, Integer> distribuicaoDeDificuldade(
             int quantidade, NivelDificuldade nivelPrioritario, NecessidadeRevisao necessidade) {
-
         Map<NivelDificuldade, Double> proporcoes = new LinkedHashMap<>();
 
         if (nivelPrioritario != null) {
@@ -300,8 +256,7 @@ public class MachineLearningRecomendacaoService {
             }
         }
 
-        // O arredondamento para baixo nunca pode reduzir o simulado: o resto vai
-        // para o nível prioritário (ou para o de maior peso).
+        // O arredondamento para baixo nunca pode reduzir o simulado
         NivelDificuldade preferido = nivelPrioritario != null
                 ? nivelPrioritario
                 : proporcoes.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(NivelDificuldade.MEDIA);

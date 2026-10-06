@@ -12,14 +12,8 @@ import studojurata_api.repository.curriculo.DisciplinaRepository;
 @Component
 @RequiredArgsConstructor
 public class QuestaoMapper {
-
     private final DisciplinaRepository disciplinaRepository;
 
-    /**
-     * Nao copia {@code origem}: quem decide origem e status de moderacao e o
-     * servidor ({@code QuestaoService.salvar}/{@code atualizar}). O campo
-     * continua aceito no corpo para nao quebrar o cliente, mas e ignorado.
-     */
     public Questao toEntity(QuestaoRequest dto) {
         if (dto == null) return null;
         Questao questao = new Questao();

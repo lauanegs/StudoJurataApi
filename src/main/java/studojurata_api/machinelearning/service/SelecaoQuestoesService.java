@@ -24,29 +24,13 @@ import studojurata_api.repository.simulado.AlternativaRepository;
 import studojurata_api.repository.simulado.QuestaoConteudoRepository;
 import studojurata_api.repository.simulado.QuestaoRepository;
 
-/**
- * Seleciona as questões candidatas de um simulado individual a partir do banco,
- * sem chamar a IA: quem decide se precisa de IA é o
- * {@link DecisaoGeracaoIAService}, a partir do resultado daqui.
- *
- * <p>Regras respeitadas: só questões da disciplina da recomendação (nunca de
- * outra), só questões aprovadas (mesma exigência do lançamento de simulado),
- * prioridade para os conteúdos recomendados, distribuição de dificuldade pedida,
- * máximo de 10 questões e no máximo 3 alternativas por questão. Questão já
- * respondida pelo aluno entra só se o banco não tiver como preencher de outra
- * forma — e o fato é reportado para a decisão de gerar por IA.
- *
- * <p>Conteúdo inativado (INATIVO é o soft-delete de {@code ConteudoPlano}) não
- * entra: questão que só está vinculada a conteúdo que saiu do planejamento não
- * serve de base para um simulado novo.
- */
+/** Seleciona as questões candidatas de um simulado individual a partir do banco, sem chamar a IA */
 @Service
 @RequiredArgsConstructor
 public class SelecaoQuestoesService {
-
-    /** Limite pedagógico do simulado. */
+    /** Limite pedagógico do simulado */
     public static final int MAXIMO_QUESTOES = 10;
-    /** Limite de alternativas por questão, igual ao adotado no banco de questões. */
+    /** Limite de alternativas por questão, igual ao adotado no banco de questões */
     public static final int MAXIMO_ALTERNATIVAS = 3;
 
     private final QuestaoRepository questaoRepository;
@@ -59,7 +43,6 @@ public class SelecaoQuestoesService {
             Map<NivelDificuldade, Integer> distribuicaoDesejada,
             int quantidade,
             Set<Long> questoesJaRespondidas) {
-
         public Entrada {
             conteudosPrioritarios = conteudosPrioritarios != null ? conteudosPrioritarios : List.of();
             distribuicaoDesejada = distribuicaoDesejada != null ? distribuicaoDesejada : Map.of();
@@ -69,12 +52,12 @@ public class SelecaoQuestoesService {
 
     public record Resultado(
             List<Questao> selecionadas,
-            /** Quanto faltou por nível de dificuldade desejado. */
+            /** Quanto faltou por nível de dificuldade desejado */
             Map<NivelDificuldade, Integer> faltantes,
-            /** Questões repetidas (já respondidas) que entraram por falta de inéditas. */
+            /** Questões repetidas (já respondidas) que entraram por falta de inéditas */
             int repetidas,
             int descartadasPorAlternativas,
-            /** Cobertura completa + dificuldade pedida atendida + sem repetição forçada. */
+            /** Cobertura completa + dificuldade pedida atendida + sem repetição forçada */
             boolean bancoSuficiente) {}
 
     public Resultado selecionar(Entrada entrada) {
@@ -85,8 +68,7 @@ public class SelecaoQuestoesService {
         }
 
         List<Questao> daDisciplina = questaoRepository.findByDisciplina_IdIn(Set.of(entrada.disciplinaId())).stream()
-                // Defensivo: a consulta já filtra por disciplina, mas a seleção nunca
-                // pode devolver questão de disciplina diferente da recomendada.
+                // Defensivo: a consulta já filtra por disciplina
                 .filter(questao -> pertenceADisciplina(questao, entrada.disciplinaId()))
                 .filter(questao -> questao.getStatus() == StatusQuestao.APROVADA)
                 .toList();
@@ -156,7 +138,7 @@ public class SelecaoQuestoesService {
         return new Resultado(List.copyOf(selecionadas), faltantes, repetidas, descartadasPorAlternativas, bancoSuficiente);
     }
 
-    /** questaoId -> conteúdos vinculados (uma consulta, sem N+1). */
+    /** questaoId -> conteúdos vinculados (uma consulta, sem N+1) */
     private Map<Long, List<ConteudoPlano>> conteudosPorQuestao(List<Long> questaoIds) {
         Map<Long, List<ConteudoPlano>> porQuestao = new HashMap<>();
         for (QuestaoConteudo vinculo : questaoConteudoRepository.findByQuestao_IdIn(questaoIds)) {
@@ -180,11 +162,7 @@ public class SelecaoQuestoesService {
         return questao.getDisciplina() != null && disciplinaId.equals(questao.getDisciplina().getId());
     }
 
-    /**
-     * Questão entra se algum conteúdo dela continua ativo. Questão sem vínculo
-     * continua elegível: não há conteúdo inativado a excluir, e ela pertence à
-     * disciplina recomendada.
-     */
+    /** Questão entra se algum conteúdo dela continua ativo */
     private static boolean temConteudoAtivo(List<ConteudoPlano> conteudos) {
         if (conteudos == null || conteudos.isEmpty()) {
             return true;
@@ -198,7 +176,6 @@ public class SelecaoQuestoesService {
 
     private static boolean priorizaConteudo(
             Questao questao, Map<Long, List<ConteudoPlano>> conteudosPorQuestao, Entrada entrada) {
-
         List<ConteudoPlano> conteudos = conteudosPorQuestao.get(questao.getId());
         return conteudos != null && conteudos.stream()
                 .map(ConteudoPlano::getId)

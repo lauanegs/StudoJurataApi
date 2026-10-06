@@ -15,7 +15,6 @@ import java.util.List;
 @RequestMapping("/questao-aluno")
 @RequiredArgsConstructor
 public class QuestaoAlunoController {
-
     private final QuestaoAlunoService service;
     private final QuestaoAlunoMapper mapper;
     private final SimuladoAlunoService simuladoAlunoService;
@@ -23,7 +22,7 @@ public class QuestaoAlunoController {
 
     @GetMapping
     public List<QuestaoAlunoResponse> listar() {
-        // Listagem agregada de respostas: recurso de gestão pedagógica.
+        // Listagem agregada de respostas: recurso de gestão pedagógica
         alunoAccessGuard.garantirAcessoDeGestao();
         return service.listar().stream().map(mapper::toResponse).toList();
     }

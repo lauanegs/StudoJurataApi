@@ -11,7 +11,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class EventoService {
-
     private final EventoRepository repository;
 
     public List<Evento> listar() { return repository.findAllByOrderByDataHorarioAsc(); }
@@ -30,16 +29,14 @@ public class EventoService {
 
     public Evento atualizar(Long id, Evento obj) {
         obj.setId(id);
-        // criadoPor e dado do servidor e nao aparece na resposta de GET /eventos,
-        // entao o cliente nunca o devolve: preservar o registro atual evita que uma
-        // edicao apague quem criou o evento.
+        // criadoPor e dado do servidor e nao aparece na resposta de GET /eventos, entao o cliente nunca o devolve
         if (obj.getCriadoPor() == null) {
             repository.findById(id).ifPresent(existente -> obj.setCriadoPor(existente.getCriadoPor()));
         }
         return repository.save(obj);
     }
 
-    /** Evento não tem histórico pedagógico sensível — exclusão física é aceitável aqui. */
+    /** Evento não tem histórico pedagógico sensível — exclusão física é aceitável aqui */
     public void deletar(Long id) {
         buscar(id);
         repository.deleteById(id);

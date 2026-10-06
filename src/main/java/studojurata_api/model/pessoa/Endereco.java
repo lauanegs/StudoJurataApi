@@ -11,7 +11,6 @@ import studojurata_api.model.BaseEntity;
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class Endereco extends BaseEntity {
-
     private String cep;
     private String logradouro;
     private String numero;
@@ -19,6 +18,5 @@ public class Endereco extends BaseEntity {
     private String bairro;
     private String cidade;
 
-    /** UF, 2 letras. */
     private String estado;
 }

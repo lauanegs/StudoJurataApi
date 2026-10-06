@@ -15,7 +15,6 @@ import studojurata_api.model.pessoa.Usuario;
 @Setter
 @EqualsAndHashCode(callSuper = true)
 public class Evento extends BaseEntity {
-
     @Column(nullable = false)
     private String titulo;
 
@@ -28,11 +27,6 @@ public class Evento extends BaseEntity {
     @Column(nullable = false)
     private Boolean concluido = false;
 
-    /**
-     * Usuario (Administrador) que criou o evento. Nao e serializado: a leitura de
-     * eventos e de qualquer usuario autenticado, e o Usuario carrega Pessoa (CPF,
-     * contato, endereco) — quem criou nao e dado de quem consulta.
-     */
     @JsonIgnore
     @ManyToOne
     private Usuario criadoPor;

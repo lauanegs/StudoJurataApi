@@ -20,45 +20,28 @@ import studojurata_api.repository.turma.AlunoTurmaRepository;
 import studojurata_api.repository.simulado.QuestaoAlunoRepository;
 import studojurata_api.repository.simulado.QuestaoConteudoRepository;
 
-/**
- * Alerta de baixo aproveitamento <b>coletivo</b>: quando a maioria dos alunos de
- * uma turma está abaixo do limiar no conteúdo, a resposta pedagógica é revisão
- * em sala (e um simulado tradicional), não gerar um simulado individual por IA
- * para cada aluno.
- *
- * <p>Existe separado da recomendação individual porque a leitura é inversa: aqui
- * a pergunta é sobre a turma, e a decisão resultante bloqueia — não dispara — a
- * geração individual.
- *
- * <p>Usa consultas em lote (questões do conteúdo e respostas dessas questões):
- * a checagem percorre a turma inteira sem uma consulta por aluno.
- */
+/** Alerta de baixo aproveitamento coletivo  */
 @Service
 @RequiredArgsConstructor
 public class BaixoAproveitamentoColetivoService {
-
-    /** Mesmo limiar do sinal individual, para não existirem dois critérios de "baixo". */
+    /** Mesmo limiar do sinal individual, para não existirem dois critérios de "baixo" */
     static final double LIMIAR_BAIXO = AtributosRecomendacao.LIMIAR_BAIXO_DESEMPENHO;
-    /** Amostra mínima por aluno para entrar na conta da turma. */
+    /** Amostra mínima por aluno para entrar na conta da turma */
     static final int MINIMO_RESPOSTAS_POR_ALUNO = 3;
-    /** Abaixo disso não existe "maioria da turma" — é turma pequena demais. */
+    /** Abaixo disso não existe "maioria da turma" — é turma pequena demais */
     static final int MINIMO_ALUNOS_AVALIADOS = 4;
-    /** Mais da metade dos alunos avaliados abaixo do limiar. */
+    /** Mais da metade dos alunos avaliados abaixo do limiar */
     static final double PROPORCAO_MAIORIA = 0.5;
 
     private final AlunoTurmaRepository alunoTurmaRepository;
     private final QuestaoConteudoRepository questaoConteudoRepository;
     private final QuestaoAlunoRepository questaoAlunoRepository;
 
-    /**
-     * Mensagem de orientação ao professor quando a maioria da turma está abaixo
-     * do limiar neste conteúdo; {@code null} quando o caso não se aplica (turma
-     * pequena, sem dados suficientes, ou desempenho coletivo adequado).
-     */
+    /** Mensagem de orientação ao professor quando a maioria da turma está abaixo do limiar neste conteúdo */
     public String avaliar(ConteudoPlano conteudo) {
         TurmaDisciplina vinculo = turmaDisciplinaDo(conteudo);
         if (vinculo == null || vinculo.getTurma() == null || vinculo.getTurma().getId() == null) {
-            // Sem turma não existe "a maioria da turma" — o simulado é individual.
+            // Sem turma não existe "a maioria da turma" — o simulado é individual
             return null;
         }
 

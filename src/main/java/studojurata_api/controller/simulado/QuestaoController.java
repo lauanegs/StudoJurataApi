@@ -16,7 +16,6 @@ import java.util.List;
 @RequestMapping("/questoes")
 @RequiredArgsConstructor
 public class QuestaoController {
-
     private final QuestaoService service;
     private final QuestaoMapper mapper;
     private final QuestaoConteudoService questaoConteudoService;
@@ -58,8 +57,7 @@ public class QuestaoController {
 
     @GetMapping("/{id}/conteudos")
     public List<QuestaoConteudo> listarConteudos(@PathVariable Long id) {
-        // Reaproveita o escopo de leitura da questao (404 se nao existir,
-        // 403 fora do escopo) em vez de duplicar a regra aqui.
+        // Reaproveita o escopo de leitura da questao (404 se nao existir
         service.buscar(id);
         return questaoConteudoService.listarPorQuestao(id);
     }

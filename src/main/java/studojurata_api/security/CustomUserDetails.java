@@ -9,12 +9,8 @@ import studojurata_api.model.enums.StatusAtivoInativo;
 import java.util.Collection;
 import java.util.List;
 
-/**
- * Adapta a entidade Usuario para o contrato do Spring Security, expondo
- * o papel (tipoUsuario) como authority ROLE_<TIPO>.
- */
+/** Adapta a entidade Usuario para o contrato do Spring Security, expondo o papel */
 public class CustomUserDetails implements UserDetails {
-
     private final Usuario usuario;
 
     public CustomUserDetails(Usuario usuario) {

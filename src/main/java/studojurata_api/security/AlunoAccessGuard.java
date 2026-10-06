@@ -9,38 +9,13 @@ import org.springframework.web.server.ResponseStatusException;
 import studojurata_api.model.pessoa.Usuario;
 import studojurata_api.model.enums.TipoUsuario;
 
-/**
- * Proteção contra IDOR em endpoints indexados por aluno ou por turma: sem ela,
- * um aluno poderia trocar o id e ver notas, respostas, frequência ou gastar
- * moedas de outro, e um professor poderia ler dados de alunos de outra turma.
- *
- * <p>Leitura e escrita têm regras diferentes de propósito:
- * <ul>
- *   <li>{@link #garantir(Long)} (leitura) — o professor acessa alunos das suas
- *       turmas, porque acompanhar o desempenho deles é a função dele;</li>
- *   <li>{@link #garantirEscritaDoAluno(Long)} (escrita) — só o próprio aluno age
- *       em nome dele; professor tentando finalizar tentativa ou comprar/equipar
- *       skin recebe 403;</li>
- *   <li>{@link #garantirAcessoDeGestao()} — recursos agregados de gestão
- *       pedagógica, sem uso pelo aluno;</li>
- *   <li>{@link #garantirAcessoATurma(Long)} — dados recortados por turma.</li>
- * </ul>
- *
- * <p>O ADMINISTRADOR continua autorizado dentro das fronteiras de escola já
- * existentes (o recorte por escola é do {@link EscolaContext} e das consultas
- * por escola nos services de gestão). Sem autenticação, todos os métodos falham
- * fechado com 403.
- */
+/** Proteção contra IDOR em endpoints indexados por aluno ou por turma */
 @Component
 @RequiredArgsConstructor
 public class AlunoAccessGuard {
-
     private final EscopoProfessor escopoProfessor;
 
-    /**
-     * Autoriza <b>leitura</b> de dados de um aluno: o próprio aluno, o professor
-     * que leciona para ele ou o administrador.
-     */
+    /** Autoriza leitura de dados de um aluno */
     public void garantir(Long alunoId) {
         Usuario usuario = principalAutenticado().getUsuario();
 
@@ -56,7 +31,7 @@ public class AlunoAccessGuard {
             return;
         }
 
-        // PROFESSOR: só alunos das suas turmas. Custo fixo de consultas, sem 1+N.
+        // PROFESSOR: só alunos das suas turmas
         Long professorId = professorLogadoId(usuario);
         if (professorId == null || !escopoProfessor.lecionaPara(professorId, alunoId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -64,11 +39,7 @@ public class AlunoAccessGuard {
         }
     }
 
-    /**
-     * Autoriza <b>escrita</b> em nome de um aluno: apenas o próprio aluno (ou o
-     * administrador). O professor não finaliza tentativa nem compra skin para
-     * aluno.
-     */
+    /** Autoriza escrita em nome de um aluno: apenas o próprio aluno (ou o administrador) */
     public void garantirEscritaDoAluno(Long alunoId) {
         Usuario usuario = principalAutenticado().getUsuario();
 
@@ -84,10 +55,7 @@ public class AlunoAccessGuard {
                 "Apenas o próprio aluno pode executar esta ação.");
     }
 
-    /**
-     * Autoriza dados recortados por turma: o professor dono da turma ou o
-     * administrador. O aluno não tem uso legítimo para listagens de turma.
-     */
+    /** Autoriza dados recortados por turma: o professor dono da turma ou o administrador */
     public void garantirAcessoATurma(Long turmaId) {
         Usuario usuario = principalAutenticado().getUsuario();
 
@@ -108,7 +76,7 @@ public class AlunoAccessGuard {
         }
     }
 
-    /** Recursos agregados de gestão pedagógica, que o aluno não consome. */
+    /** Recursos agregados de gestão pedagógica, que o aluno não consome */
     public void garantirAcessoDeGestao() {
         Usuario usuario = principalAutenticado().getUsuario();
 
@@ -121,10 +89,7 @@ public class AlunoAccessGuard {
                 "Apenas professor ou administrador pode acessar este recurso.");
     }
 
-    /**
-     * Acesso restrito ao proprio aluno (ou ao administrador) — usado em conteudo
-     * sensivel da prova, onde nem o professor entra.
-     */
+    /** Acesso restrito ao proprio aluno (ou ao administrador) */
     public void garantirDonoOuAdministrador(Long alunoId) {
         Usuario usuario = principalAutenticado().getUsuario();
 
@@ -150,10 +115,7 @@ public class AlunoAccessGuard {
         return usuario.getProfessor() != null ? usuario.getProfessor().getId() : null;
     }
 
-    /**
-     * Principal autenticado ou 403. Não deveria acontecer atrás do Spring
-     * Security (as rotas já exigem autenticação), mas falha fechado.
-     */
+    /** Principal autenticado ou 403 */
     private CustomUserDetails principalAutenticado() {
         CustomUserDetails principal = usuarioLogado();
         if (principal == null) {

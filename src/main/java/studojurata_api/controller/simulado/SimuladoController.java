@@ -16,7 +16,6 @@ import java.util.List;
 @RequestMapping("/simulados")
 @RequiredArgsConstructor
 public class SimuladoController {
-
     private final SimuladoService service;
     private final SimuladoMapper mapper;
 
@@ -40,7 +39,7 @@ public class SimuladoController {
         return mapper.toResponse(service.atualizar(id, mapper.toEntity(dto)));
     }
 
-    /** Cria uma tentativa PENDENTE para cada aluno elegível. */
+    /** Cria uma tentativa PENDENTE para cada aluno elegível */
     @PostMapping("/{id}/lancar")
     public SimuladoResponse lancar(@PathVariable Long id, @RequestBody(required = false) LancarSimuladoRequest request) {
         return mapper.toResponse(service.lancar(id, request));
@@ -51,7 +50,7 @@ public class SimuladoController {
         return mapper.toResponse(service.encerrar(id));
     }
 
-    /** Único campo editável depois do lançamento. */
+    /** Único campo editável depois do lançamento */
     @PatchMapping("/{id}/disponibilidade")
     public SimuladoResponse estenderDisponibilidade(
             @PathVariable Long id, @RequestBody EstenderDisponibilidadeRequest request) {

@@ -12,7 +12,6 @@ import java.util.List;
 @RequestMapping("/turmas")
 @RequiredArgsConstructor
 public class TurmaController {
-
     private final TurmaService service;
     private final FrequenciaService frequenciaService;
 
@@ -23,7 +22,7 @@ public class TurmaController {
     @DeleteMapping("/{id}") public void deletar(@PathVariable Long id){ service.deletar(id); }
     @PostMapping("/{id}/ativar") public Turma ativar(@PathVariable Long id){ return service.ativar(id); }
 
-    /** Derivado das matrículas; a turma não persiste esse número. */
+    /** Derivado das matrículas; a turma não persiste esse número */
     @GetMapping("/{id}/alunos-ativos")
     public long alunosAtivos(@PathVariable Long id) { return service.contarAlunosAtivos(id); }
 
