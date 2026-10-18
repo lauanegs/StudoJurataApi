@@ -38,7 +38,6 @@ public class RecomendacaoSimuladoDTO {
     private NecessidadeRevisao necessidadeRevisao;
     private OrigemDecisao origemDecisao;
     private boolean dadosInsuficientes;
-    private boolean modeloIndisponivel;
 
     private AtributosRecomendacao atributos;
 

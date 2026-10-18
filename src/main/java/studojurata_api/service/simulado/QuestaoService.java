@@ -99,21 +99,23 @@ public class QuestaoService {
                 : repository.findByStatusAndDisciplina_IdIn(StatusQuestao.PENDENTE, disciplinas);
     }
 
+    /** Pendente ou rejeitada pode ser aprovada */
     @Transactional
     public Questao aprovar(Long id) {
         Questao questao = buscar(id);
-        if (questao.getStatus() != StatusQuestao.PENDENTE) {
-            throw new RegraNegocioException("Apenas questões PENDENTES podem ser aprovadas.");
+        if (questao.getStatus() == StatusQuestao.APROVADA) {
+            throw new RegraNegocioException("A questão já está aprovada.");
         }
         questao.setStatus(StatusQuestao.APROVADA);
         return repository.save(questao);
     }
 
+    /** Pendente ou aprovada pode ser rejeitada */
     @Transactional
     public Questao rejeitar(Long id) {
         Questao questao = buscar(id);
-        if (questao.getStatus() != StatusQuestao.PENDENTE) {
-            throw new RegraNegocioException("Apenas questões PENDENTES podem ser rejeitadas.");
+        if (questao.getStatus() == StatusQuestao.REJEITADA) {
+            throw new RegraNegocioException("A questão já está rejeitada.");
         }
         questao.setStatus(StatusQuestao.REJEITADA);
         return repository.save(questao);

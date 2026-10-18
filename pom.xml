@@ -63,16 +63,6 @@
 			<version>2.6.0</version>
 		</dependency>
 
-		<!--
-			Machine learning (recomendacao de simulado individual). A linha
-			"weka-stable" e a branch estavel do Weka, compilada para Java 8 e sem
-			dependencia de modulo nomeado, entao roda no Java 21 sem ajuste.
-		-->
-		<dependency>
-			<groupId>nz.ac.waikato.cms.weka</groupId>
-			<artifactId>weka-stable</artifactId>
-			<version>3.8.6</version>
-		</dependency>
 	</dependencies>
 
 	<build>

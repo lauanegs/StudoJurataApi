@@ -951,8 +951,8 @@ public class DevDataResetSeeder implements CommandLineRunner {
         s.setPlanoEnsino(planoEnsino);
         s.setTurma(turma);
         s.setTipoDestinacao(TipoDestinacaoSimulado.TODOS);
-        s.setDataInicio(LocalDateTime.of(2026, 8, 20, 8, 0));
-        s.setDataFim(LocalDateTime.of(2026, 9, 20, 23, 59));
+        s.setDataInicio(LocalDate.now().minusDays(7).atTime(8, 0));
+        s.setDataFim(LocalDate.now().plusDays(30).atTime(23, 59));
         s.setTempoLimite(1800);
         s.setNotaMaxima(10.0);
         s.setQuantidadeQuestoes(questoes.size());

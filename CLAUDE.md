@@ -39,7 +39,7 @@ exception/    — exceções de domínio + GlobalExceptionHandler
 security/     — CustomUserDetails(Service), AlunoAccessGuard, EscolaContext
 config/       — SecurityConfig, AdminInicialBootstrap, seeders (o de dev só no perfil `seed`)
 ia/           — módulo de IA (Gemini), organizado por feature própria
-machinelearning/ — ML (Weka): recomendação, repetição espaçada, seleção de questões
+machinelearning/ — recomendação, repetição espaçada, seleção de questões
 job/          — CicloAutomaticoSimuladoJob (publica/encerra simulados por data)
 ```
 

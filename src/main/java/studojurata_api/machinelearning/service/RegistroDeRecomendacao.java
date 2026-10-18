@@ -64,7 +64,7 @@ public class RegistroDeRecomendacao {
             List<Long> prioritarios, Map<NivelDificuldade, Integer> distribuicao,
             SelecaoQuestoesService.Resultado selecao, Set<MotivoRecomendacao> motivos, String motivo,
             NecessidadeRevisao necessidade, OrigemDecisao origem, boolean dadosInsuficientes,
-            boolean modeloUsado, String alertaProfessor, NivelDificuldade nivelPrioritario) {
+            String alertaProfessor, NivelDificuldade nivelPrioritario) {
         RecomendacaoSimuladoDTO dto = new RecomendacaoSimuladoDTO();
         dto.setId(registro.getId());
         dto.setAlunoId(registro.getAluno().getId());
@@ -84,7 +84,6 @@ public class RegistroDeRecomendacao {
         dto.setNecessidadeRevisao(necessidade);
         dto.setOrigemDecisao(origem);
         dto.setDadosInsuficientes(dadosInsuficientes);
-        dto.setModeloIndisponivel(!modeloUsado);
         dto.setAtributos(new AtributosRecomendacao(registro.getAluno().getId(), conteudo.getId(),
                 dto.getDisciplinaId(), registro.getPercentualAcertoConteudo(), registro.getPercentualAcertoRecente(),
                 registro.getPercentualAcertoDisciplina(), registro.getQuantidadeTentativas(),

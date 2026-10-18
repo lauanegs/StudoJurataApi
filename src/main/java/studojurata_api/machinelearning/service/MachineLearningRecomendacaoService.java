@@ -50,7 +50,6 @@ public class MachineLearningRecomendacaoService {
     private static final double PROPORCAO_NIVEL_PRIORITARIO = 0.6;
 
     private final AtributosAlunoService atributosAlunoService;
-    private final WekaModeloService wekaModeloService;
     private final RepeticaoEspacadaService repeticaoEspacadaService;
     private final SelecaoQuestoesService selecaoQuestoesService;
     private final DecisaoGeracaoIAService decisaoGeracaoIAService;
@@ -90,11 +89,10 @@ public class MachineLearningRecomendacaoService {
                 ? nivelForcado
                 : doConteudo != null ? doConteudo.getNivelPrioritario() : null;
 
-        Optional<NecessidadeRevisao> previsao = wekaModeloService.classificar(atributos);
-        NecessidadeRevisao necessidade = previsao.orElseGet(() -> repeticaoEspacadaService.classificar(atributos));
-        OrigemDecisao origem = previsao.isPresent()
-                ? OrigemDecisao.WEKA
-                : atributos.temHistorico() ? OrigemDecisao.REGRA_DETERMINISTICA : OrigemDecisao.FALLBACK_SEM_HISTORICO;
+        NecessidadeRevisao necessidade = repeticaoEspacadaService.classificar(atributos);
+        OrigemDecisao origem = atributos.temHistorico()
+                ? OrigemDecisao.REGRA_DETERMINISTICA
+                : OrigemDecisao.FALLBACK_SEM_HISTORICO;
 
         // Defensivo: a tabela de quantidades já respeita o limite, mas o simulado nunca pode passar de 10 questões
         int quantidade = Math.min(
@@ -128,7 +126,7 @@ public class MachineLearningRecomendacaoService {
                 decisao, quantidade, intervalo, motivosEfetivos, motivo, selecao, dadosInsuficientes, bloqueadoPeloAlerta);
 
         return registroDeRecomendacao.paraDto(registro, conteudo, prioritarios, distribuicao, selecao, motivosEfetivos, motivo, necessidade,
-                origem, dadosInsuficientes, previsao.isPresent(), alertaProfessor, nivelPrioritario);
+                origem, dadosInsuficientes, alertaProfessor, nivelPrioritario);
     }
 
     /** Liga o simulado gerado à recomendação que o originou (fecha o rastro do aprendizado) */
@@ -160,8 +158,6 @@ public class MachineLearningRecomendacaoService {
         alvo.setDataResultado(LocalDate.now());
         recomendacaoSimuladoRepository.save(alvo);
 
-        // Dado novo de treino: o próximo uso reconstrói o modelo
-        wekaModeloService.invalidarModelo();
         return 1;
     }
 
